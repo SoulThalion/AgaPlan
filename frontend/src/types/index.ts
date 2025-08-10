@@ -53,12 +53,11 @@ export interface Turno {
   fecha: string;
   hora: string; // Formato HH:MM
   estado: 'libre' | 'ocupado';
-  exhibidorId: number;
   createdAt: string;
   updatedAt: string;
   lugar?: Lugar;
   usuario?: Usuario;
-  exhibidor?: Exhibidor;
+  exhibidores?: Exhibidor[];
 }
 
 export interface Cargo {
@@ -89,6 +88,15 @@ export interface AuthResponse {
   message: string;
   token?: string;
   user?: Usuario; // Changed from usuario to user to match backend
+}
+
+export interface TurnoCreationRequest {
+  fecha: string;
+  hora: string;
+  lugarId: number;
+  exhibidorIds: number[];
+  usuarioId?: number;
+  estado?: 'libre' | 'ocupado';
 }
 
 export interface ApiResponse<T> {

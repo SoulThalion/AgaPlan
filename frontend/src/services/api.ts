@@ -8,7 +8,8 @@ import type {
   Exhibidor,
   AuthResponse, 
   RegisterRequest, 
-  ApiResponse 
+  ApiResponse,
+  TurnoCreationRequest
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
@@ -141,12 +142,12 @@ class ApiService {
     return response.data;
   }
 
-  async createTurno(data: Partial<Turno>): Promise<ApiResponse<Turno>> {
+  async createTurno(data: TurnoCreationRequest): Promise<ApiResponse<Turno>> {
     const response = await this.api.post<ApiResponse<Turno>>('/turnos', data);
     return response.data;
   }
 
-  async updateTurno(id: number, data: Partial<Turno>): Promise<ApiResponse<Turno>> {
+  async updateTurno(id: number, data: TurnoCreationRequest): Promise<ApiResponse<Turno>> {
     const response = await this.api.put<ApiResponse<Turno>>(`/turnos/${id}`, data);
     return response.data;
   }

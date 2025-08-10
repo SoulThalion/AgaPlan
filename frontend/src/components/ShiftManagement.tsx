@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
-import type { Turno, Lugar, Usuario, Exhibidor } from '../types';
+import type { Turno, Lugar, Usuario, Exhibidor, TurnoCreationRequest } from '../types';
 import Swal from 'sweetalert2';
 
 const ShiftManagement: React.FC = () => {
@@ -11,7 +11,7 @@ const ShiftManagement: React.FC = () => {
     fecha: new Date().toISOString().split('T')[0],
     hora: '09:00',
     lugarId: 0,
-    exhibidorId: 1,
+    exhibidorIds: [] as number[],
     usuarioId: undefined as number | undefined
   });
   const [selectedLugar, setSelectedLugar] = useState<Lugar | null>(null);
@@ -34,7 +34,7 @@ const ShiftManagement: React.FC = () => {
     queryFn: () => apiService.getUsuarios()
   });
 
-  const { data: exhibidores, isLoading: exhibidoresLoading } = useQuery({
+  const { data: exhibidores } = useQuery({
     queryKey: ['exhibidores'],
     queryFn: () => apiService.getExhibidores()
   });
@@ -45,11 +45,13 @@ const ShiftManagement: React.FC = () => {
       const lugar = lugares.data.find((l: Lugar) => l.id === formData.lugarId);
       setSelectedLugar(lugar || null);
       
-      // Resetear exhibidor si no existe en la lista de exhibidores disponibles
-      if (exhibidores?.data && formData.exhibidorId) {
-        const exhibidorExists = exhibidores.data.find((e: Exhibidor) => e.id === formData.exhibidorId);
-        if (!exhibidorExists && exhibidores.data.length > 0) {
-          setFormData(prev => ({ ...prev, exhibidorId: exhibidores.data[0]!.id }));
+      // Resetear exhibidores si no existen en la lista de exhibidores disponibles
+      if (exhibidores?.data && formData.exhibidorIds.length > 0) {
+        const validExhibidorIds = formData.exhibidorIds.filter(id => 
+          exhibidores.data!.find((e: Exhibidor) => e.id === id)
+        );
+        if (validExhibidorIds.length !== formData.exhibidorIds.length) {
+          setFormData(prev => ({ ...prev, exhibidorIds: validExhibidorIds }));
         }
       }
     }
@@ -57,7 +59,7 @@ const ShiftManagement: React.FC = () => {
 
   // Mutaciones
   const createShiftMutation = useMutation({
-    mutationFn: (data: Partial<Turno>) => apiService.createTurno(data),
+    mutationFn: (data: TurnoCreationRequest) => apiService.createTurno(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
       setIsModalOpen(false);
@@ -80,7 +82,7 @@ const ShiftManagement: React.FC = () => {
   });
 
   const updateShiftMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Turno> }) =>
+    mutationFn: ({ id, data }: { id: number; data: TurnoCreationRequest }) =>
       apiService.updateTurno(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
@@ -130,7 +132,7 @@ const ShiftManagement: React.FC = () => {
       fecha: new Date().toISOString().split('T')[0],
       hora: '09:00',
       lugarId: lugares?.data?.[0]?.id || 0,
-      exhibidorId: exhibidores?.data?.[0]?.id || 1,
+      exhibidorIds: [],
       usuarioId: undefined
     });
     setSelectedLugar(null);
@@ -139,10 +141,20 @@ const ShiftManagement: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (formData.exhibidorIds.length === 0) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Debes seleccionar al menos un exhibidor'
+      });
+      return;
+    }
+    
     const submitData = {
       ...formData,
       fecha: formData.fecha,
-      estado: 'libre' as const
+      estado: 'libre' as const,
+      exhibidorIds: formData.exhibidorIds
     };
     
     if (editingShift) {
@@ -157,11 +169,13 @@ const ShiftManagement: React.FC = () => {
 
   const handleEdit = (shift: Turno) => {
     setEditingShift(shift);
+    // Para editar, necesitamos obtener los exhibidorIds del turno
+    // Por ahora usamos un array vacío, pero deberíamos obtener los exhibidores asociados
     setFormData({
       fecha: shift.fecha,
       hora: shift.hora,
       lugarId: shift.lugarId,
-      exhibidorId: shift.exhibidorId,
+      exhibidorIds: [], // TODO: Obtener exhibidorIds reales del turno
       usuarioId: shift.usuarioId
     });
     setIsModalOpen(true);
@@ -207,6 +221,20 @@ const ShiftManagement: React.FC = () => {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const handleExhibidorChange = (exhibidorId: number, checked: boolean) => {
+    if (checked) {
+      setFormData(prev => ({
+        ...prev,
+        exhibidorIds: [...prev.exhibidorIds, exhibidorId]
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        exhibidorIds: prev.exhibidorIds.filter(id => id !== exhibidorId)
+      }));
+    }
   };
 
   const isLoading = turnosLoading || lugaresLoading || usuariosLoading;
@@ -261,7 +289,7 @@ const ShiftManagement: React.FC = () => {
                   
                   <div>
                     <div className="font-medium font-poppins text-neutral-text dark:text-white">
-                      {getLugarNombre(turno.lugarId)} - {turno.exhibidor?.nombre || `Exhibidor ${turno.exhibidorId}`}
+                      {getLugarNombre(turno.lugarId)} - {turno.exhibidores && turno.exhibidores.length > 0 ? turno.exhibidores.map(e => e.nombre).join(', ') : 'Sin exhibidores'}
                     </div>
                     <div className="text-sm text-neutral-text/70 dark:text-white/70">
                       {formatFecha(turno.fecha)} - {turno.hora}
@@ -355,22 +383,26 @@ const ShiftManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Exhibidor
+                  Exhibidores
                 </label>
-                <select
-                  name="exhibidorId"
-                  value={formData.exhibidorId}
-                  onChange={(e) => setFormData({...formData, exhibidorId: Number(e.target.value)})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                  required
-                >
-                  <option value="">Seleccionar exhibidor</option>
+                <div className="max-h-32 overflow-y-auto border border-neutral-light dark:border-neutral rounded-lg p-2 dark:bg-neutral">
                   {exhibidores?.data?.map((exhibidor: Exhibidor) => (
-                    <option key={exhibidor.id} value={exhibidor.id}>
-                      {exhibidor.nombre}
-                    </option>
+                    <label key={exhibidor.id} className="flex items-center space-x-2 py-1">
+                      <input
+                        type="checkbox"
+                        checked={formData.exhibidorIds.includes(exhibidor.id)}
+                        onChange={(e) => handleExhibidorChange(exhibidor.id, e.target.checked)}
+                        className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-neutral-text dark:text-white">{exhibidor.nombre}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
+                {selectedLugar && selectedLugar.exhibidores && (
+                  <p className="text-xs text-neutral-text/70 dark:text-white/70 mt-1">
+                    Este lugar puede tener hasta {selectedLugar.exhibidores} exhibidores
+                  </p>
+                )}
               </div>
 
               <div>
