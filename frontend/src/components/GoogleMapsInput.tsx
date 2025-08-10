@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import type { Lugar } from '../types';
+
+// Extender la interfaz de Google Maps para incluir nuestra propiedad personalizada
+interface ExtendedGoogleMap extends google.maps.Map {
+  pinModeListener?: google.maps.MapsEventListener;
+}
 
 interface GoogleMapsInputProps {
   value: string;
@@ -13,12 +19,13 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [isPinMode, setIsPinMode] = useState(false);
-  const [mapCenter, setMapCenter] = useState({ lat: 40.4168, lng: -3.7038 }); // Madrid por defecto
+  const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 28.2916, lng: -16.6291 }); // Tenerife por defecto
+  const [showConfirmation, setShowConfirmation] = useState(false);
   
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const mapInstanceRef = useRef<ExtendedGoogleMap | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
   const loaderRef = useRef<Loader | null>(null);
 
@@ -28,7 +35,7 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
       loaderRef.current = new Loader({
         apiKey: 'AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps',
         version: 'weekly',
-        libraries: ['places']
+        libraries: [] // Unificamos con PlaceMapModal
       });
     }
   }, []);
@@ -71,37 +78,6 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
 
           mapInstanceRef.current = map;
 
-          // Agregar listener para clicks en el mapa
-          map.addListener('click', (e: google.maps.MapMouseEvent) => {
-            if (isPinMode && e.latLng) {
-              const lat = e.latLng.lat();
-              const lng = e.latLng.lng();
-              
-              // Reverse geocoding para obtener la dirección
-              const geocoder = new google.maps.Geocoder();
-              geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                if (status === 'OK' && results && results[0]) {
-                  onChange({
-                    direccion: results[0].formatted_address || 'Dirección no disponible',
-                    latitud: lat,
-                    longitud: lng
-                  });
-                  setMarkerPosition({ lat, lng });
-                  setIsPinMode(false);
-                } else {
-                  // Fallback si falla el geocoding
-                  onChange({
-                    direccion: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-                    latitud: lat,
-                    longitud: lng
-                  });
-                  setMarkerPosition({ lat, lng });
-                  setIsPinMode(false);
-                }
-              });
-            }
-          });
-
           // Si hay marcador inicial, mostrarlo
           if (markerPosition) {
             const marker = new google.maps.Marker({
@@ -114,7 +90,74 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
         }
       });
     }
-  }, [showMap, mapCenter, isPinMode, markerPosition, onChange]);
+  }, [showMap, mapCenter, markerPosition]);
+
+  // Agregar/remover listener de click según el modo pin
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      // Limpiar listener anterior si existe
+      if (mapInstanceRef.current.pinModeListener) {
+        google.maps.event.clearListeners(mapInstanceRef.current, 'click');
+      }
+
+      // Agregar nuevo listener
+      const listener = mapInstanceRef.current.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (isPinMode && e.latLng) {
+          const lat = e.latLng.lat();
+          const lng = e.latLng.lng();
+          
+          console.log('Click en mapa (modo pin):', { lat, lng });
+          
+          // Reverse geocoding para obtener la dirección
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+              console.log('Dirección encontrada:', results[0].formatted_address);
+              onChange({
+                direccion: results[0].formatted_address || 'Dirección no disponible',
+                latitud: lat,
+                longitud: lng
+              });
+              setMarkerPosition({ lat, lng });
+              setIsPinMode(false);
+              setShowConfirmation(true);
+              
+              // Ocultar confirmación después de 3 segundos
+              setTimeout(() => setShowConfirmation(false), 3000);
+            } else {
+              console.log('Fallback a coordenadas:', { lat, lng });
+              // Fallback si falla el geocoding
+              onChange({
+                direccion: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                latitud: lat,
+                longitud: lng
+              });
+              setMarkerPosition({ lat, lng });
+              setIsPinMode(false);
+              setShowConfirmation(true);
+              
+              // Ocultar confirmación después de 3 segundos
+              setTimeout(() => setShowConfirmation(false), 3000);
+            }
+          });
+        }
+      });
+
+      // Guardar referencia al listener para poder limpiarlo después
+      mapInstanceRef.current.pinModeListener = listener;
+    }
+  }, [isPinMode, onChange]);
+
+  // Actualizar cursor del mapa según el modo pin
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      // Cambiar el cursor del mapa según el modo pin
+      const mapElement = mapInstanceRef.current.getDiv();
+      if (mapElement) {
+        mapElement.style.cursor = isPinMode ? 'crosshair' : 'grab';
+      }
+    }
+  }, [isPinMode]);
 
   // Actualizar marcador cuando cambie la posición
   useEffect(() => {
@@ -208,6 +251,13 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
 
   const handlePinModeToggle = () => {
     setIsPinMode(!isPinMode);
+    if (isPinMode) {
+      // Al desactivar el modo pin, mostrar mensaje de confirmación
+      console.log('Modo pin desactivado');
+    } else {
+      // Al activar el modo pin, mostrar instrucciones
+      console.log('Modo pin activado - Haz click en el mapa');
+    }
   };
 
   return (
@@ -289,6 +339,14 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
         </div>
       )}
 
+      {/* Mensaje de confirmación */}
+      {showConfirmation && (
+        <div className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-200 dark:border-green-800 flex items-center gap-2">
+          <span className="text-lg">✅</span>
+          <span><strong>¡Ubicación seleccionada!</strong> Las coordenadas y dirección han sido actualizadas.</span>
+        </div>
+      )}
+
       {/* Mapa de Google Maps */}
       {showMap && (
         <div className="border border-gray-300 rounded-md overflow-hidden dark:border-gray-600">
@@ -310,27 +368,11 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
           </div>
           <div 
             className="h-48 sm:h-64 w-full relative"
-            style={{ 
-              cursor: isPinMode ? 'crosshair' : 'grab'
-            }}
           >
-            {/* Overlay de modo pin */}
-            {isPinMode && (
-              <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center z-10 pointer-events-none">
-                <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-lg border-2 border-blue-500">
-                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-medium">
-                    <span className="text-lg">📍</span>
-                    <span>Haz click para establecer la ubicación</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             {/* Contenedor del mapa de Google */}
             <div 
               ref={mapRef} 
               className="w-full h-full"
-              style={{ cursor: isPinMode ? 'crosshair' : 'grab' }}
             />
           </div>
         </div>
