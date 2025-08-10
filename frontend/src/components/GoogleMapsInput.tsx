@@ -18,6 +18,7 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
   const [searchQuery, setSearchQuery] = useState(value || '');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [noResults, setNoResults] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [isPinMode, setIsPinMode] = useState(false);
   const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -183,9 +184,23 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
     
     setIsSearching(true);
     try {
+      // Construir URL con más parámetros para mejor precisión
+      const params = new URLSearchParams({
+        address: query,
+        key: 'AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps',
+        language: 'es',
+        region: 'es',
+        components: 'country:ES'
+      });
+      
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps&language=es&region=es`
+        `https://maps.googleapis.com/maps/api/geocode/json?${params}`
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data.results && data.results.length > 0) {
@@ -212,16 +227,49 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
+    setNoResults(false);
+    setSearchResults([]);
+    
     try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchQuery)}&key=AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps&language=es&region=es`
-      );
-      const data = await response.json();
+      // Construir URL con más parámetros para mejor precisión
+      const params = new URLSearchParams({
+        address: searchQuery,
+        key: 'AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps',
+        language: 'es',
+        region: 'es',
+        components: 'country:ES'
+      });
       
-      setSearchResults(data.results || []);
+      console.log('Buscando con parámetros:', params.toString());
+      
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?${params}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Respuesta de Google Maps:', data);
+      
+      if (data.status === 'ZERO_RESULTS') {
+        console.log('No se encontraron resultados para:', searchQuery);
+        setNoResults(true);
+        setSearchResults([]);
+      } else if (data.status === 'OK' && data.results) {
+        console.log('Resultados encontrados:', data.results.length);
+        setSearchResults(data.results);
+        setNoResults(false);
+      } else {
+        console.error('Estado inesperado:', data.status);
+        setNoResults(true);
+        setSearchResults([]);
+      }
     } catch (error) {
       console.error('Error al buscar:', error);
       setSearchResults([]);
+      setNoResults(false);
     } finally {
       setIsSearching(false);
     }
@@ -242,6 +290,7 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
     setMapCenter(newCenter);
     setSearchResults([]);
     setSearchQuery('');
+    setNoResults(false);
     
     // Si el mapa no está abierto, abrirlo
     if (!showMap) {
@@ -298,11 +347,19 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setNoResults(false);
+          }}
           placeholder={placeholder}
           required={required}
           className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSearch();
+            }
+          }}
         />
         <button
           type="button"
@@ -336,6 +393,18 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Mensaje cuando no hay resultados */}
+      {noResults && searchQuery.trim() && (
+        <div className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 p-3 rounded border border-orange-200 dark:border-orange-800 flex items-center gap-2">
+          <span className="text-lg">🔍</span>
+          <span>
+            <strong>No se encontraron resultados</strong> para "{searchQuery}". 
+            <br />
+            <span className="text-xs">Prueba con términos más generales o usa el modo pin para seleccionar la ubicación directamente en el mapa.</span>
+          </span>
         </div>
       )}
 
