@@ -1,12 +1,11 @@
 import axios, { type AxiosInstance } from 'axios';
 import type { 
-  LoginRequest, 
-  RegisterRequest, 
-  AuthResponse, 
   Usuario, 
   Lugar, 
   Turno, 
-  Disponibilidad,
+  Disponibilidad, 
+  AuthResponse, 
+  RegisterRequest, 
   ApiResponse 
 } from '../types';
 
@@ -81,8 +80,18 @@ class ApiService {
     return response.data;
   }
 
+  async createUsuario(data: Partial<Usuario>): Promise<ApiResponse<Usuario>> {
+    const response = await this.api.post<ApiResponse<Usuario>>('/usuarios', data);
+    return response.data;
+  }
+
   async updateUsuario(id: number, data: Partial<Usuario>): Promise<ApiResponse<Usuario>> {
     const response = await this.api.put<ApiResponse<Usuario>>(`/usuarios/${id}`, data);
+    return response.data;
+  }
+
+  async deleteUsuario(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/usuarios/${id}`);
     return response.data;
   }
 
@@ -104,6 +113,21 @@ class ApiService {
     return response.data;
   }
 
+  async createLugar(data: Partial<Lugar>): Promise<ApiResponse<Lugar>> {
+    const response = await this.api.post<ApiResponse<Lugar>>('/lugares', data);
+    return response.data;
+  }
+
+  async updateLugar(id: number, data: Partial<Lugar>): Promise<ApiResponse<Lugar>> {
+    const response = await this.api.put<ApiResponse<Lugar>>(`/lugares/${id}`, data);
+    return response.data;
+  }
+
+  async deleteLugar(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/lugares/${id}`);
+    return response.data;
+  }
+
   // Turnos
   async getTurnos(): Promise<ApiResponse<Turno[]>> {
     const response = await this.api.get<ApiResponse<Turno[]>>('/turnos');
@@ -112,6 +136,21 @@ class ApiService {
 
   async getTurnosByUsuario(usuarioId: number): Promise<ApiResponse<Turno[]>> {
     const response = await this.api.get<ApiResponse<Turno[]>>(`/turnos/usuario/${usuarioId}`);
+    return response.data;
+  }
+
+  async createTurno(data: Partial<Turno>): Promise<ApiResponse<Turno>> {
+    const response = await this.api.post<ApiResponse<Turno>>('/turnos', data);
+    return response.data;
+  }
+
+  async updateTurno(id: number, data: Partial<Turno>): Promise<ApiResponse<Turno>> {
+    const response = await this.api.put<ApiResponse<Turno>>(`/turnos/${id}`, data);
+    return response.data;
+  }
+
+  async deleteTurno(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/turnos/${id}`);
     return response.data;
   }
 
@@ -135,6 +174,21 @@ class ApiService {
 
   async getDisponibilidadesByUsuario(usuarioId: number): Promise<ApiResponse<Disponibilidad[]>> {
     const response = await this.api.get<ApiResponse<Disponibilidad[]>>(`/disponibilidades/usuario/${usuarioId}`);
+    return response.data;
+  }
+
+  async createDisponibilidad(data: Partial<Disponibilidad>): Promise<ApiResponse<Disponibilidad>> {
+    const response = await this.api.post<ApiResponse<Disponibilidad>>('/disponibilidades', data);
+    return response.data;
+  }
+
+  async updateDisponibilidad(id: number, data: Partial<Disponibilidad>): Promise<ApiResponse<Disponibilidad>> {
+    const response = await this.api.put<ApiResponse<Disponibilidad>>(`/disponibilidades/${id}`, data);
+    return response.data;
+  }
+
+  async deleteDisponibilidad(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/disponibilidades/${id}`);
     return response.data;
   }
 }

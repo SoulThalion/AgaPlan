@@ -16,6 +16,8 @@ export interface Lugar {
   nombre: string;
   direccion: string;
   descripcion?: string;
+  capacidad?: number;
+  activo?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,6 +29,7 @@ export interface Disponibilidad {
   diaSemana: number; // 0 = Domingo, 1 = Lunes, etc.
   horaInicio: string;
   horaFin: string;
+  activo: boolean;
   createdAt: string;
   updatedAt: string;
 }
