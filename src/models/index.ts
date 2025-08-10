@@ -22,10 +22,12 @@ export {
 // Función para sincronizar todos los modelos con la base de datos
 export const syncDatabase = async () => {
   try {
-    await sequelize.sync({ alter: true });
-    console.log('Base de datos sincronizada correctamente');
+    // Solo verificar la conexión, no sincronizar automáticamente
+    // Las migraciones se encargan de la estructura de la base de datos
+    await sequelize.authenticate();
+    console.log('Base de datos conectada correctamente');
   } catch (error) {
-    console.error('Error al sincronizar la base de datos:', error);
+    console.error('Error al conectar con la base de datos:', error);
     throw error;
   }
 };

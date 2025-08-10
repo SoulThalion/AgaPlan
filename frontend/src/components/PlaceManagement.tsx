@@ -20,12 +20,12 @@ const PlaceManagement: React.FC = () => {
   // Obtener lugares
   const { data: lugares, isLoading, error } = useQuery({
     queryKey: ['lugares'],
-    queryFn: apiService.getLugares
+    queryFn: () => apiService.getLugares()
   });
 
   // Mutaciones
   const createPlaceMutation = useMutation({
-    mutationFn: apiService.createLugar,
+    mutationFn: (data: Partial<Lugar>) => apiService.createLugar(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lugares'] });
       setIsModalOpen(false);
@@ -73,7 +73,7 @@ const PlaceManagement: React.FC = () => {
   });
 
   const deletePlaceMutation = useMutation({
-    mutationFn: apiService.deleteLugar,
+    mutationFn: (id: number) => apiService.deleteLugar(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lugares'] });
       Swal.fire({

@@ -22,12 +22,12 @@ const UserManagement: React.FC = () => {
   // Obtener usuarios
   const { data: usuarios, isLoading, error } = useQuery({
     queryKey: ['usuarios'],
-    queryFn: apiService.getUsuarios
+    queryFn: () => apiService.getUsuarios()
   });
 
   // Mutaciones
   const createUserMutation = useMutation({
-    mutationFn: apiService.createUsuario,
+    mutationFn: (data: Partial<Usuario>) => apiService.createUsuario(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       setIsModalOpen(false);
@@ -75,7 +75,7 @@ const UserManagement: React.FC = () => {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: apiService.deleteUsuario,
+    mutationFn: (id: number) => apiService.deleteUsuario(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       Swal.fire({
@@ -211,9 +211,9 @@ const UserManagement: React.FC = () => {
           </thead>
           <tbody className="bg-white dark:bg-neutral-dark divide-y divide-neutral-light dark:divide-neutral">
             {usuarios?.data && usuarios.data.length > 0 ? (
-              <div className="divide-y divide-neutral-light dark:divide-neutral">
-                {usuarios.data.map((user: Usuario) => (
-                  <div key={user.id} className="px-6 py-4 flex items-center justify-between">
+              usuarios.data.map((user: Usuario) => (
+                <tr key={user.id} className="hover:bg-neutral-light/50 dark:hover:bg-neutral/50">
+                  <td className="px-6 py-4">
                     <div className="flex items-center space-x-4">
                       <div className={`w-3 h-3 rounded-full ${
                         user.rol === 'admin' || user.rol === 'superAdmin' ? 'bg-success' : 'bg-primary'
@@ -224,14 +224,27 @@ const UserManagement: React.FC = () => {
                           {user.nombre}
                         </div>
                         <div className="text-sm text-neutral-text/70 dark:text-white/70">
-                          {user.email} • {user.cargo}
-                        </div>
-                        <div className="text-xs text-neutral-text/50 dark:text-white/50">
-                          Rol: {user.rol}
+                          {user.email}
                         </div>
                       </div>
                     </div>
-                    
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
+                    {user.cargo || '-'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      user.rol === 'superAdmin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                      user.rol === 'admin' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    }`}>
+                      {user.rol}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
+                    {user.participacionMensual ? `${user.participacionMensual}%` : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium">
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(user)}
@@ -246,13 +259,15 @@ const UserManagement: React.FC = () => {
                         Eliminar
                       </button>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  </td>
+                </tr>
+              ))
             ) : (
-              <div className="px-6 py-8 text-center text-neutral-text/70 dark:text-white/70">
-                No hay usuarios registrados.
-              </div>
+              <tr>
+                <td colSpan={5} className="px-6 py-8 text-center text-neutral-text/70 dark:text-white/70">
+                  No hay usuarios registrados.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

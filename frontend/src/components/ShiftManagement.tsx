@@ -20,22 +20,22 @@ const ShiftManagement: React.FC = () => {
   // Obtener datos necesarios
   const { data: turnos, isLoading: turnosLoading, error: turnosError } = useQuery({
     queryKey: ['turnos'],
-    queryFn: apiService.getTurnos
+    queryFn: () => apiService.getTurnos()
   });
 
   const { data: lugares, isLoading: lugaresLoading } = useQuery({
     queryKey: ['lugares'],
-    queryFn: apiService.getLugares
+    queryFn: () => apiService.getLugares()
   });
 
   const { data: usuarios, isLoading: usuariosLoading } = useQuery({
     queryKey: ['usuarios'],
-    queryFn: apiService.getUsuarios
+    queryFn: () => apiService.getUsuarios()
   });
 
   // Mutaciones
   const createShiftMutation = useMutation({
-    mutationFn: apiService.createTurno,
+    mutationFn: (data: Partial<Turno>) => apiService.createTurno(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
       setIsModalOpen(false);
@@ -83,7 +83,7 @@ const ShiftManagement: React.FC = () => {
   });
 
   const deleteShiftMutation = useMutation({
-    mutationFn: apiService.deleteTurno,
+    mutationFn: (id: number) => apiService.deleteTurno(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
       Swal.fire({

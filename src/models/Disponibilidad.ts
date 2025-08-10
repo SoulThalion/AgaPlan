@@ -7,6 +7,7 @@ export interface DisponibilidadAttributes {
   hora_inicio: string; // Formato HH:MM
   hora_fin: string; // Formato HH:MM
   usuarioId: number;
+  activo: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -19,6 +20,7 @@ class Disponibilidad extends Model<DisponibilidadAttributes, DisponibilidadCreat
   public hora_inicio!: string;
   public hora_fin!: string;
   public usuarioId!: number;
+  public activo!: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -59,6 +61,11 @@ Disponibilidad.init(
         model: 'usuarios',
         key: 'id',
       },
+    },
+    activo: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
     },
   },
   {

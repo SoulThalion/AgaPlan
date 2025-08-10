@@ -27,7 +27,7 @@ const AvailabilityManagement: React.FC = () => {
 
   // Mutaciones
   const createAvailabilityMutation = useMutation({
-    mutationFn: apiService.createDisponibilidad,
+    mutationFn: (data: Partial<Disponibilidad>) => apiService.createDisponibilidad(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disponibilidades', user?.id] });
       setIsModalOpen(false);
@@ -75,7 +75,7 @@ const AvailabilityManagement: React.FC = () => {
   });
 
   const deleteAvailabilityMutation = useMutation({
-    mutationFn: apiService.deleteDisponibilidad,
+    mutationFn: (id: number) => apiService.deleteDisponibilidad(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disponibilidades', user?.id] });
       Swal.fire({

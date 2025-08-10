@@ -5,6 +5,8 @@ export interface LugarAttributes {
   id: number;
   nombre: string;
   direccion: string;
+  capacidad?: number;
+  activo?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -15,6 +17,8 @@ class Lugar extends Model<LugarAttributes, LugarCreationAttributes> implements L
   public id!: number;
   public nombre!: string;
   public direccion!: string;
+  public capacidad?: number;
+  public activo?: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -34,11 +38,30 @@ Lugar.init(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    capacidad: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: {
+        min: 1,
+        isInt: true,
+      },
+    },
+    activo: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true,
+    },
   },
   {
     sequelize,
     tableName: 'lugares',
     timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ['nombre']
+      }
+    ]
   }
 );
 

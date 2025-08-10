@@ -11,6 +11,7 @@ export interface UsuarioAttributes {
   cargo: string;
   rol: 'voluntario' | 'admin' | 'superAdmin';
   participacionMensual?: number; // Número de veces al mes que quiere participar (opcional)
+  activo?: boolean; // Si el usuario está activo
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -28,6 +29,7 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
   public cargo!: string;
   public rol!: 'voluntario' | 'admin' | 'superAdmin';
   public participacionMensual?: number;
+  public activo?: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -100,11 +102,22 @@ Usuario.init(
         isInt: true,
       },
     },
+    activo: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true,
+    },
   },
   {
     sequelize,
     tableName: 'usuarios',
     timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ['email']
+      }
+    ],
     hooks: {
       // Hash de contraseña antes de crear
       beforeCreate: async (usuario: Usuario) => {
