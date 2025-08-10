@@ -5,6 +5,7 @@ import authRoutes from './authRoutes';
 import lugarRoutes from './lugarRoutes';
 import turnoRoutes from './turnoRoutes';
 import disponibilidadRoutes from './disponibilidadRoutes';
+import cargoRoutes from './cargoRoutes';
 
 const router = Router();
 
@@ -17,5 +18,6 @@ router.use('/usuarios', usuarioRoutes);
 router.use('/lugares', lugarRoutes);
 router.use('/turnos', turnoRoutes);
 router.use('/disponibilidades', disponibilidadRoutes);
+router.use('/cargos', cargoRoutes);
 
 export default router;

@@ -8,6 +8,7 @@ import * as createDisponibilidades from './003-create-disponibilidades';
 import * as createTurnos from './004-create-turnos';
 import * as addParticipacionMensual from './005-add-participacion-mensual';
 import * as addMissingFields from './006-add-missing-fields';
+import * as createCargosTable from './007-create-cargos-table';
 
 // Lista de migraciones en orden de ejecución
 const migrations = [
@@ -16,7 +17,8 @@ const migrations = [
   { name: '003-create-disponibilidades', up: createDisponibilidades.up, down: createDisponibilidades.down },
   { name: '004-create-turnos', up: createTurnos.up, down: createTurnos.down },
   { name: '005-add-participacion-mensual', up: addParticipacionMensual.up, down: addParticipacionMensual.down },
-  { name: '006-add-missing-fields', up: addMissingFields.up, down: addMissingFields.down }
+  { name: '006-add-missing-fields', up: addMissingFields.up, down: addMissingFields.down },
+  { name: '007-create-cargos-table', up: createCargosTable.up, down: createCargosTable.down }
 ];
 
 // Función para crear la tabla de migraciones si no existe

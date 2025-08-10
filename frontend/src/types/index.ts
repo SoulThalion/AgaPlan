@@ -48,6 +48,16 @@ export interface Turno {
   usuario?: Usuario;
 }
 
+export interface Cargo {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  prioridad: number;
+  activo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LoginRequest {
   email: string;
   contraseña: string;

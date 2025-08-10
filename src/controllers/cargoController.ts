@@ -1,0 +1,202 @@
+import { Request, Response } from 'express';
+import Cargo from '../models/Cargo';
+
+// Obtener todos los cargos
+export const getAllCargos = async (req: Request, res: Response) => {
+  try {
+    const cargos = await Cargo.findAll({
+      order: [['prioridad', 'ASC'], ['nombre', 'ASC']]
+    });
+    
+    res.json({
+      success: true,
+      data: cargos,
+      message: 'Cargos obtenidos correctamente'
+    });
+  } catch (error) {
+    console.error('Error al obtener cargos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+// Obtener un cargo por ID
+export const getCargoById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const cargo = await Cargo.findByPk(id);
+    
+    if (!cargo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cargo no encontrado'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: cargo,
+      message: 'Cargo obtenido correctamente'
+    });
+  } catch (error) {
+    console.error('Error al obtener cargo:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+// Crear un nuevo cargo
+export const createCargo = async (req: Request, res: Response) => {
+  try {
+    const { nombre, descripcion, prioridad, activo } = req.body;
+    
+    // Validaciones
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'El nombre del cargo es obligatorio'
+      });
+    }
+    
+    if (prioridad && (prioridad < 1 || prioridad > 999)) {
+      return res.status(400).json({
+        success: false,
+        message: 'La prioridad debe estar entre 1 y 999'
+      });
+    }
+    
+    // Verificar si ya existe un cargo con el mismo nombre
+    const cargoExistente = await Cargo.findOne({
+      where: { nombre: nombre.trim() }
+    });
+    
+    if (cargoExistente) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe un cargo con ese nombre'
+      });
+    }
+    
+    const cargo = await Cargo.create({
+      nombre: nombre.trim(),
+      descripcion: descripcion?.trim() || null,
+      prioridad: prioridad || 999,
+      activo: activo !== undefined ? activo : true
+    });
+    
+    res.status(201).json({
+      success: true,
+      data: cargo,
+      message: 'Cargo creado correctamente'
+    });
+  } catch (error) {
+    console.error('Error al crear cargo:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+// Actualizar un cargo
+export const updateCargo = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { nombre, descripcion, prioridad, activo } = req.body;
+    
+    const cargo = await Cargo.findByPk(id);
+    
+    if (!cargo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cargo no encontrado'
+      });
+    }
+    
+    // Validaciones
+    if (nombre && !nombre.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'El nombre del cargo no puede estar vacío'
+      });
+    }
+    
+    if (prioridad && (prioridad < 1 || prioridad > 999)) {
+      return res.status(400).json({
+        success: false,
+        message: 'La prioridad debe estar entre 1 y 999'
+      });
+    }
+    
+    // Verificar si ya existe otro cargo con el mismo nombre (excluyendo el actual)
+    if (nombre && nombre.trim() !== cargo.nombre) {
+      const cargoExistente = await Cargo.findOne({
+        where: { 
+          nombre: nombre.trim(),
+          id: { [require('sequelize').Op.ne]: id }
+        }
+      });
+      
+      if (cargoExistente) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya existe un cargo con ese nombre'
+        });
+      }
+    }
+    
+    await cargo.update({
+      nombre: nombre?.trim() || cargo.nombre,
+      descripcion: descripcion !== undefined ? descripcion?.trim() || null : cargo.descripcion,
+      prioridad: prioridad || cargo.prioridad,
+      activo: activo !== undefined ? activo : cargo.activo
+    });
+    
+    res.json({
+      success: true,
+      data: cargo,
+      message: 'Cargo actualizado correctamente'
+    });
+  } catch (error) {
+    console.error('Error al actualizar cargo:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+// Eliminar un cargo
+export const deleteCargo = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const cargo = await Cargo.findByPk(id);
+    
+    if (!cargo) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cargo no encontrado'
+      });
+    }
+    
+    // Verificar si el cargo está siendo usado en turnos
+    // TODO: Implementar verificación de dependencias
+    
+    await cargo.destroy();
+    
+    res.json({
+      success: true,
+      message: 'Cargo eliminado correctamente'
+    });
+  } catch (error) {
+    console.error('Error al eliminar cargo:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};

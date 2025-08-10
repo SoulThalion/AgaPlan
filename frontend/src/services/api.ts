@@ -4,6 +4,7 @@ import type {
   Lugar, 
   Turno, 
   Disponibilidad, 
+  Cargo,
   AuthResponse, 
   RegisterRequest, 
   ApiResponse 
@@ -189,6 +190,32 @@ class ApiService {
 
   async deleteDisponibilidad(id: number): Promise<ApiResponse<void>> {
     const response = await this.api.delete<ApiResponse<void>>(`/disponibilidades/${id}`);
+    return response.data;
+  }
+
+  // Cargos
+  async getCargos(): Promise<ApiResponse<Cargo[]>> {
+    const response = await this.api.get<ApiResponse<Cargo[]>>('/cargos');
+    return response.data;
+  }
+
+  async getCargoById(id: number): Promise<ApiResponse<Cargo>> {
+    const response = await this.api.get<ApiResponse<Cargo>>(`/cargos/${id}`);
+    return response.data;
+  }
+
+  async createCargo(data: Partial<Cargo>): Promise<ApiResponse<Cargo>> {
+    const response = await this.api.post<ApiResponse<Cargo>>('/cargos', data);
+    return response.data;
+  }
+
+  async updateCargo(id: number, data: Partial<Cargo>): Promise<ApiResponse<Cargo>> {
+    const response = await this.api.put<ApiResponse<Cargo>>(`/cargos/${id}`, data);
+    return response.data;
+  }
+
+  async deleteCargo(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/cargos/${id}`);
     return response.data;
   }
 }

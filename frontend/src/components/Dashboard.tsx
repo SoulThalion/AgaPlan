@@ -5,6 +5,7 @@ import UserManagement from './UserManagement';
 import PlaceManagement from './PlaceManagement';
 import AvailabilityManagement from './AvailabilityManagement';
 import ShiftManagement from './ShiftManagement';
+import CargoManagement from './CargoManagement';
 import DashboardOverview from '../components/DashboardOverview';
 
 const Dashboard: React.FC = () => {
@@ -25,6 +26,8 @@ const Dashboard: React.FC = () => {
         return <AvailabilityManagement />;
       case 'turnos':
         return isAdmin ? <ShiftManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
+      case 'cargos':
+        return isAdmin ? <CargoManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
       default:
         return <DashboardOverview />;
     }

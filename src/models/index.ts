@@ -6,17 +6,20 @@ import Usuario from './Usuario';
 import Lugar from './Lugar';
 import Disponibilidad from './Disponibilidad';
 import Turno from './Turno';
+import Cargo from './Cargo';
 
 // Importar y configurar las asociaciones
 import './associations';
 
 // Exportar todos los modelos
-export { 
+export {
   Test,
-  Usuario, 
-  Lugar, 
-  Disponibilidad, 
-  Turno 
+  Usuario,
+  Lugar,
+  Disponibilidad,
+  Turno,
+  Cargo,
+  sequelize // Add this line to export the sequelize instance
 };
 
 // Función para sincronizar todos los modelos con la base de datos

@@ -16,6 +16,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'usuarios', label: 'Usuarios', icon: '👥', adminOnly: true },
     { id: 'lugares', label: 'Lugares', icon: '📍', adminOnly: true },
+    { id: 'cargos', label: 'Cargos', icon: '🎯', adminOnly: true },
     { id: 'disponibilidades', label: 'Disponibilidades', icon: '📅' },
     { id: 'turnos', label: 'Turnos', icon: '⏰', adminOnly: true }
   ];
