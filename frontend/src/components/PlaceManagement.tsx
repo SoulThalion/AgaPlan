@@ -182,59 +182,77 @@ const PlaceManagement: React.FC = () => {
       </div>
 
       {/* Grid de lugares */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {lugares?.data?.map((lugar: Lugar) => (
-          <div key={lugar.id} className="bg-white dark:bg-neutral-dark rounded-lg shadow-lg overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold font-poppins text-neutral-text dark:text-white">
-                  {lugar.nombre}
-                </h3>
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                  lugar.activo 
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                }`}>
-                  {lugar.activo ? 'Activo' : 'Inactivo'}
-                </span>
-              </div>
-              
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center text-sm text-neutral-text dark:text-white">
-                  <span className="mr-2">📍</span>
-                  <span className="font-medium font-poppins">{lugar.direccion}</span>
+      {lugares?.data && lugares.data.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {lugares.data.map((lugar: Lugar) => (
+            <div key={lugar.id} className="bg-white dark:bg-neutral-dark rounded-lg shadow-lg overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold font-poppins text-neutral-text dark:text-white">
+                    {lugar.nombre}
+                  </h3>
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    lugar.activo 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                  }`}>
+                    {lugar.activo ? 'Activo' : 'Inactivo'}
+                  </span>
                 </div>
                 
-                {lugar.descripcion && (
-                  <div className="text-sm text-neutral-text/70 dark:text-white/70">
-                    {lugar.descripcion}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center text-sm text-neutral-text dark:text-white">
+                    <span className="mr-2">📍</span>
+                    <span className="font-medium font-poppins">{lugar.direccion}</span>
                   </div>
-                )}
-                
-                <div className="flex items-center text-sm text-neutral-text dark:text-white">
-                  <span className="mr-2">👥</span>
-                  <span className="font-medium font-poppins">Capacidad: {lugar.capacidad} personas</span>
+                  
+                  {lugar.descripcion && (
+                    <div className="text-sm text-neutral-text/70 dark:text-white/70">
+                      {lugar.descripcion}
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center text-sm text-neutral-text dark:text-white">
+                    <span className="mr-2">👥</span>
+                    <span className="font-medium font-poppins">Capacidad: {lugar.capacidad} personas</span>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleEdit(lugar)}
-                  className="flex-1 bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(lugar.id)}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium font-poppins py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
-                >
-                  Eliminar
-                </button>
+                
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleEdit(lugar)}
+                    className="flex-1 bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(lugar.id)}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium font-poppins py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">🏢</div>
+          <h3 className="text-xl font-semibold font-poppins text-neutral-text dark:text-white mb-2">
+            No hay lugares registrados
+          </h3>
+          <p className="text-neutral-text/70 dark:text-white/70 mb-6">
+            Comienza creando tu primer lugar para organizar los turnos
+          </p>
+          <button
+            onClick={openCreateModal}
+            className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-3 px-6 rounded-lg transition-colors duration-200 text-lg"
+          >
+            + Crear Primer Lugar
+          </button>
+        </div>
+      )}
 
       {/* Modal para crear/editar lugar */}
       {isModalOpen && (

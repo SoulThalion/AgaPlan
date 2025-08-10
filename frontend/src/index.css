@@ -169,3 +169,73 @@
 .swal2-icon.swal2-error .swal2-x-mark-line-right {
   @apply bg-red-500;
 }
+
+/* Estilos personalizados para el sidebar */
+.sidebar-transition {
+  transition: width 0.3s ease-in-out;
+  position: relative;
+}
+
+/* Estilos para dispositivos móviles */
+@media (max-width: 768px) {
+  .sidebar-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 50;
+    position: relative;
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+  }
+}
+
+/* Mejoras en la transición del sidebar */
+.sidebar-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.sidebar-item:hover {
+  transform: translateX(2px);
+}
+
+/* Estilos para el contenido principal */
+.main-content {
+  transition: margin-left 0.3s ease-in-out;
+}
+
+/* Estilos para el botón de toggle del sidebar */
+.sidebar-toggle {
+  transition: transform 0.2s ease-in-out;
+}
+
+.sidebar-toggle:hover {
+  transform: scale(1.1);
+}
+
+/* Estilos para el footer del sidebar */
+.sidebar-footer {
+  transition: opacity 0.3s ease-in-out;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mejoras en la responsividad */
+@media (max-width: 640px) {
+  .sidebar-collapsed {
+    width: 0;
+    overflow: hidden;
+  }
+  
+  .sidebar-expanded {
+    width: 100vw;
+  }
+}
