@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -21,8 +21,8 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-const DashboardOverview: React.FC = () => {
-  const { user } = useAuth();
+export default function DashboardOverview() {
+  const { user: _user } = useAuth(); // Prefijo con _ para indicar que no se usa
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,17 +82,16 @@ const DashboardOverview: React.FC = () => {
     });
   };
 
-  const getEventStyle = (event: any) => {
+  const getEventStyle = (_event: any) => {
     return {
       style: {
         backgroundColor: '#3B82F6',
         color: 'white',
         borderRadius: '4px',
-        opacity: 0.8,
-        border: '0px',
+        border: 'none',
         fontSize: '12px',
-        fontWeight: 'bold',
-      }
+        padding: '2px 4px',
+      },
     };
   };
 
@@ -302,5 +301,3 @@ const DashboardOverview: React.FC = () => {
     </div>
   );
 };
-
-export default DashboardOverview;

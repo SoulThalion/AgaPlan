@@ -53,7 +53,7 @@ export const getLugarById = async (req: Request, res: Response) => {
 // Crear un nuevo lugar
 export const createLugar = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { nombre, direccion } = req.body;
+    const { nombre, direccion, descripcion, capacidad, exhibidores, latitud, longitud } = req.body;
 
     // Validaciones
     if (!nombre || !direccion) {
@@ -70,6 +70,22 @@ export const createLugar = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    // Validar capacidad si se proporciona
+    if (capacidad !== undefined && (capacidad < 1 || !Number.isInteger(capacidad))) {
+      return res.status(400).json({
+        success: false,
+        message: 'La capacidad debe ser un número entero mayor a 0'
+      });
+    }
+
+    // Validar exhibidores si se proporciona
+    if (exhibidores !== undefined && (exhibidores < 1 || !Number.isInteger(exhibidores))) {
+      return res.status(400).json({
+        success: false,
+        message: 'La cantidad de exhibidores debe ser un número entero mayor a 0'
+      });
+    }
+
     // Verificar si ya existe un lugar con ese nombre
     const existingLugar = await Lugar.findOne({ where: { nombre: nombre.trim() } });
     if (existingLugar) {
@@ -81,7 +97,12 @@ export const createLugar = async (req: AuthenticatedRequest, res: Response) => {
 
     const nuevoLugar = await Lugar.create({
       nombre: nombre.trim(),
-      direccion: direccion.trim()
+      direccion: direccion.trim(),
+      descripcion: descripcion?.trim(),
+      capacidad: capacidad,
+      exhibidores: exhibidores,
+      latitud: latitud,
+      longitud: longitud
     });
 
     res.status(201).json({
@@ -102,10 +123,10 @@ export const createLugar = async (req: AuthenticatedRequest, res: Response) => {
 export const updateLugar = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { nombre, direccion } = req.body;
+    const { nombre, direccion, descripcion, capacidad, exhibidores, latitud, longitud } = req.body;
 
     // Validaciones
-    if (!nombre && !direccion) {
+    if (!nombre && !direccion && descripcion === undefined && capacidad === undefined && exhibidores === undefined) {
       return res.status(400).json({
         success: false,
         message: 'Al menos un campo debe ser proporcionado para actualizar'
@@ -137,9 +158,30 @@ export const updateLugar = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
+    // Validar capacidad si se proporciona
+    if (capacidad !== undefined && (capacidad < 1 || !Number.isInteger(capacidad))) {
+      return res.status(400).json({
+        success: false,
+        message: 'La capacidad debe ser un número entero mayor a 0'
+      });
+    }
+
+    // Validar exhibidores si se proporciona
+    if (exhibidores !== undefined && (exhibidores < 1 || !Number.isInteger(exhibidores))) {
+      return res.status(400).json({
+        success: false,
+        message: 'La cantidad de exhibidores debe ser un número entero mayor a 0'
+      });
+    }
+
     // Actualizar campos
     if (nombre) lugar.nombre = nombre.trim();
     if (direccion) lugar.direccion = direccion.trim();
+    if (descripcion !== undefined) lugar.descripcion = descripcion?.trim();
+    if (capacidad !== undefined) lugar.capacidad = capacidad;
+    if (exhibidores !== undefined) lugar.exhibidores = exhibidores;
+    if (latitud !== undefined) lugar.latitud = latitud;
+    if (longitud !== undefined) lugar.longitud = longitud;
 
     await lugar.save();
 

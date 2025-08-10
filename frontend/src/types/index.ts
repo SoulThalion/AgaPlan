@@ -17,7 +17,10 @@ export interface Lugar {
   direccion: string;
   descripcion?: string;
   capacidad?: number;
+  exhibidores?: number;
   activo?: boolean;
+  latitud?: number;
+  longitud?: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -3,15 +3,22 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Lugar } from '../types';
 import Swal from 'sweetalert2';
+import GoogleMapsInput from './GoogleMapsInput';
+import PlaceMapModal from './PlaceMapModal';
 
 const PlaceManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlace, setEditingPlace] = useState<Lugar | null>(null);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [selectedPlaceForMap, setSelectedPlaceForMap] = useState<Lugar | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
     direccion: '',
-    descripcion: '' as string | undefined,
-    capacidad: 0,
+    descripcion: '',
+    capacidad: '',
+    exhibidores: '',
+    latitud: undefined as number | undefined,
+    longitud: undefined as number | undefined,
     activo: true
   });
 
@@ -98,7 +105,10 @@ const PlaceManagement: React.FC = () => {
       nombre: '',
       direccion: '',
       descripcion: '',
-      capacidad: 0,
+      capacidad: '',
+      exhibidores: '',
+      latitud: undefined,
+      longitud: undefined,
       activo: true
     });
   };
@@ -106,26 +116,49 @@ const PlaceManagement: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingPlace) {
+    const placeData = {
+      nombre: formData.nombre,
+      direccion: formData.direccion,
+      descripcion: formData.descripcion || undefined,
+      capacidad: formData.capacidad ? parseInt(formData.capacidad) : undefined,
+      exhibidores: formData.exhibidores ? parseInt(formData.exhibidores) : undefined,
+      latitud: formData.latitud,
+      longitud: formData.longitud,
+      activo: formData.activo
+    };
+
+    if (editingPlace?.id) {
       updatePlaceMutation.mutate({
         id: editingPlace.id,
-        data: formData
+        data: placeData
       });
     } else {
-      createPlaceMutation.mutate(formData);
+      createPlaceMutation.mutate(placeData);
     }
   };
 
-  const handleEdit = (place: Lugar) => {
-    setEditingPlace(place);
+  const handleEdit = (lugar: Lugar) => {
     setFormData({
-      nombre: place.nombre,
-      direccion: place.direccion,
-      descripcion: place.descripcion || '',
-      capacidad: place.capacidad || 0,
-      activo: place.activo ?? true
+      nombre: lugar.nombre,
+      direccion: lugar.direccion,
+      descripcion: lugar.descripcion || '',
+      capacidad: lugar.capacidad?.toString() || '',
+      exhibidores: lugar.exhibidores?.toString() || '',
+      latitud: lugar.latitud,
+      longitud: lugar.longitud,
+      activo: lugar.activo ?? true
     });
+    setEditingPlace(lugar);
     setIsModalOpen(true);
+  };
+
+  const handleAddressChange = (data: { direccion: string; latitud: number; longitud: number }) => {
+    setFormData(prev => ({
+      ...prev,
+      direccion: data.direccion,
+      latitud: data.latitud,
+      longitud: data.longitud
+    }));
   };
 
   const handleDelete = (placeId: number) => {
@@ -149,6 +182,11 @@ const PlaceManagement: React.FC = () => {
     setEditingPlace(null);
     resetForm();
     setIsModalOpen(true);
+  };
+
+  const openMapModal = (lugar: Lugar) => {
+    setSelectedPlaceForMap(lugar);
+    setMapModalOpen(true);
   };
 
   if (isLoading) {
@@ -202,9 +240,15 @@ const PlaceManagement: React.FC = () => {
                 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-sm text-neutral-text dark:text-white">
-                    <span className="mr-2">📍</span>
-                    <span className="font-medium font-poppins">{lugar.direccion}</span>
-                  </div>
+                     <button
+                       onClick={() => openMapModal(lugar)}
+                       className="mr-2 hover:scale-110 transition-transform duration-200 cursor-pointer"
+                       title="Ver en mapa"
+                     >
+                       📍
+                     </button>
+                     <span className="font-medium font-poppins">{lugar.direccion}</span>
+                   </div>
                   
                   {lugar.descripcion && (
                     <div className="text-sm text-neutral-text/70 dark:text-white/70">
@@ -214,7 +258,12 @@ const PlaceManagement: React.FC = () => {
                   
                   <div className="flex items-center text-sm text-neutral-text dark:text-white">
                     <span className="mr-2">👥</span>
-                    <span className="font-medium font-poppins">Capacidad: {lugar.capacidad} personas</span>
+                    <span className="font-medium font-poppins">Voluntarios: {lugar.capacidad} personas</span>
+                  </div>
+                  
+                  <div className="flex items-center text-sm text-neutral-text dark:text-white">
+                    <span className="mr-2">🎯</span>
+                    <span className="font-medium font-poppins">Exhibidores: {lugar.exhibidores}</span>
                   </div>
                 </div>
                 
@@ -256,8 +305,8 @@ const PlaceManagement: React.FC = () => {
 
       {/* Modal para crear/editar lugar */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-neutral-dark rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-neutral-dark rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium font-poppins text-neutral-text dark:text-white mb-4">
               {editingPlace ? 'Editar Lugar' : 'Nuevo Lugar'}
             </h3>
@@ -277,19 +326,50 @@ const PlaceManagement: React.FC = () => {
                 />
               </div>
 
+              {/* Campo de dirección con Google Maps */}
               <div>
                 <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
                   Dirección
                 </label>
-                <input
-                  type="text"
-                  name="direccion"
+                <GoogleMapsInput
                   value={formData.direccion}
-                  onChange={(e) => setFormData({...formData, direccion: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  onChange={handleAddressChange}
+                  placeholder="Buscar dirección o hacer clic en el mapa"
                   required
                 />
               </div>
+
+              {/* Mostrar coordenadas si están disponibles */}
+              {(formData.latitud || formData.longitud) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Latitud
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.latitud || ''}
+                      onChange={(e) => setFormData({...formData, latitud: parseFloat(e.target.value) || undefined})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      step="0.00000001"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Longitud
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.longitud || ''}
+                      onChange={(e) => setFormData({...formData, longitud: parseFloat(e.target.value) || undefined})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      step="0.00000001"
+                      readOnly
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
@@ -306,13 +386,28 @@ const PlaceManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Capacidad
+                  Cantidad de voluntarios
                 </label>
                 <input
                   type="number"
                   name="capacidad"
                   value={formData.capacidad}
-                  onChange={(e) => setFormData({...formData, capacidad: parseInt(e.target.value)})}
+                  onChange={(e) => setFormData({...formData, capacidad: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  min="1"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Cantidad de Exhibidores
+                </label>
+                <input
+                  type="number"
+                  name="exhibidores"
+                  value={formData.exhibidores}
+                  onChange={(e) => setFormData({...formData, exhibidores: e.target.value})}
                   className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
                   min="1"
                   required
@@ -332,28 +427,40 @@ const PlaceManagement: React.FC = () => {
                 </label>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-neutral-text dark:text-white font-medium font-poppins rounded-lg border border-neutral-light dark:border-neutral hover:bg-neutral-light dark:hover:bg-neutral transition-colors duration-200"
+                  className="w-full sm:w-auto px-4 py-2 text-neutral-text dark:text-white font-medium font-poppins rounded-lg border border-neutral-light dark:border-neutral hover:bg-neutral-light dark:hover:bg-neutral transition-colors duration-200"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={createPlaceMutation.isPending || updatePlaceMutation.isPending}
-                  className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-medium font-poppins rounded-lg transition-colors duration-200 disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2 bg-primary hover:bg-primary-dark text-white font-medium font-poppins rounded-lg transition-colors duration-200 disabled:opacity-50"
                 >
                   {createPlaceMutation.isPending || updatePlaceMutation.isPending ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
+                 </div>
+       )}
+
+       {/* Modal del mapa */}
+       {selectedPlaceForMap && (
+         <PlaceMapModal
+           lugar={selectedPlaceForMap}
+           isOpen={mapModalOpen}
+           onClose={() => {
+             setMapModalOpen(false);
+             setSelectedPlaceForMap(null);
+           }}
+         />
+       )}
+     </div>
+   );
+ };
 
 export default PlaceManagement;

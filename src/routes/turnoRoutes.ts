@@ -19,12 +19,12 @@ router.get('/', getAllTurnos);
 router.get('/:id', getTurnoById);
 
 // Rutas protegidas para admin y superAdmin
-router.post('/', requireAdmin, createTurno);
-router.put('/:id', requireAdmin, updateTurno);
-router.delete('/:id', requireAdmin, deleteTurno);
+router.post('/', authMiddleware, requireAdmin, createTurno);
+router.put('/:id', authMiddleware, requireAdmin, updateTurno);
+router.delete('/:id', authMiddleware, requireAdmin, deleteTurno);
 
 // Ruta para generar turnos automáticos (solo superAdmin)
-router.post('/generar-automaticos', requireSuperAdmin, generarTurnosAutomaticos);
+router.post('/generar-automaticos', authMiddleware, requireSuperAdmin, generarTurnosAutomaticos);
 
 // Rutas para voluntarios (requieren autenticación)
 router.post('/:id/ocupar', authMiddleware, ocuparTurno);

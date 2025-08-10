@@ -5,8 +5,12 @@ export interface LugarAttributes {
   id: number;
   nombre: string;
   direccion: string;
+  descripcion?: string;
   capacidad?: number;
+  exhibidores?: number;
   activo?: boolean;
+  latitud?: number;
+  longitud?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -17,8 +21,12 @@ class Lugar extends Model<LugarAttributes, LugarCreationAttributes> implements L
   public id!: number;
   public nombre!: string;
   public direccion!: string;
+  public descripcion?: string;
   public capacidad?: number;
+  public exhibidores?: number;
   public activo?: boolean;
+  public latitud?: number;
+  public longitud?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -38,12 +46,40 @@ Lugar.init(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    descripcion: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     capacidad: {
       type: DataTypes.INTEGER,
       allowNull: true,
       validate: {
         min: 1,
         isInt: true,
+      },
+    },
+    exhibidores: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: {
+        min: 1,
+        isInt: true,
+      },
+    },
+    latitud: {
+      type: DataTypes.DECIMAL(10, 8),
+      allowNull: true,
+      validate: {
+        min: -90,
+        max: 90,
+      },
+    },
+    longitud: {
+      type: DataTypes.DECIMAL(11, 8),
+      allowNull: true,
+      validate: {
+        min: -180,
+        max: 180,
       },
     },
     activo: {

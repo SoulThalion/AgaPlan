@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^1.16.10",
     "@tanstack/react-query": "^4.36.1",
+    "@types/google.maps": "^3.58.1",
     "@types/react-big-calendar": "^1.8.8",
     "axios": "^1.6.7",
     "date-fns": "^2.30.0",
@@ -22,6 +24,7 @@
     "sweetalert2": "^11.22.3"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.20",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
     "@vitejs/plugin-react": "^4.2.1",

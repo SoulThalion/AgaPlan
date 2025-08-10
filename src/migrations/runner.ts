@@ -9,6 +9,8 @@ import * as createTurnos from './004-create-turnos';
 import * as addParticipacionMensual from './005-add-participacion-mensual';
 import * as addMissingFields from './006-add-missing-fields';
 import * as createCargosTable from './007-create-cargos-table';
+import * as addLugarFields from './008-add-lugar-fields';
+import * as addCoordinatesToLugares from './010-add-coordinates-to-lugares';
 
 // Lista de migraciones en orden de ejecución
 const migrations = [
@@ -18,7 +20,9 @@ const migrations = [
   { name: '004-create-turnos', up: createTurnos.up, down: createTurnos.down },
   { name: '005-add-participacion-mensual', up: addParticipacionMensual.up, down: addParticipacionMensual.down },
   { name: '006-add-missing-fields', up: addMissingFields.up, down: addMissingFields.down },
-  { name: '007-create-cargos-table', up: createCargosTable.up, down: createCargosTable.down }
+  { name: '007-create-cargos-table', up: createCargosTable.up, down: createCargosTable.down },
+  { name: '008-add-lugar-fields', up: addLugarFields.up, down: addLugarFields.down },
+  { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares.up, down: addCoordinatesToLugares.down }
 ];
 
 // Función para crear la tabla de migraciones si no existe

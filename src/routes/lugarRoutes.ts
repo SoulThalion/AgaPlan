@@ -7,6 +7,7 @@ import {
   deleteLugar 
 } from '../controllers/lugarController';
 import { requireSuperAdmin } from '../middleware/roleMiddleware';
+import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
 
@@ -14,9 +15,9 @@ const router = Router();
 router.get('/', getAllLugares);
 router.get('/:id', getLugarById);
 
-// Rutas protegidas (solo superAdmin)
-router.post('/', requireSuperAdmin, createLugar);
-router.put('/:id', requireSuperAdmin, updateLugar);
-router.delete('/:id', requireSuperAdmin, deleteLugar);
+// Rutas protegidas (primero autenticación, luego verificación de rol)
+router.post('/', authMiddleware, requireSuperAdmin, createLugar);
+router.put('/:id', authMiddleware, requireSuperAdmin, updateLugar);
+router.delete('/:id', authMiddleware, requireSuperAdmin, deleteLugar);
 
 export default router;
