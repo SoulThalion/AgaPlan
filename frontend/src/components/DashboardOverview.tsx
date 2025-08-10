@@ -98,8 +98,8 @@ export default function DashboardOverview() {
   const calendarEvents = getTurnosToShow().map(turno => ({
     id: turno.id,
     title: `${turno.usuario?.nombre || 'Usuario'} - ${turno.lugar?.nombre || 'Lugar'}`,
-    start: new Date(`${turno.fecha}T${turno.horaInicio}`),
-    end: new Date(`${turno.fecha}T${turno.horaFin}`),
+    start: new Date(`${turno.fecha}T${turno.hora}`),
+    end: new Date(`${turno.fecha}T${turno.hora}`),
     lugarId: turno.lugarId,
     usuarioId: turno.usuarioId,
     lugar: turno.lugar,

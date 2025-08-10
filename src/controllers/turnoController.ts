@@ -101,13 +101,13 @@ export const getTurnoById = async (req: Request, res: Response) => {
 // Crear un nuevo turno
 export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { fecha, hora, lugarId } = req.body;
+    const { fecha, hora, lugarId, exhibidorId } = req.body;
 
     // Validaciones
-    if (!fecha || !hora || !lugarId) {
+    if (!fecha || !hora || !lugarId || !exhibidorId) {
       return res.status(400).json({
         success: false,
-        message: 'Fecha, hora y lugar son requeridos'
+        message: 'Fecha, hora, lugar y exhibidor son requeridos'
       });
     }
 
@@ -148,15 +148,23 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Verificar que no existe un turno en la misma fecha, hora y lugar
+    // Validar que el exhibidor no exceda la cantidad disponible en el lugar
+    if (exhibidorId > (lugar.exhibidores || 1)) {
+      return res.status(400).json({
+        success: false,
+        message: `El exhibidor ${exhibidorId} excede la cantidad disponible (${lugar.exhibidores || 1}) en este lugar`
+      });
+    }
+
+    // Verificar que no existe un turno en la misma fecha, hora, lugar y exhibidor
     const existingTurno = await Turno.findOne({
-      where: { fecha, hora, lugarId }
+      where: { fecha, hora, lugarId, exhibidorId }
     });
 
     if (existingTurno) {
       return res.status(400).json({
         success: false,
-        message: 'Ya existe un turno en esa fecha, hora y lugar'
+        message: 'Ya existe un turno en esa fecha, hora, lugar y exhibidor'
       });
     }
 
@@ -164,6 +172,7 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       fecha,
       hora,
       lugarId,
+      exhibidorId,
       estado: 'libre'
     });
 
@@ -196,7 +205,7 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
 export const updateTurno = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { fecha, hora, lugarId } = req.body;
+    const { fecha, hora, lugarId, exhibidorId } = req.body;
 
     const turno = await Turno.findByPk(id);
     if (!turno) {
@@ -254,19 +263,30 @@ export const updateTurno = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
+    if (exhibidorId) {
+      const lugar = await Lugar.findByPk(lugarId || turno.lugarId);
+      if (lugar && exhibidorId > (lugar.exhibidores || 1)) {
+        return res.status(400).json({
+          success: false,
+          message: `El exhibidor ${exhibidorId} excede la cantidad disponible (${lugar.exhibidores || 1}) en este lugar`
+        });
+      }
+    }
+
     // Verificar que no existe conflicto con otro turno
     const conflictWhere: any = {};
-    if (fecha || hora || lugarId) {
+    if (fecha || hora || lugarId || exhibidorId) {
       conflictWhere.id = { [Op.ne]: id };
       conflictWhere.fecha = fecha || turno.fecha;
       conflictWhere.hora = hora || turno.hora;
       conflictWhere.lugarId = lugarId || turno.lugarId;
+      conflictWhere.exhibidorId = exhibidorId || turno.exhibidorId;
 
       const conflictingTurno = await Turno.findOne({ where: conflictWhere });
       if (conflictingTurno) {
         return res.status(400).json({
           success: false,
-          message: 'Ya existe un turno en esa fecha, hora y lugar'
+          message: 'Ya existe un turno en esa fecha, hora, lugar y exhibidor'
         });
       }
     }
@@ -275,6 +295,7 @@ export const updateTurno = async (req: AuthenticatedRequest, res: Response) => {
     if (fecha) turno.fecha = fecha;
     if (hora) turno.hora = hora;
     if (lugarId) turno.lugarId = lugarId;
+    if (exhibidorId) turno.exhibidorId = exhibidorId;
 
     await turno.save();
 
@@ -580,24 +601,33 @@ export const generarTurnosAutomaticos = async (req: AuthenticatedRequest, res: R
         while (horaActual < horaFinDate) {
           const horaString = horaActual.toTimeString().slice(0, 5);
           
-          // Verificar si ya existe un turno en esa fecha, hora y lugar
-          const turnoExistente = await Turno.findOne({
-            where: {
-              fecha: fechaActual,
-              hora: horaString,
-              lugarId
-            }
-          });
-
-          if (!turnoExistente) {
-            const nuevoTurno = await Turno.create({
-              fecha: fechaActual,
-              hora: horaString,
-              lugarId,
-              estado: 'libre'
+          // Obtener el lugar para saber cuántos exhibidores tiene
+          const lugar = await Lugar.findByPk(lugarId);
+          const numExhibidores = lugar?.exhibidores || 1;
+          
+          // Generar turnos para cada exhibidor
+          for (let exhibidor = 1; exhibidor <= numExhibidores; exhibidor++) {
+            // Verificar si ya existe un turno en esa fecha, hora, lugar y exhibidor
+            const turnoExistente = await Turno.findOne({
+              where: {
+                fecha: fechaActual,
+                hora: horaString,
+                lugarId,
+                exhibidorId: exhibidor
+              }
             });
 
-            turnosGenerados.push(nuevoTurno);
+            if (!turnoExistente) {
+              const nuevoTurno = await Turno.create({
+                fecha: fechaActual,
+                hora: horaString,
+                lugarId,
+                exhibidorId: exhibidor,
+                estado: 'libre'
+              });
+
+              turnosGenerados.push(nuevoTurno);
+            }
           }
 
           // Avanzar al siguiente intervalo

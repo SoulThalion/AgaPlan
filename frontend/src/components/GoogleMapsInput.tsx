@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
-import type { Lugar } from '../types';
 
 // Extender la interfaz de Google Maps para incluir nuestra propiedad personalizada
 interface ExtendedGoogleMap extends google.maps.Map {

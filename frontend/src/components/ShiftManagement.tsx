@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
-import type { Turno } from '../types';
+import type { Turno, Lugar, Usuario, Exhibidor } from '../types';
 import Swal from 'sweetalert2';
 
 const ShiftManagement: React.FC = () => {
@@ -9,11 +9,12 @@ const ShiftManagement: React.FC = () => {
   const [editingShift, setEditingShift] = useState<Turno | null>(null);
   const [formData, setFormData] = useState({
     fecha: new Date().toISOString().split('T')[0],
-    horaInicio: '09:00',
-    horaFin: '17:00',
+    hora: '09:00',
     lugarId: 0,
+    exhibidorId: 1,
     usuarioId: undefined as number | undefined
   });
+  const [selectedLugar, setSelectedLugar] = useState<Lugar | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -32,6 +33,27 @@ const ShiftManagement: React.FC = () => {
     queryKey: ['usuarios'],
     queryFn: () => apiService.getUsuarios()
   });
+
+  const { data: exhibidores, isLoading: exhibidoresLoading } = useQuery({
+    queryKey: ['exhibidores'],
+    queryFn: () => apiService.getExhibidores()
+  });
+
+  // Actualizar exhibidores disponibles cuando cambie el lugar
+  useEffect(() => {
+    if (formData.lugarId && lugares?.data) {
+      const lugar = lugares.data.find((l: Lugar) => l.id === formData.lugarId);
+      setSelectedLugar(lugar || null);
+      
+      // Resetear exhibidor si no existe en la lista de exhibidores disponibles
+      if (exhibidores?.data && formData.exhibidorId) {
+        const exhibidorExists = exhibidores.data.find((e: Exhibidor) => e.id === formData.exhibidorId);
+        if (!exhibidorExists && exhibidores.data.length > 0) {
+          setFormData(prev => ({ ...prev, exhibidorId: exhibidores.data[0]!.id }));
+        }
+      }
+    }
+  }, [formData.lugarId, lugares?.data, exhibidores?.data]);
 
   // Mutaciones
   const createShiftMutation = useMutation({
@@ -106,11 +128,12 @@ const ShiftManagement: React.FC = () => {
   const resetForm = () => {
     setFormData({
       fecha: new Date().toISOString().split('T')[0],
-      horaInicio: '09:00',
-      horaFin: '17:00',
+      hora: '09:00',
       lugarId: lugares?.data?.[0]?.id || 0,
+      exhibidorId: exhibidores?.data?.[0]?.id || 1,
       usuarioId: undefined
     });
+    setSelectedLugar(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -119,7 +142,7 @@ const ShiftManagement: React.FC = () => {
     const submitData = {
       ...formData,
       fecha: formData.fecha,
-      estado: 'disponible' as const
+      estado: 'libre' as const
     };
     
     if (editingShift) {
@@ -136,9 +159,9 @@ const ShiftManagement: React.FC = () => {
     setEditingShift(shift);
     setFormData({
       fecha: shift.fecha,
-      horaInicio: shift.horaInicio,
-      horaFin: shift.horaFin,
+      hora: shift.hora,
       lugarId: shift.lugarId,
+      exhibidorId: shift.exhibidorId,
       usuarioId: shift.usuarioId
     });
     setIsModalOpen(true);
@@ -168,12 +191,12 @@ const ShiftManagement: React.FC = () => {
   };
 
   const getLugarNombre = (lugarId: number) => {
-    return lugares?.data?.find((l: any) => l.id === lugarId)?.nombre || 'Lugar no encontrado';
+    return lugares?.data?.find((l: Lugar) => l.id === lugarId)?.nombre || 'Lugar no encontrado';
   };
 
   const getUsuarioNombre = (usuarioId: number | undefined) => {
     if (!usuarioId) return 'Disponible';
-    return usuarios?.data?.find((u: any) => u.id === usuarioId)?.nombre || 'Usuario no encontrado';
+    return usuarios?.data?.find((u: Usuario) => u.id === usuarioId)?.nombre || 'Usuario no encontrado';
   };
 
   const formatFecha = (fecha: string | Date) => {
@@ -232,16 +255,16 @@ const ShiftManagement: React.FC = () => {
               <div key={turno.id} className="px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className={`w-3 h-3 rounded-full ${
-                    turno.estado === 'asignado' ? 'bg-success' : 
-                    turno.estado === 'disponible' ? 'bg-warning' : 'bg-neutral-text/30'
+                    turno.estado === 'ocupado' ? 'bg-success' : 
+                    turno.estado === 'libre' ? 'bg-warning' : 'bg-neutral-text/30'
                   }`}></div>
                   
                   <div>
                     <div className="font-medium font-poppins text-neutral-text dark:text-white">
-                      {getLugarNombre(turno.lugarId)}
+                      {getLugarNombre(turno.lugarId)} - {turno.exhibidor?.nombre || `Exhibidor ${turno.exhibidorId}`}
                     </div>
                     <div className="text-sm text-neutral-text/70 dark:text-white/70">
-                      {formatFecha(turno.fecha)} - {turno.horaInicio} a {turno.horaFin}
+                      {formatFecha(turno.fecha)} - {turno.hora}
                     </div>
                     <div className="text-xs text-neutral-text/50 dark:text-white/50">
                       {getUsuarioNombre(turno.usuarioId)}
@@ -296,34 +319,18 @@ const ShiftManagement: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                    Hora de inicio
-                  </label>
-                  <input
-                    type="time"
-                    name="horaInicio"
-                    value={formData.horaInicio}
-                    onChange={(e) => setFormData({...formData, horaInicio: e.target.value})}
-                    className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                    Hora de fin
-                  </label>
-                  <input
-                    type="time"
-                    name="horaFin"
-                    value={formData.horaFin}
-                    onChange={(e) => setFormData({...formData, horaFin: e.target.value})}
-                    className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                    required
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Hora
+                </label>
+                <input
+                  type="time"
+                  name="hora"
+                  value={formData.hora}
+                  onChange={(e) => setFormData({...formData, hora: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  required
+                />
               </div>
 
               <div>
@@ -338,9 +345,29 @@ const ShiftManagement: React.FC = () => {
                   required
                 >
                   <option value="">Seleccionar lugar</option>
-                  {lugares?.data?.map((lugar: any) => (
+                  {lugares?.data?.map((lugar: Lugar) => (
                     <option key={lugar.id} value={lugar.id}>
-                      {lugar.nombre}
+                      {lugar.nombre} {lugar.exhibidores ? `(${lugar.exhibidores} exhibidores)` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Exhibidor
+                </label>
+                <select
+                  name="exhibidorId"
+                  value={formData.exhibidorId}
+                  onChange={(e) => setFormData({...formData, exhibidorId: Number(e.target.value)})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  required
+                >
+                  <option value="">Seleccionar exhibidor</option>
+                  {exhibidores?.data?.map((exhibidor: Exhibidor) => (
+                    <option key={exhibidor.id} value={exhibidor.id}>
+                      {exhibidor.nombre}
                     </option>
                   ))}
                 </select>
@@ -357,26 +384,12 @@ const ShiftManagement: React.FC = () => {
                   className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
                 >
                   <option value="">Sin asignar</option>
-                  {usuarios?.data?.map((usuario: any) => (
+                  {usuarios?.data?.map((usuario: Usuario) => (
                     <option key={usuario.id} value={usuario.id}>
-                      {usuario.nombre}
+                      {usuario.nombre} - {usuario.cargo}
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="estado"
-                  checked={formData.usuarioId !== undefined}
-                  onChange={(e) => setFormData({...formData, usuarioId: e.target.checked ? undefined : undefined})}
-                  className="h-4 w-4 text-primary focus:ring-primary border-neutral-light dark:border-neutral rounded"
-                  disabled
-                />
-                <label className="ml-2 block text-sm font-poppins text-neutral-text dark:text-white">
-                  Turno asignado
-                </label>
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">

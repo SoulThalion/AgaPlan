@@ -11,6 +11,9 @@ import * as addMissingFields from './006-add-missing-fields';
 import * as createCargosTable from './007-create-cargos-table';
 import * as addLugarFields from './008-add-lugar-fields';
 import * as addCoordinatesToLugares from './010-add-coordinates-to-lugares';
+import * as addExhibidorToTurnos from './012-add-exhibidor-to-turnos';
+import * as createExhibidoresTable from './013-create-exhibidores-table';
+import * as addDescripcionToExhibidores from './015-add-descripcion-to-exhibidores';
 
 // Lista de migraciones en orden de ejecución
 const migrations = [
@@ -22,7 +25,10 @@ const migrations = [
   { name: '006-add-missing-fields', up: addMissingFields.up, down: addMissingFields.down },
   { name: '007-create-cargos-table', up: createCargosTable.up, down: createCargosTable.down },
   { name: '008-add-lugar-fields', up: addLugarFields.up, down: addLugarFields.down },
-  { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares.up, down: addCoordinatesToLugares.down }
+  { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares.up, down: addCoordinatesToLugares.down },
+  { name: '012-add-exhibidor-to-turnos', up: addExhibidorToTurnos.up, down: addExhibidorToTurnos.down },
+  { name: '013-create-exhibidores-table', up: createExhibidoresTable.up, down: createExhibidoresTable.down },
+  { name: '015-add-descripcion-to-exhibidores', up: addDescripcionToExhibidores.up, down: addDescripcionToExhibidores.down }
 ];
 
 // Función para crear la tabla de migraciones si no existe

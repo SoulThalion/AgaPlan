@@ -5,6 +5,7 @@ import type {
   Turno, 
   Disponibilidad, 
   Cargo,
+  Exhibidor,
   AuthResponse, 
   RegisterRequest, 
   ApiResponse 
@@ -216,6 +217,32 @@ class ApiService {
 
   async deleteCargo(id: number): Promise<ApiResponse<void>> {
     const response = await this.api.delete<ApiResponse<void>>(`/cargos/${id}`);
+    return response.data;
+  }
+
+  // Exhibidores
+  async getExhibidores(): Promise<ApiResponse<Exhibidor[]>> {
+    const response = await this.api.get<ApiResponse<Exhibidor[]>>('/exhibidores');
+    return response.data;
+  }
+
+  async getExhibidorById(id: number): Promise<ApiResponse<Exhibidor>> {
+    const response = await this.api.get<ApiResponse<Exhibidor>>(`/exhibidores/${id}`);
+    return response.data;
+  }
+
+  async createExhibidor(data: Partial<Exhibidor>): Promise<ApiResponse<Exhibidor>> {
+    const response = await this.api.post<ApiResponse<Exhibidor>>('/exhibidores', data);
+    return response.data;
+  }
+
+  async updateExhibidor(id: number, data: Partial<Exhibidor>): Promise<ApiResponse<Exhibidor>> {
+    const response = await this.api.put<ApiResponse<Exhibidor>>(`/exhibidores/${id}`, data);
+    return response.data;
+  }
+
+  async deleteExhibidor(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/exhibidores/${id}`);
     return response.data;
   }
 }

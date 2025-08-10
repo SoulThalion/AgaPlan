@@ -45,35 +45,40 @@ const seedData = async () => {
           dia_semana: 1, // Lunes
           hora_inicio: '09:00',
           hora_fin: '17:00',
-          usuarioId: usuario.id
+          usuarioId: usuario.id,
+          activo: true
         });
 
         await Disponibilidad.create({
           dia_semana: 2, // Martes
           hora_inicio: '09:00',
           hora_fin: '17:00',
-          usuarioId: usuario.id
+          usuarioId: usuario.id,
+          activo: true
         });
 
         await Disponibilidad.create({
           dia_semana: 3, // Miércoles
           hora_inicio: '09:00',
           hora_fin: '17:00',
-          usuarioId: usuario.id
+          usuarioId: usuario.id,
+          activo: true
         });
 
         await Disponibilidad.create({
           dia_semana: 4, // Jueves
           hora_inicio: '09:00',
           hora_fin: '17:00',
-          usuarioId: usuario.id
+          usuarioId: usuario.id,
+          activo: true
         });
 
         await Disponibilidad.create({
           dia_semana: 5, // Viernes
           hora_inicio: '09:00',
           hora_fin: '17:00',
-          usuarioId: usuario.id
+          usuarioId: usuario.id,
+          activo: true
         });
       }
     }
@@ -99,14 +104,19 @@ const seedData = async () => {
           for (let hora = 9; hora < 17; hora += 2) {
             const horaString = `${hora.toString().padStart(2, '0')}:00`;
             
-            const turno = await Turno.create({
-              fecha: fecha,
-              hora: horaString,
-              lugarId: lugar.id,
-              estado: 'libre'
-            });
-            
-            turnosGenerados.push(turno);
+            // Crear turnos para cada exhibidor del lugar
+            const numExhibidores = lugar.exhibidores || 1;
+            for (let exhibidor = 1; exhibidor <= numExhibidores; exhibidor++) {
+              const turno = await Turno.create({
+                fecha: fecha,
+                hora: horaString,
+                lugarId: lugar.id,
+                exhibidorId: exhibidor,
+                estado: 'libre'
+              });
+              
+              turnosGenerados.push(turno);
+            }
           }
         }
       }

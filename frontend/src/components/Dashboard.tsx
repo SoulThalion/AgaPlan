@@ -7,6 +7,7 @@ import AvailabilityManagement from './AvailabilityManagement';
 import ShiftManagement from './ShiftManagement';
 import DashboardOverview from './DashboardOverview';
 import CargoManagement from './CargoManagement';
+import ExhibidorManagement from './ExhibidorManagement';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -25,6 +26,8 @@ const Dashboard: React.FC = () => {
         return isAdmin ? <ShiftManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
       case 'cargos':
         return isAdmin ? <CargoManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
+      case 'exhibidores':
+        return isAdmin ? <ExhibidorManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
       default:
         return <DashboardOverview />;
     }

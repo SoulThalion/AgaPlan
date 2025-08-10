@@ -37,18 +37,28 @@ export interface Disponibilidad {
   updatedAt: string;
 }
 
+export interface Exhibidor {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Turno {
   id: number;
   lugarId: number;
   usuarioId?: number;
   fecha: string;
-  horaInicio: string;
-  horaFin: string;
-  estado: 'disponible' | 'asignado' | 'completado' | 'cancelado';
+  hora: string; // Formato HH:MM
+  estado: 'libre' | 'ocupado';
+  exhibidorId: number;
   createdAt: string;
   updatedAt: string;
   lugar?: Lugar;
   usuario?: Usuario;
+  exhibidor?: Exhibidor;
 }
 
 export interface Cargo {

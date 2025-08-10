@@ -2,6 +2,7 @@ import Usuario from './Usuario';
 import Lugar from './Lugar';
 import Disponibilidad from './Disponibilidad';
 import Turno from './Turno';
+import Exhibidor from './Exhibidor';
 
 // Relación: Usuario tiene muchas Disponibilidades
 Usuario.hasMany(Disponibilidad, {
@@ -39,4 +40,16 @@ Turno.belongsTo(Lugar, {
   as: 'lugar',
 });
 
-export { Usuario, Lugar, Disponibilidad, Turno };
+// Relación: Exhibidor tiene muchos Turnos
+Exhibidor.hasMany(Turno, {
+  foreignKey: 'exhibidorId',
+  as: 'turnos',
+  onDelete: 'RESTRICT', // No se puede eliminar un exhibidor si tiene turnos
+});
+
+Turno.belongsTo(Exhibidor, {
+  foreignKey: 'exhibidorId',
+  as: 'exhibidor',
+});
+
+export { Usuario, Lugar, Disponibilidad, Turno, Exhibidor };
