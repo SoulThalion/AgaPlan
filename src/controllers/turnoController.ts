@@ -1,36 +1,17 @@
 import { Request, Response } from 'express';
-import { AuthenticatedRequest } from '../types/auth';
 import Turno from '../models/Turno';
 import Lugar from '../models/Lugar';
 import Usuario from '../models/Usuario';
+import TurnoExhibidor from '../models/TurnoExhibidor';
+import Exhibidor from '../models/Exhibidor';
 import Disponibilidad from '../models/Disponibilidad';
+import { AuthenticatedRequest } from '../types/auth';
 import { Op } from 'sequelize';
 
 // Obtener todos los turnos
 export const getAllTurnos = async (req: Request, res: Response) => {
   try {
-    const { fecha, lugarId, estado, usuarioId } = req.query;
-    
-    const whereClause: any = {};
-    
-    if (fecha) {
-      whereClause.fecha = fecha;
-    }
-    
-    if (lugarId) {
-      whereClause.lugarId = lugarId;
-    }
-    
-    if (estado) {
-      whereClause.estado = estado;
-    }
-    
-    if (usuarioId) {
-      whereClause.usuarioId = usuarioId;
-    }
-
     const turnos = await Turno.findAll({
-      where: whereClause,
       include: [
         {
           model: Lugar,
@@ -41,12 +22,18 @@ export const getAllTurnos = async (req: Request, res: Response) => {
           model: Usuario,
           as: 'usuario',
           attributes: ['id', 'nombre', 'email']
+        },
+        {
+          model: Exhibidor,
+          as: 'exhibidores',
+          through: { attributes: [] }, // No incluir atributos de la tabla intermedia
+          attributes: ['id', 'nombre', 'descripcion']
         }
       ],
       order: [['fecha', 'ASC'], ['hora', 'ASC']]
     });
 
-    res.status(200).json({
+    res.json({
       success: true,
       data: turnos
     });
@@ -63,17 +50,24 @@ export const getAllTurnos = async (req: Request, res: Response) => {
 export const getTurnoById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    
     const turno = await Turno.findByPk(id, {
       include: [
         {
           model: Lugar,
           as: 'lugar',
-          attributes: ['id', 'nombre', 'direccion']
+          attributes: ['id', 'nombre', 'direccion', 'exhibidores']
         },
         {
           model: Usuario,
           as: 'usuario',
           attributes: ['id', 'nombre', 'email']
+        },
+        {
+          model: Exhibidor,
+          as: 'exhibidores',
+          through: { attributes: [] },
+          attributes: ['id', 'nombre', 'descripcion']
         }
       ]
     });
@@ -85,7 +79,7 @@ export const getTurnoById = async (req: Request, res: Response) => {
       });
     }
 
-    res.status(200).json({
+    res.json({
       success: true,
       data: turno
     });
@@ -101,13 +95,13 @@ export const getTurnoById = async (req: Request, res: Response) => {
 // Crear un nuevo turno
 export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { fecha, hora, lugarId, exhibidorId } = req.body;
+    const { fecha, hora, lugarId, exhibidorIds } = req.body;
 
-    // Validaciones
-    if (!fecha || !hora || !lugarId || !exhibidorId) {
+    // Validaciones básicas
+    if (!fecha || !hora || !lugarId || !exhibidorIds || !Array.isArray(exhibidorIds)) {
       return res.status(400).json({
         success: false,
-        message: 'Fecha, hora, lugar y exhibidor son requeridos'
+        message: 'Todos los campos son requeridos y exhibidorIds debe ser un array'
       });
     }
 
@@ -120,7 +114,7 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Validar que la fecha no sea en el pasado
+    // Validar que no sea fecha pasada
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     if (fechaDate < hoy) {
@@ -139,7 +133,7 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Verificar que el lugar existe
+    // Obtener información del lugar
     const lugar = await Lugar.findByPk(lugarId);
     if (!lugar) {
       return res.status(404).json({
@@ -148,41 +142,57 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Validar que el exhibidor no exceda la cantidad disponible en el lugar
-    if (exhibidorId > (lugar.exhibidores || 1)) {
+    // Validar que la cantidad de exhibidores no exceda la disponible en el lugar
+    if (exhibidorIds.length > (lugar.exhibidores || 1)) {
       return res.status(400).json({
         success: false,
-        message: `El exhibidor ${exhibidorId} excede la cantidad disponible (${lugar.exhibidores || 1}) en este lugar`
+        message: `La cantidad de exhibidores (${exhibidorIds.length}) excede la disponible (${lugar.exhibidores || 1}) en este lugar`
       });
     }
 
-    // Verificar que no existe un turno en la misma fecha, hora, lugar y exhibidor
+    // Verificar que no existe un turno en la misma fecha, hora y lugar
     const existingTurno = await Turno.findOne({
-      where: { fecha, hora, lugarId, exhibidorId }
+      where: { fecha, hora, lugarId }
     });
 
     if (existingTurno) {
       return res.status(400).json({
         success: false,
-        message: 'Ya existe un turno en esa fecha, hora, lugar y exhibidor'
+        message: 'Ya existe un turno en esa fecha, hora y lugar'
       });
     }
 
+    // Crear el turno
     const nuevoTurno = await Turno.create({
       fecha,
       hora,
       lugarId,
-      exhibidorId,
       estado: 'libre'
     });
 
-    // Obtener el turno con información del lugar
+    // Crear las relaciones con exhibidores
+    if (exhibidorIds.length > 0) {
+      const turnoExhibidorRecords = exhibidorIds.map(exhibidorId => ({
+        turnoId: nuevoTurno.id,
+        exhibidorId
+      }));
+      
+      await TurnoExhibidor.bulkCreate(turnoExhibidorRecords);
+    }
+
+    // Obtener el turno completo con información del lugar y exhibidores
     const turnoCompleto = await Turno.findByPk(nuevoTurno.id, {
       include: [
         {
           model: Lugar,
           as: 'lugar',
-          attributes: ['id', 'nombre', 'direccion']
+          attributes: ['id', 'nombre', 'direccion', 'exhibidores']
+        },
+        {
+          model: Exhibidor,
+          as: 'exhibidores',
+          through: { attributes: [] },
+          attributes: ['id', 'nombre', 'descripcion']
         }
       ]
     });
@@ -205,7 +215,7 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
 export const updateTurno = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { fecha, hora, lugarId, exhibidorId } = req.body;
+    const { fecha, hora, lugarId, exhibidorIds } = req.body;
 
     const turno = await Turno.findByPk(id);
     if (!turno) {
@@ -253,7 +263,8 @@ export const updateTurno = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
-    if (lugarId) {
+    // Si se está cambiando el lugar, validar que la cantidad de exhibidores sea válida
+    if (lugarId && lugarId !== turno.lugarId) {
       const lugar = await Lugar.findByPk(lugarId);
       if (!lugar) {
         return res.status(404).json({
@@ -261,56 +272,59 @@ export const updateTurno = async (req: AuthenticatedRequest, res: Response) => {
           message: 'Lugar no encontrado'
         });
       }
-    }
 
-    if (exhibidorId) {
-      const lugar = await Lugar.findByPk(lugarId || turno.lugarId);
-      if (lugar && exhibidorId > (lugar.exhibidores || 1)) {
+      if (exhibidorIds && exhibidorIds.length > (lugar.exhibidores || 1)) {
         return res.status(400).json({
           success: false,
-          message: `El exhibidor ${exhibidorId} excede la cantidad disponible (${lugar.exhibidores || 1}) en este lugar`
+          message: `La cantidad de exhibidores (${exhibidorIds.length}) excede la disponible (${lugar.exhibidores || 1}) en este lugar`
         });
       }
     }
 
-    // Verificar que no existe conflicto con otro turno
-    const conflictWhere: any = {};
-    if (fecha || hora || lugarId || exhibidorId) {
-      conflictWhere.id = { [Op.ne]: id };
-      conflictWhere.fecha = fecha || turno.fecha;
-      conflictWhere.hora = hora || turno.hora;
-      conflictWhere.lugarId = lugarId || turno.lugarId;
-      conflictWhere.exhibidorId = exhibidorId || turno.exhibidorId;
+    // Actualizar el turno
+    const updateData: any = {};
+    if (fecha) updateData.fecha = fecha;
+    if (hora) updateData.hora = hora;
+    if (lugarId) updateData.lugarId = lugarId;
 
-      const conflictingTurno = await Turno.findOne({ where: conflictWhere });
-      if (conflictingTurno) {
-        return res.status(400).json({
-          success: false,
-          message: 'Ya existe un turno en esa fecha, hora, lugar y exhibidor'
-        });
+    await turno.update(updateData);
+
+    // Actualizar exhibidores si se proporcionan
+    if (exhibidorIds && Array.isArray(exhibidorIds)) {
+      // Eliminar relaciones existentes
+      await TurnoExhibidor.destroy({
+        where: { turnoId: parseInt(id) }
+      });
+
+      // Crear nuevas relaciones
+      if (exhibidorIds.length > 0) {
+        const turnoExhibidorRecords = exhibidorIds.map(exhibidorId => ({
+          turnoId: parseInt(id),
+          exhibidorId
+        }));
+        
+        await TurnoExhibidor.bulkCreate(turnoExhibidorRecords);
       }
     }
 
-    // Actualizar campos
-    if (fecha) turno.fecha = fecha;
-    if (hora) turno.hora = hora;
-    if (lugarId) turno.lugarId = lugarId;
-    if (exhibidorId) turno.exhibidorId = exhibidorId;
-
-    await turno.save();
-
-    // Obtener el turno actualizado con información del lugar
+    // Obtener el turno actualizado
     const turnoActualizado = await Turno.findByPk(id, {
       include: [
         {
           model: Lugar,
           as: 'lugar',
-          attributes: ['id', 'nombre', 'direccion']
+          attributes: ['id', 'nombre', 'direccion', 'exhibidores']
+        },
+        {
+          model: Exhibidor,
+          as: 'exhibidores',
+          through: { attributes: [] },
+          attributes: ['id', 'nombre', 'descripcion']
         }
       ]
     });
 
-    res.status(200).json({
+    res.json({
       success: true,
       message: 'Turno actualizado exitosamente',
       data: turnoActualizado
@@ -605,29 +619,35 @@ export const generarTurnosAutomaticos = async (req: AuthenticatedRequest, res: R
           const lugar = await Lugar.findByPk(lugarId);
           const numExhibidores = lugar?.exhibidores || 1;
           
-          // Generar turnos para cada exhibidor
-          for (let exhibidor = 1; exhibidor <= numExhibidores; exhibidor++) {
-            // Verificar si ya existe un turno en esa fecha, hora, lugar y exhibidor
-            const turnoExistente = await Turno.findOne({
-              where: {
-                fecha: fechaActual,
-                hora: horaString,
-                lugarId,
-                exhibidorId: exhibidor
-              }
+          // Verificar si ya existe un turno en esa fecha, hora y lugar
+          const turnoExistente = await Turno.findOne({
+            where: {
+              fecha: fechaActual,
+              hora: horaString,
+              lugarId
+            }
+          });
+
+          if (!turnoExistente) {
+            // Crear el turno
+            const nuevoTurno = await Turno.create({
+              fecha: fechaActual,
+              hora: horaString,
+              lugarId,
+              estado: 'libre'
             });
 
-            if (!turnoExistente) {
-              const nuevoTurno = await Turno.create({
-                fecha: fechaActual,
-                hora: horaString,
-                lugarId,
-                exhibidorId: exhibidor,
-                estado: 'libre'
+            // Crear las relaciones con exhibidores (del 1 al número máximo)
+            const turnoExhibidorRecords = [];
+            for (let exhibidor = 1; exhibidor <= numExhibidores; exhibidor++) {
+              turnoExhibidorRecords.push({
+                turnoId: nuevoTurno.id,
+                exhibidorId: exhibidor
               });
-
-              turnosGenerados.push(nuevoTurno);
             }
+            
+            await TurnoExhibidor.bulkCreate(turnoExhibidorRecords);
+            turnosGenerados.push(nuevoTurno);
           }
 
           // Avanzar al siguiente intervalo

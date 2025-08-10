@@ -8,7 +8,6 @@ export interface TurnoAttributes {
   estado: 'libre' | 'ocupado';
   usuarioId?: number; // Opcional si está libre
   lugarId: number;
-  exhibidorId: number; // Número del exhibidor
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -22,7 +21,6 @@ class Turno extends Model<TurnoAttributes, TurnoCreationAttributes> implements T
   public estado!: 'libre' | 'ocupado';
   public usuarioId?: number;
   public lugarId!: number;
-  public exhibidorId!: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -66,14 +64,7 @@ Turno.init(
         key: 'id',
       },
     },
-    exhibidorId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'exhibidores',
-        key: 'id',
-      },
-    },
+
   },
   {
     sequelize,
@@ -94,7 +85,7 @@ Turno.init(
       },
       {
         unique: true,
-        fields: ['fecha', 'hora', 'lugarId', 'exhibidorId'], // Un turno único por fecha, hora, lugar y exhibidor
+        fields: ['fecha', 'hora', 'lugarId'], // Un turno único por fecha, hora y lugar
       },
     ],
   }

@@ -14,6 +14,7 @@ import * as addCoordinatesToLugares from './010-add-coordinates-to-lugares';
 import * as addExhibidorToTurnos from './012-add-exhibidor-to-turnos';
 import * as createExhibidoresTable from './013-create-exhibidores-table';
 import * as addDescripcionToExhibidores from './015-add-descripcion-to-exhibidores';
+import createTurnoExhibidoresTable from './016-create-turno-exhibidores-table';
 
 // Lista de migraciones en orden de ejecución
 const migrations = [
@@ -28,7 +29,8 @@ const migrations = [
   { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares.up, down: addCoordinatesToLugares.down },
   { name: '012-add-exhibidor-to-turnos', up: addExhibidorToTurnos.up, down: addExhibidorToTurnos.down },
   { name: '013-create-exhibidores-table', up: createExhibidoresTable.up, down: createExhibidoresTable.down },
-  { name: '015-add-descripcion-to-exhibidores', up: addDescripcionToExhibidores.up, down: addDescripcionToExhibidores.down }
+  { name: '015-add-descripcion-to-exhibidores', up: addDescripcionToExhibidores.up, down: addDescripcionToExhibidores.down },
+  { name: '016-create-turno-exhibidores-table', up: createTurnoExhibidoresTable.up, down: createTurnoExhibidoresTable.down }
 ];
 
 // Función para crear la tabla de migraciones si no existe

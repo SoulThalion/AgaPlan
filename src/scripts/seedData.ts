@@ -3,6 +3,8 @@ import Lugar from '../models/Lugar';
 import Turno from '../models/Turno';
 import Usuario from '../models/Usuario';
 import Disponibilidad from '../models/Disponibilidad';
+import TurnoExhibidor from '../models/TurnoExhibidor';
+import Exhibidor from '../models/Exhibidor';
 
 const seedData = async () => {
   try {
@@ -85,6 +87,29 @@ const seedData = async () => {
 
     console.log('Se crearon disponibilidades de ejemplo');
 
+    // Crear exhibidores de ejemplo
+    console.log('Creando exhibidores de ejemplo...');
+    
+    const exhibidores = await Exhibidor.bulkCreate([
+      {
+        nombre: 'Exhibidor Principal',
+        descripcion: 'Exhibidor principal del centro',
+        activo: true
+      },
+      {
+        nombre: 'Exhibidor Secundario',
+        descripcion: 'Exhibidor secundario del centro',
+        activo: true
+      },
+      {
+        nombre: 'Exhibidor Móvil',
+        descripcion: 'Exhibidor móvil para eventos especiales',
+        activo: true
+      }
+    ]);
+
+    console.log(`Se crearon ${exhibidores.length} exhibidores`);
+
     // Crear turnos de ejemplo para la próxima semana
     console.log('Creando turnos de ejemplo...');
     
@@ -106,13 +131,18 @@ const seedData = async () => {
             
             // Crear turnos para cada exhibidor del lugar
             const numExhibidores = lugar.exhibidores || 1;
-            for (let exhibidor = 1; exhibidor <= numExhibidores; exhibidor++) {
+            for (let j = 0; j < numExhibidores && j < exhibidores.length; j++) {
               const turno = await Turno.create({
                 fecha: fecha,
                 hora: horaString,
                 lugarId: lugar.id,
-                exhibidorId: exhibidor,
                 estado: 'libre'
+              });
+              
+              // Crear la relación en TurnoExhibidor usando el ID real del exhibidor
+              await TurnoExhibidor.create({
+                turnoId: turno.id,
+                exhibidorId: exhibidores[j].id
               });
               
               turnosGenerados.push(turno);
