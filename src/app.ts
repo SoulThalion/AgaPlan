@@ -13,11 +13,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+// Manejar preflight requests de CORS
+app.options('*', cors());
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'development' 
-    ? ['http://localhost:3000', 'http://localhost:3001'] 
-    : process.env.FRONTEND_URL,
-  credentials: true
+  origin: true, // Permitir todos los orígenes en desarrollo
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(express.json());

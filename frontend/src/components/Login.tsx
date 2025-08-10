@@ -3,17 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import ThemeToggle from './ThemeToggle';
+import Swal from 'sweetalert2';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    contraseña: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Si está cargando la autenticación, mostrar nada
+  if (authLoading) {
+    return null;
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -31,12 +37,38 @@ const Login: React.FC = () => {
       const response = await apiService.login(formData);
       if (response.success && response.token && response.user) {
         await login(response.token, response.user);
+        
+        // Mostrar mensaje de éxito
+        await Swal.fire({
+          icon: 'success',
+          title: '¡Bienvenido!',
+          text: 'Has iniciado sesión correctamente',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
         navigate('/dashboard');
       } else {
         setError(response.message || 'Error al iniciar sesión');
+        // Mostrar error con SweetAlert
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de autenticación',
+          text: response.message || 'Error al iniciar sesión',
+          confirmButtonText: 'Entendido'
+        });
       }
-    } catch (err) {
-      setError('Error de conexión. Intenta nuevamente.');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Error de conexión. Intenta nuevamente.';
+      setError(errorMessage);
+      
+      // Mostrar error con SweetAlert
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: errorMessage,
+        confirmButtonText: 'Entendido'
+      });
     } finally {
       setLoading(false);
     }
@@ -91,11 +123,11 @@ const Login: React.FC = () => {
               </label>
               <input
                 id="password"
-                name="password"
+                name="contraseña"
                 type="password"
                 autoComplete="current-password"
                 required
-                value={formData.password}
+                value={formData.contraseña}
                 onChange={handleChange}
                 className="input-field"
                 placeholder="••••••••"

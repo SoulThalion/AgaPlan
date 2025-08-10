@@ -2,10 +2,13 @@ export interface Usuario {
   id: number;
   nombre: string;
   email: string;
-  rol: 'admin' | 'superadmin' | 'voluntario';
+  contraseña?: string; // Opcional en el frontend para no enviar la contraseña
+  sexo: 'M' | 'F' | 'O';
+  cargo: string;
+  rol: 'voluntario' | 'admin' | 'superAdmin';
   participacionMensual?: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Lugar {
@@ -44,14 +47,15 @@ export interface Turno {
 
 export interface LoginRequest {
   email: string;
-  password: string;
+  contraseña: string;
 }
 
 export interface RegisterRequest {
   nombre: string;
   email: string;
-  password: string;
-  rol: 'voluntario' | 'admin';
+  contraseña: string;
+  sexo: 'M' | 'F' | 'O';
+  cargo: string;
 }
 
 export interface AuthResponse {

@@ -7,6 +7,7 @@ interface AuthContextType {
   login: (token: string, user: Usuario) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,6 +27,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<Usuario | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Recuperar token y usuario del localStorage al cargar
@@ -42,6 +44,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('user');
       }
     }
+    
+    // Marcar como no cargando después de verificar localStorage
+    setIsLoading(false);
   }, []);
 
   const login = (newToken: string, newUser: Usuario) => {
@@ -64,6 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     isAuthenticated: !!token && !!user,
+    isLoading,
   };
 
   return (

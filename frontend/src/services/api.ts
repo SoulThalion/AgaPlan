@@ -51,15 +51,23 @@ class ApiService {
     );
   }
 
-  // Autenticación
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await this.api.post<AuthResponse>('/auth/login', data);
-    return response.data;
+  // Métodos de autenticación
+  async login(credentials: { email: string; contraseña: string }): Promise<AuthResponse> {
+    try {
+      const response = await this.api.post<AuthResponse>('/auth/login', credentials);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await this.api.post<AuthResponse>('/auth/register', data);
-    return response.data;
+  async register(userData: RegisterRequest): Promise<AuthResponse> {
+    try {
+      const response = await this.api.post<AuthResponse>('/auth/register', userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Usuarios

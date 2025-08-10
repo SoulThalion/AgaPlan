@@ -4,20 +4,28 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import ThemeToggle from './ThemeToggle';
 import type { RegisterRequest } from '../types';
+import Swal from 'sweetalert2';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
-    password: '',
+    contraseña: '',
     confirmPassword: '',
-    rol: 'voluntario'
+    sexo: 'M' as 'M' | 'F' | 'O',
+    cargo: '',
+    rol: 'voluntario' as 'voluntario' | 'admin'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Si está cargando la autenticación, mostrar nada
+  if (authLoading) {
+    return null;
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -31,37 +39,64 @@ const Register: React.FC = () => {
     setLoading(true);
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
+    // Validar que las contraseñas coincidan
+    if (formData.contraseña !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de validación',
+        text: 'Las contraseñas no coinciden',
+        confirmButtonText: 'Entendido'
+      });
       setLoading(false);
       return;
     }
 
     try {
-      const form: RegisterRequest = {
+      // Preparar datos para el registro
+      const registerData: RegisterRequest = {
         nombre: formData.nombre,
         email: formData.email,
-        password: formData.password,
-        rol: formData.rol as 'voluntario' | 'admin'
+        contraseña: formData.contraseña,
+        sexo: formData.sexo,
+        cargo: formData.cargo
       };
-      const response = await apiService.register(form);
+
+      const response = await apiService.register(registerData);
       
-      if (response.success) {
-        // Auto-login después del registro
-        const loginResponse = await apiService.login({
-          email: formData.email,
-          password: formData.password
+      if (response.success && response.token && response.user) {
+        // Auto-login después del registro exitoso
+        await login(response.token, response.user);
+        
+        // Mostrar mensaje de éxito
+        await Swal.fire({
+          icon: 'success',
+          title: '¡Registro exitoso!',
+          text: `Usuario registrado como ${response.user.rol}`,
+          timer: 2000,
+          showConfirmButton: false
         });
         
-        if (loginResponse.success && loginResponse.token && loginResponse.user) {
-          await login(loginResponse.token, loginResponse.user);
-          navigate('/dashboard');
-        }
+        navigate('/dashboard');
       } else {
         setError(response.message || 'Error en el registro');
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de registro',
+          text: response.message || 'Error en el registro',
+          confirmButtonText: 'Entendido'
+        });
       }
-    } catch (err) {
-      setError('Error de conexión. Intenta nuevamente.');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Error de conexión. Intenta nuevamente.';
+      setError(errorMessage);
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: errorMessage,
+        confirmButtonText: 'Entendido'
+      });
     } finally {
       setLoading(false);
     }
@@ -145,16 +180,16 @@ const Register: React.FC = () => {
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
+              <label htmlFor="contraseña" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
                 Contraseña
               </label>
               <input
-                id="password"
-                name="password"
+                id="contraseña"
+                name="contraseña"
                 type="password"
                 autoComplete="new-password"
                 required
-                value={formData.password}
+                value={formData.contraseña}
                 onChange={handleChange}
                 className="input-field"
                 placeholder="••••••••"
