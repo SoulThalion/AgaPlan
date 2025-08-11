@@ -7,7 +7,8 @@ import {
   deleteTurno,
   ocuparTurno,
   liberarTurno,
-  generarTurnosAutomaticos
+  generarTurnosAutomaticos,
+  createTurnosRecurrentes
 } from '../controllers/turnoController';
 import { requireAdmin, requireSuperAdmin } from '../middleware/roleMiddleware';
 import { authMiddleware } from '../middleware/authMiddleware';
@@ -20,6 +21,7 @@ router.get('/:id', getTurnoById);
 
 // Rutas protegidas para admin y superAdmin
 router.post('/', authMiddleware, requireAdmin, createTurno);
+router.post('/recurrentes', authMiddleware, requireAdmin, createTurnosRecurrentes);
 router.put('/:id', authMiddleware, requireAdmin, updateTurno);
 router.delete('/:id', authMiddleware, requireAdmin, deleteTurno);
 

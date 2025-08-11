@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
-import type { Turno, Lugar, Usuario, Exhibidor, TurnoCreationRequest } from '../types';
+import type { Turno, Lugar, Usuario, Exhibidor, TurnoCreationRequest, TurnoRecurrenteRequest } from '../types';
 import Swal from 'sweetalert2';
 
 const ShiftManagement: React.FC = () => {
@@ -9,12 +9,17 @@ const ShiftManagement: React.FC = () => {
   const [editingShift, setEditingShift] = useState<Turno | null>(null);
   const [formData, setFormData] = useState({
     fecha: new Date().toISOString().split('T')[0],
-    hora: '09:00',
+    horaInicio: '09:00',
+    horaFin: '10:00',
     lugarId: 0,
     exhibidorIds: [] as number[],
-    usuarioId: undefined as number | undefined
+    usuarioIds: [] as number[], // Cambiado de usuarioId a usuarioIds
+    esRecurrente: false,
+    semanas: 4
   });
   const [selectedLugar, setSelectedLugar] = useState<Lugar | null>(null);
+  const [selectedTurnos, setSelectedTurnos] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -81,6 +86,29 @@ const ShiftManagement: React.FC = () => {
     }
   });
 
+  const createRecurrenteMutation = useMutation({
+    mutationFn: (data: TurnoRecurrenteRequest) => apiService.createTurnosRecurrentes(data),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      setIsModalOpen(false);
+      resetForm();
+      Swal.fire({
+        icon: 'success',
+        title: 'Turnos recurrentes creados',
+        text: response.message || 'Los turnos recurrentes se han creado exitosamente',
+        timer: 3000,
+        showConfirmButton: false
+      });
+    },
+    onError: (error: any) => {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Error al crear turnos recurrentes'
+      });
+    }
+  });
+
   const updateShiftMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: TurnoCreationRequest }) =>
       apiService.updateTurno(id, data),
@@ -127,19 +155,56 @@ const ShiftManagement: React.FC = () => {
     }
   });
 
+  const deleteMultipleTurnosMutation = useMutation({
+    mutationFn: (ids: number[]) => Promise.all(ids.map(id => apiService.deleteTurno(id))),
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      setSelectedTurnos([]);
+      setSelectAll(false);
+      Swal.fire({
+        icon: 'success',
+        title: 'Turnos eliminados',
+        text: `Se han eliminado ${ids.length} turnos exitosamente`,
+        timer: 3000,
+        showConfirmButton: false
+      });
+    },
+    onError: (error: any) => {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response?.data?.message || 'Error al eliminar turnos'
+      });
+    }
+  });
+
   const resetForm = () => {
     setFormData({
       fecha: new Date().toISOString().split('T')[0],
-      hora: '09:00',
-      lugarId: lugares?.data?.[0]?.id || 0,
+      horaInicio: '09:00',
+      horaFin: '10:00',
+      lugarId: 0,
       exhibidorIds: [],
-      usuarioId: undefined
+      usuarioIds: [],
+      esRecurrente: false,
+      semanas: 4
     });
-    setSelectedLugar(null);
+    setEditingShift(null);
+    setSelectedTurnos([]);
+    setSelectAll(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.lugarId === 0) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Debes seleccionar un lugar'
+      });
+      return;
+    }
     
     if (formData.exhibidorIds.length === 0) {
       Swal.fire({
@@ -150,33 +215,129 @@ const ShiftManagement: React.FC = () => {
       return;
     }
     
-    const submitData = {
-      ...formData,
-      fecha: formData.fecha,
-      estado: 'libre' as const,
-      exhibidorIds: formData.exhibidorIds
-    };
+    // Validar que no se exceda el límite de exhibidores del lugar
+    if (selectedLugar && selectedLugar.exhibidores && formData.exhibidorIds.length > selectedLugar.exhibidores) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: `No puedes seleccionar más de ${selectedLugar.exhibidores} exhibidores para este lugar`
+      });
+      return;
+    }
+
+    // Validar que la hora de fin sea mayor que la de inicio
+    if (formData.horaFin <= formData.horaInicio) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'La hora de fin debe ser mayor que la hora de inicio'
+      });
+      return;
+    }
+
+    // Crear el rango de horas
+    const horaRango = `${formData.horaInicio}-${formData.horaFin}`;
     
     if (editingShift) {
-      updateShiftMutation.mutate({
-        id: editingShift.id,
-        data: submitData
-      });
+      // Para editar, usar el método de turnos recurrentes si se selecciona recurrente
+      if (formData.esRecurrente) {
+        // Si se convierte en recurrente, mostrar confirmación
+        Swal.fire({
+          title: '¿Convertir a turno recurrente?',
+          text: `Se eliminará el turno actual y se crearán ${formData.semanas} turnos semanales. ¿Estás seguro?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Sí, convertir',
+          cancelButtonText: 'Cancelar'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Si se confirma, proceder con la conversión
+            const submitData = {
+              fechaInicio: formData.fecha,
+              hora: horaRango,
+              lugarId: formData.lugarId,
+              exhibidorIds: formData.exhibidorIds,
+              usuarioIds: formData.usuarioIds,
+              estado: 'libre' as const,
+              esRecurrente: true,
+              semanas: formData.semanas
+            };
+            
+            // Primero eliminar el turno existente
+            deleteShiftMutation.mutate(editingShift.id, {
+              onSuccess: () => {
+                // Luego crear los turnos recurrentes
+                createRecurrenteMutation.mutate(submitData);
+              }
+            });
+          }
+        });
+      } else {
+        // Si se mantiene como turno puntual, usar el método normal
+        const submitData = {
+          fecha: formData.fecha,
+          hora: horaRango,
+          lugarId: formData.lugarId,
+          exhibidorIds: formData.exhibidorIds,
+          usuarioIds: formData.usuarioIds,
+          estado: 'libre' as const
+        };
+        
+        updateShiftMutation.mutate({
+          id: editingShift.id,
+          data: submitData
+        });
+      }
     } else {
-      createShiftMutation.mutate(submitData);
+      // Para crear, usar el método de turnos recurrentes
+      const submitData = {
+        fechaInicio: formData.fecha,
+        hora: horaRango,
+        lugarId: formData.lugarId,
+        exhibidorIds: formData.exhibidorIds,
+        usuarioIds: formData.usuarioIds,
+        estado: 'libre' as const,
+        esRecurrente: formData.esRecurrente,
+        semanas: formData.esRecurrente ? formData.semanas : 1
+      };
+      
+      if (formData.esRecurrente) {
+        createRecurrenteMutation.mutate(submitData);
+      } else {
+        // Convertir a formato normal para turno único
+        const turnoNormal = {
+          fecha: formData.fecha,
+          hora: horaRango,
+          lugarId: formData.lugarId,
+          exhibidorIds: formData.exhibidorIds,
+          usuarioIds: formData.usuarioIds,
+          estado: 'libre' as const
+        };
+        createShiftMutation.mutate(turnoNormal);
+      }
     }
   };
 
   const handleEdit = (shift: Turno) => {
     setEditingShift(shift);
-    // Para editar, necesitamos obtener los exhibidorIds del turno
-    // Por ahora usamos un array vacío, pero deberíamos obtener los exhibidores asociados
+    
+    // Extraer los exhibidorIds del turno
+    const exhibidorIds = shift.exhibidores ? shift.exhibidores.map(e => e.id) : [];
+    
+    // Para turnos existentes, separar el rango de horas
+    const [horaInicio, horaFin] = shift.hora.includes('-') ? shift.hora.split('-') : [shift.hora, shift.hora];
+    
     setFormData({
       fecha: shift.fecha,
-      hora: shift.hora,
+      horaInicio: horaInicio,
+      horaFin: horaFin,
       lugarId: shift.lugarId,
-      exhibidorIds: [], // TODO: Obtener exhibidorIds reales del turno
-      usuarioId: shift.usuarioId
+      exhibidorIds: exhibidorIds,
+      usuarioIds: shift.usuarios ? shift.usuarios.map(u => u.id) : [],
+      esRecurrente: false, // Al editar, por defecto es un turno puntual
+      semanas: 4
     });
     setIsModalOpen(true);
   };
@@ -200,7 +361,19 @@ const ShiftManagement: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingShift(null);
-    resetForm();
+    setFormData({
+      fecha: new Date().toISOString().split('T')[0],
+      horaInicio: '09:00',
+      horaFin: '10:00',
+      lugarId: 0,
+      exhibidorIds: [],
+      usuarioIds: [],
+      esRecurrente: false,
+      semanas: 4
+    });
+    setSelectedLugar(null);
+    setSelectedTurnos([]);
+    setSelectAll(false);
     setIsModalOpen(true);
   };
 
@@ -208,10 +381,7 @@ const ShiftManagement: React.FC = () => {
     return lugares?.data?.find((l: Lugar) => l.id === lugarId)?.nombre || 'Lugar no encontrado';
   };
 
-  const getUsuarioNombre = (usuarioId: number | undefined) => {
-    if (!usuarioId) return 'Disponible';
-    return usuarios?.data?.find((u: Usuario) => u.id === usuarioId)?.nombre || 'Usuario no encontrado';
-  };
+
 
   const formatFecha = (fecha: string | Date) => {
     const date = new Date(fecha);
@@ -223,8 +393,31 @@ const ShiftManagement: React.FC = () => {
     });
   };
 
+  const formatHora = (hora: string) => {
+    if (hora.includes('-')) {
+      const [horaInicio, horaFin] = hora.split('-');
+      return `${horaInicio} - ${horaFin}`;
+    }
+    return hora;
+  };
+
   const handleExhibidorChange = (exhibidorId: number, checked: boolean) => {
     if (checked) {
+      // Verificar que no se exceda el límite de exhibidores del lugar
+      if (selectedLugar && selectedLugar.exhibidores) {
+        const maxExhibidores = selectedLugar.exhibidores;
+        if (formData.exhibidorIds.length >= maxExhibidores) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Límite de exhibidores alcanzado',
+            text: `Este lugar solo permite un máximo de ${maxExhibidores} exhibidores`,
+            timer: 3000,
+            showConfirmButton: false
+          });
+          return;
+        }
+      }
+      
       setFormData(prev => ({
         ...prev,
         exhibidorIds: [...prev.exhibidorIds, exhibidorId]
@@ -235,6 +428,64 @@ const ShiftManagement: React.FC = () => {
         exhibidorIds: prev.exhibidorIds.filter(id => id !== exhibidorId)
       }));
     }
+  };
+
+  const handleTurnoSelection = (turnoId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedTurnos(prev => [...prev, turnoId]);
+    } else {
+      setSelectedTurnos(prev => prev.filter(id => id !== turnoId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && turnos?.data) {
+      const allIds = turnos.data.map(turno => turno.id);
+      setSelectedTurnos(allIds);
+      setSelectAll(true);
+    } else {
+      setSelectedTurnos([]);
+      setSelectAll(false);
+    }
+  };
+
+  const handleDeleteMultiple = () => {
+    if (selectedTurnos.length === 0) return;
+
+    Swal.fire({
+      title: '¿Eliminar turnos seleccionados?',
+      text: `Se eliminarán ${selectedTurnos.length} turnos. Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        deleteMultipleTurnosMutation.mutate(selectedTurnos);
+      }
+    });
+  };
+
+  const handleDeleteAll = () => {
+    if (!turnos?.data || turnos.data.length === 0) return;
+
+    Swal.fire({
+      title: '¿Eliminar TODOS los turnos?',
+      text: `Se eliminarán ${turnos.data.length} turnos. Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar todos',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed && turnos?.data) {
+        const allIds = turnos.data.map(turno => turno.id);
+        deleteMultipleTurnosMutation.mutate(allIds);
+      }
+    });
   };
 
   const isLoading = turnosLoading || lugaresLoading || usuariosLoading;
@@ -261,20 +512,60 @@ const ShiftManagement: React.FC = () => {
         <h2 className="text-2xl font-bold font-poppins text-neutral-text dark:text-white">
           Gestión de Turnos
         </h2>
-        <button
-          onClick={openCreateModal}
-          className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
-        >
-          + Nuevo Turno
-        </button>
+        <div className="flex space-x-3">
+          {selectedTurnos.length > 0 && (
+            <button
+              onClick={handleDeleteMultiple}
+              disabled={deleteMultipleTurnosMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50"
+            >
+              {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : `Eliminar ${selectedTurnos.length} seleccionados`}
+            </button>
+          )}
+          {turnos?.data && turnos.data.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              disabled={deleteMultipleTurnosMutation.isPending}
+              className="bg-red-800 hover:bg-red-900 text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50"
+            >
+              {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : 'Eliminar Todos'}
+            </button>
+          )}
+          <button
+            onClick={openCreateModal}
+            className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+          >
+            + Nuevo Turno
+          </button>
+        </div>
       </div>
 
       {/* Lista de turnos */}
       <div className="bg-white dark:bg-neutral-dark rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-neutral-light dark:border-neutral">
-          <h3 className="text-lg font-semibold font-poppins text-neutral-text dark:text-white">
-            Turnos Programados
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold font-poppins text-neutral-text dark:text-white">
+              Turnos Programados
+            </h3>
+            {turnos?.data && turnos.data.length > 0 && (
+              <div className="flex items-center space-x-3">
+                <label className="flex items-center space-x-2 text-sm text-neutral-text dark:text-white">
+                  <input
+                    type="checkbox"
+                    checked={selectAll}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary"
+                  />
+                  <span>Seleccionar todos</span>
+                </label>
+                {selectedTurnos.length > 0 && (
+                  <span className="text-sm text-neutral-text/70 dark:text-white/70">
+                    {selectedTurnos.length} de {turnos.data.length} seleccionados
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         
         {turnos?.data && turnos.data.length > 0 ? (
@@ -282,20 +573,28 @@ const ShiftManagement: React.FC = () => {
             {turnos.data.map((turno: Turno) => (
               <div key={turno.id} className="px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className={`w-3 h-3 rounded-full ${
-                    turno.estado === 'ocupado' ? 'bg-success' : 
-                    turno.estado === 'libre' ? 'bg-warning' : 'bg-neutral-text/30'
-                  }`}></div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      turno.estado === 'ocupado' ? 'bg-success' : 
+                      turno.estado === 'libre' ? 'bg-warning' : 'bg-neutral-text/30'
+                    }`}></div>
+                    <input
+                      type="checkbox"
+                      checked={selectedTurnos.includes(turno.id)}
+                      onChange={(e) => handleTurnoSelection(turno.id, e.target.checked)}
+                      className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary"
+                    />
+                  </div>
                   
                   <div>
                     <div className="font-medium font-poppins text-neutral-text dark:text-white">
                       {getLugarNombre(turno.lugarId)} - {turno.exhibidores && turno.exhibidores.length > 0 ? turno.exhibidores.map(e => e.nombre).join(', ') : 'Sin exhibidores'}
                     </div>
                     <div className="text-sm text-neutral-text/70 dark:text-white/70">
-                      {formatFecha(turno.fecha)} - {turno.hora}
+                      {formatFecha(turno.fecha)} - {formatHora(turno.hora)}
                     </div>
                     <div className="text-xs text-neutral-text/50 dark:text-white/50">
-                      {getUsuarioNombre(turno.usuarioId)}
+                      {turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Disponible'}
                     </div>
                   </div>
                 </div>
@@ -333,6 +632,14 @@ const ShiftManagement: React.FC = () => {
             </h3>
             
             <form onSubmit={handleSubmit} className="space-y-4">
+              {editingShift && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Nota:</strong> Al editar un turno, puedes convertirlo en recurrente. 
+                    Si seleccionas "Turno recurrente semanal", se eliminará el turno actual y se crearán nuevos turnos semanales.
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
                   Fecha
@@ -349,13 +656,27 @@ const ShiftManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Hora
+                  Hora Inicio
                 </label>
                 <input
                   type="time"
-                  name="hora"
-                  value={formData.hora}
-                  onChange={(e) => setFormData({...formData, hora: e.target.value})}
+                  name="horaInicio"
+                  value={formData.horaInicio}
+                  onChange={(e) => setFormData({...formData, horaInicio: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Hora Fin
+                </label>
+                <input
+                  type="time"
+                  name="horaFin"
+                  value={formData.horaFin}
+                  onChange={(e) => setFormData({...formData, horaFin: e.target.value})}
                   className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
                   required
                 />
@@ -367,15 +688,20 @@ const ShiftManagement: React.FC = () => {
                 </label>
                 <select
                   name="lugarId"
-                  value={formData.lugarId}
-                  onChange={(e) => setFormData({...formData, lugarId: Number(e.target.value)})}
+                  value={formData.lugarId || ''}
+                  onChange={(e) => {
+                    const lugarId = Number(e.target.value);
+                    setFormData({...formData, lugarId});
+                    const lugar = lugares?.data?.find(l => l.id === lugarId);
+                    setSelectedLugar(lugar || null);
+                  }}
                   className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
                   required
                 >
-                  <option value="">Seleccionar lugar</option>
+                  <option value="">Selecciona un lugar</option>
                   {lugares?.data?.map((lugar: Lugar) => (
                     <option key={lugar.id} value={lugar.id}>
-                      {lugar.nombre} {lugar.exhibidores ? `(${lugar.exhibidores} exhibidores)` : ''}
+                      {lugar.nombre} - {lugar.direccion}
                     </option>
                   ))}
                 </select>
@@ -386,43 +712,117 @@ const ShiftManagement: React.FC = () => {
                   Exhibidores
                 </label>
                 <div className="max-h-32 overflow-y-auto border border-neutral-light dark:border-neutral rounded-lg p-2 dark:bg-neutral">
-                  {exhibidores?.data?.map((exhibidor: Exhibidor) => (
-                    <label key={exhibidor.id} className="flex items-center space-x-2 py-1">
-                      <input
-                        type="checkbox"
-                        checked={formData.exhibidorIds.includes(exhibidor.id)}
-                        onChange={(e) => handleExhibidorChange(exhibidor.id, e.target.checked)}
-                        className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary"
-                      />
-                      <span className="text-sm text-neutral-text dark:text-white">{exhibidor.nombre}</span>
-                    </label>
-                  ))}
+                  {exhibidores?.data?.map((exhibidor: Exhibidor) => {
+                    const isChecked = formData.exhibidorIds.includes(exhibidor.id);
+                    const isDisabled = Boolean(selectedLugar && selectedLugar.exhibidores && 
+                      !isChecked && formData.exhibidorIds.length >= selectedLugar.exhibidores);
+                    
+                    return (
+                      <label key={exhibidor.id} className={`flex items-center space-x-2 py-1 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => handleExhibidorChange(exhibidor.id, e.target.checked)}
+                          disabled={isDisabled}
+                          className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <span className={`text-sm ${isDisabled ? 'text-neutral-text/50 dark:text-white/50' : 'text-neutral-text dark:text-white'}`}>
+                          {exhibidor.nombre}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
                 {selectedLugar && selectedLugar.exhibidores && (
-                  <p className="text-xs text-neutral-text/70 dark:text-white/70 mt-1">
-                    Este lugar puede tener hasta {selectedLugar.exhibidores} exhibidores
-                  </p>
+                  <div className="text-xs text-neutral-text/70 dark:text-white/70 mt-1">
+                    <p>Este lugar puede tener hasta {selectedLugar.exhibidores} exhibidores</p>
+                    <p className={`mt-1 ${formData.exhibidorIds.length >= selectedLugar.exhibidores ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                      Seleccionados: {formData.exhibidorIds.length} / {selectedLugar.exhibidores}
+                    </p>
+                  </div>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Usuario (opcional)
+                  Usuarios (opcional)
                 </label>
-                <select
-                  name="usuarioId"
-                  value={formData.usuarioId || ''}
-                  onChange={(e) => setFormData({...formData, usuarioId: e.target.value ? Number(e.target.value) : undefined})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                >
-                  <option value="">Sin asignar</option>
-                  {usuarios?.data?.map((usuario: Usuario) => (
-                    <option key={usuario.id} value={usuario.id}>
-                      {usuario.nombre} - {usuario.cargo}
-                    </option>
-                  ))}
-                </select>
+                <div className="max-h-32 overflow-y-auto border border-neutral-light dark:border-neutral rounded-lg p-2 dark:bg-neutral">
+                  {usuarios?.data?.map((usuario: Usuario) => {
+                    const isChecked = formData.usuarioIds.includes(usuario.id);
+                    return (
+                      <label key={usuario.id} className="flex items-center space-x-2 py-1">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const newUsuarioIds = [...formData.usuarioIds];
+                            if (e.target.checked) {
+                              newUsuarioIds.push(usuario.id);
+                            } else {
+                              newUsuarioIds.splice(newUsuarioIds.indexOf(usuario.id), 1);
+                            }
+                            setFormData(prev => ({ ...prev, usuarioIds: newUsuarioIds }));
+                          }}
+                          className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary"
+                        />
+                        <span className="text-sm text-neutral-text dark:text-white">
+                          {usuario.nombre} - {usuario.cargo}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Tipo de Turno
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="tipoTurno"
+                      checked={!formData.esRecurrente}
+                      onChange={() => setFormData({...formData, esRecurrente: false})}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-neutral-text dark:text-white">Turno puntual</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="tipoTurno"
+                      checked={formData.esRecurrente}
+                      onChange={() => setFormData({...formData, esRecurrente: true})}
+                      className="text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm text-neutral-text dark:text-white">Turno recurrente semanal</span>
+                  </label>
+                </div>
+              </div>
+
+              {formData.esRecurrente && (
+                <div>
+                  <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                    Número de semanas
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="52"
+                    value={formData.semanas}
+                    onChange={(e) => setFormData({...formData, semanas: Number(e.target.value)})}
+                    className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                    placeholder="4"
+                  />
+                  <p className="text-xs text-neutral-text/70 dark:text-white/70 mt-1">
+                    Se creará un turno cada semana durante {formData.semanas} semanas
+                  </p>
+                </div>
+              )}
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button
@@ -434,10 +834,15 @@ const ShiftManagement: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={createShiftMutation.isPending || updateShiftMutation.isPending}
+                  disabled={createShiftMutation.isPending || updateShiftMutation.isPending || createRecurrenteMutation.isPending || deleteShiftMutation.isPending || deleteMultipleTurnosMutation.isPending}
                   className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-medium font-poppins rounded-lg transition-colors duration-200 disabled:opacity-50"
                 >
-                  {createShiftMutation.isPending || updateShiftMutation.isPending ? 'Guardando...' : 'Guardar'}
+                  {createShiftMutation.isPending || updateShiftMutation.isPending || createRecurrenteMutation.isPending || deleteShiftMutation.isPending || deleteMultipleTurnosMutation.isPending
+                    ? 'Guardando...' 
+                    : editingShift 
+                      ? (formData.esRecurrente ? 'Convertir a Recurrente' : 'Actualizar Turno')
+                      : 'Guardar'
+                  }
                 </button>
               </div>
             </form>

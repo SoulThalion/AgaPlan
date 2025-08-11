@@ -7,6 +7,7 @@ import Exhibidor from '../models/Exhibidor';
 import Disponibilidad from '../models/Disponibilidad';
 import { AuthenticatedRequest } from '../types/auth';
 import { Op } from 'sequelize';
+import TurnoUsuario from '../models/TurnoUsuario';
 
 // Obtener todos los turnos
 export const getAllTurnos = async (req: Request, res: Response) => {
@@ -20,7 +21,8 @@ export const getAllTurnos = async (req: Request, res: Response) => {
         },
         {
           model: Usuario,
-          as: 'usuario',
+          as: 'usuarios',
+          through: { attributes: [] },
           attributes: ['id', 'nombre', 'email']
         },
         {
@@ -60,7 +62,8 @@ export const getTurnoById = async (req: Request, res: Response) => {
         },
         {
           model: Usuario,
-          as: 'usuario',
+          as: 'usuarios',
+          through: { attributes: [] },
           attributes: ['id', 'nombre', 'email']
         },
         {
@@ -95,13 +98,13 @@ export const getTurnoById = async (req: Request, res: Response) => {
 // Crear un nuevo turno
 export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { fecha, hora, lugarId, exhibidorIds } = req.body;
+    const { fecha, hora, lugarId, exhibidorIds, usuarioIds, estado } = req.body;
 
-    // Validaciones básicas
+    // Validar campos requeridos
     if (!fecha || !hora || !lugarId || !exhibidorIds || !Array.isArray(exhibidorIds)) {
       return res.status(400).json({
         success: false,
-        message: 'Todos los campos son requeridos y exhibidorIds debe ser un array'
+        message: 'Faltan campos requeridos: fecha, hora, lugarId, exhibidorIds'
       });
     }
 
@@ -114,26 +117,25 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Validar que no sea fecha pasada
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    if (fechaDate < hoy) {
-      return res.status(400).json({
-        success: false,
-        message: 'No se pueden crear turnos en fechas pasadas'
-      });
-    }
-
-    // Validar formato de hora
-    const horaRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    // Validar formato de hora (ahora es un rango HH:MM-HH:MM)
+    const horaRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]-([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (!horaRegex.test(hora)) {
       return res.status(400).json({
         success: false,
-        message: 'Formato de hora inválido (HH:MM)'
+        message: 'Formato de hora inválido. Debe ser HH:MM-HH:MM (ej: 09:00-10:00)'
       });
     }
 
-    // Obtener información del lugar
+    // Validar que la hora de fin sea mayor que la de inicio
+    const [horaInicio, horaFin] = hora.split('-');
+    if (horaInicio >= horaFin) {
+      return res.status(400).json({
+        success: false,
+        message: 'La hora de fin debe ser mayor que la hora de inicio'
+      });
+    }
+
+    // Verificar que el lugar existe
     const lugar = await Lugar.findByPk(lugarId);
     if (!lugar) {
       return res.status(404).json({
@@ -142,23 +144,15 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Validar que la cantidad de exhibidores no exceda la disponible en el lugar
-    if (exhibidorIds.length > (lugar.exhibidores || 1)) {
-      return res.status(400).json({
-        success: false,
-        message: `La cantidad de exhibidores (${exhibidorIds.length}) excede la disponible (${lugar.exhibidores || 1}) en este lugar`
-      });
-    }
-
-    // Verificar que no existe un turno en la misma fecha, hora y lugar
-    const existingTurno = await Turno.findOne({
+    // Verificar que no haya un turno en la misma fecha, hora y lugar
+    const turnoExistente = await Turno.findOne({
       where: { fecha, hora, lugarId }
     });
 
-    if (existingTurno) {
+    if (turnoExistente) {
       return res.status(400).json({
         success: false,
-        message: 'Ya existe un turno en esa fecha, hora y lugar'
+        message: 'Ya existe un turno en esta fecha, hora y lugar'
       });
     }
 
@@ -167,33 +161,33 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       fecha,
       hora,
       lugarId,
-      estado: 'libre'
+      estado: estado || 'libre'
     });
 
     // Crear las relaciones con exhibidores
-    if (exhibidorIds.length > 0) {
-      const turnoExhibidorRecords = exhibidorIds.map(exhibidorId => ({
+    const turnoExhibidorRecords = exhibidorIds.map((exhibidorId: number) => ({
+      turnoId: nuevoTurno.id,
+      exhibidorId
+    }));
+
+    await TurnoExhibidor.bulkCreate(turnoExhibidorRecords);
+
+    // Crear las relaciones con usuarios si se proporcionan
+    if (usuarioIds && Array.isArray(usuarioIds) && usuarioIds.length > 0) {
+      const turnoUsuarioRecords = usuarioIds.map((usuarioId: number) => ({
         turnoId: nuevoTurno.id,
-        exhibidorId
+        usuarioId
       }));
-      
-      await TurnoExhibidor.bulkCreate(turnoExhibidorRecords);
+
+      await TurnoUsuario.bulkCreate(turnoUsuarioRecords);
     }
 
-    // Obtener el turno completo con información del lugar y exhibidores
+    // Obtener el turno con sus relaciones
     const turnoCompleto = await Turno.findByPk(nuevoTurno.id, {
       include: [
-        {
-          model: Lugar,
-          as: 'lugar',
-          attributes: ['id', 'nombre', 'direccion', 'exhibidores']
-        },
-        {
-          model: Exhibidor,
-          as: 'exhibidores',
-          through: { attributes: [] },
-          attributes: ['id', 'nombre', 'descripcion']
-        }
+        { model: Lugar, as: 'lugar' },
+        { model: Usuario, as: 'usuarios' },
+        { model: Exhibidor, as: 'exhibidores' }
       ]
     });
 
@@ -254,11 +248,18 @@ export const updateTurno = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (hora) {
-      const horaRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      const horaRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]-([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
       if (!horaRegex.test(hora)) {
         return res.status(400).json({
           success: false,
-          message: 'Formato de hora inválido (HH:MM)'
+          message: 'Formato de hora inválido. Debe ser HH:MM-HH:MM (ej: 09:00-10:00)'
+        });
+      }
+      const [horaInicio, horaFin] = hora.split('-');
+      if (horaInicio >= horaFin) {
+        return res.status(400).json({
+          success: false,
+          message: 'La hora de fin debe ser mayor que la hora de inicio'
         });
       }
     }
@@ -298,7 +299,7 @@ export const updateTurno = async (req: AuthenticatedRequest, res: Response) => {
 
       // Crear nuevas relaciones
       if (exhibidorIds.length > 0) {
-        const turnoExhibidorRecords = exhibidorIds.map(exhibidorId => ({
+        const turnoExhibidorRecords = exhibidorIds.map((exhibidorId: number) => ({
           turnoId: parseInt(id),
           exhibidorId
         }));
@@ -380,7 +381,12 @@ export const ocuparTurno = async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const usuarioId = req.user!.id;
 
-    const turno = await Turno.findByPk(id);
+    const turno = await Turno.findByPk(id, {
+      include: [
+        { model: Usuario, as: 'usuarios', through: { attributes: [] } }
+      ]
+    });
+    
     if (!turno) {
       return res.status(404).json({
         success: false,
@@ -397,9 +403,16 @@ export const ocuparTurno = async (req: AuthenticatedRequest, res: Response) => {
 
     // Verificar que el usuario no tenga otro turno en la misma fecha
     const turnoExistente = await Turno.findOne({
+      include: [
+        { 
+          model: Usuario, 
+          as: 'usuarios', 
+          where: { id: usuarioId },
+          through: { attributes: [] }
+        }
+      ],
       where: {
         fecha: turno.fecha,
-        usuarioId,
         id: { [Op.ne]: id }
       }
     });
@@ -428,16 +441,21 @@ export const ocuparTurno = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Verificar que la hora del turno esté dentro de tu disponibilidad
-    const horaTurno = turno.hora;
-    if (horaTurno < disponibilidad.hora_inicio || horaTurno > disponibilidad.hora_fin) {
+    const [horaInicio, horaFin] = turno.hora.split('-');
+    if (horaInicio < disponibilidad.hora_inicio || horaFin > disponibilidad.hora_fin) {
       return res.status(400).json({
         success: false,
-        message: `La hora del turno (${horaTurno}) no está dentro de tu disponibilidad (${disponibilidad.hora_inicio} - ${disponibilidad.hora_fin})`
+        message: `La hora del turno (${turno.hora}) no está dentro de tu disponibilidad (${disponibilidad.hora_inicio} - ${disponibilidad.hora_fin})`
       });
     }
 
-    // Asignar el turno al usuario
-    turno.usuarioId = usuarioId;
+    // Asignar el turno al usuario usando la tabla intermedia
+    await TurnoUsuario.create({
+      turnoId: turno.id,
+      usuarioId: usuarioId
+    });
+
+    // Actualizar el estado del turno
     turno.estado = 'ocupado';
     await turno.save();
 
@@ -451,7 +469,7 @@ export const ocuparTurno = async (req: AuthenticatedRequest, res: Response) => {
         },
         {
           model: Usuario,
-          as: 'usuario',
+          as: 'usuarios',
           attributes: ['id', 'nombre', 'email']
         }
       ]
@@ -477,7 +495,12 @@ export const liberarTurno = async (req: AuthenticatedRequest, res: Response) => 
     const { id } = req.params;
     const usuarioId = req.user!.id;
 
-    const turno = await Turno.findByPk(id);
+    const turno = await Turno.findByPk(id, {
+      include: [
+        { model: Usuario, as: 'usuarios', through: { attributes: [] } }
+      ]
+    });
+    
     if (!turno) {
       return res.status(404).json({
         success: false,
@@ -493,17 +516,32 @@ export const liberarTurno = async (req: AuthenticatedRequest, res: Response) => 
     }
 
     // Verificar que el usuario sea el propietario del turno
-    if (turno.usuarioId !== usuarioId) {
+    const usuarioAsignado = turno.usuarios?.find(u => u.id === usuarioId);
+    if (!usuarioAsignado) {
       return res.status(403).json({
         success: false,
         message: 'Solo puedes liberar tus propios turnos'
       });
     }
 
-    // Liberar el turno
-    turno.usuarioId = undefined;
-    turno.estado = 'libre';
-    await turno.save();
+    // Liberar el turno eliminando la relación con el usuario
+    await TurnoUsuario.destroy({
+      where: {
+        turnoId: turno.id,
+        usuarioId: usuarioId
+      }
+    });
+
+    // Verificar si quedan otros usuarios asignados
+    const usuariosRestantes = await TurnoUsuario.count({
+      where: { turnoId: turno.id }
+    });
+
+    // Si no quedan usuarios, marcar el turno como libre
+    if (usuariosRestantes === 0) {
+      turno.estado = 'libre';
+      await turno.save();
+    }
 
     // Obtener el turno liberado con información del lugar
     const turnoLiberado = await Turno.findByPk(id, {
@@ -560,18 +598,21 @@ export const generarTurnosAutomaticos = async (req: AuthenticatedRequest, res: R
     }
 
     // Validar formato de horas
-    const horaRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    const horaRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]-([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (!horaRegex.test(horaInicio) || !horaRegex.test(horaFin)) {
       return res.status(400).json({
         success: false,
-        message: 'Formato de hora inválido (HH:MM)'
+        message: 'Formato de hora inválido (HH:MM-HH:MM)'
       });
     }
 
-    if (horaInicio >= horaFin) {
+    const [horaInicioInicio, horaFinInicio] = horaInicio.split('-');
+    const [horaInicioFin, horaFinFin] = horaFin.split('-');
+
+    if (horaInicioInicio >= horaFinInicio || horaInicioFin >= horaFinFin) {
       return res.status(400).json({
         success: false,
-        message: 'La hora de inicio debe ser menor que la hora de fin'
+        message: 'La hora de fin debe ser mayor que la hora de inicio'
       });
     }
 
@@ -609,11 +650,11 @@ export const generarTurnosAutomaticos = async (req: AuthenticatedRequest, res: R
       
       // Solo generar turnos de lunes a viernes (1-5)
       if (diaSemana >= 1 && diaSemana <= 5) {
-        const horaActual = new Date(`2000-01-01T${horaInicio}:00`);
-        const horaFinDate = new Date(`2000-01-01T${horaFin}:00`);
+        const horaActualInicio = new Date(`2000-01-01T${horaInicioInicio}:00`);
+        const horaActualFin = new Date(`2000-01-01T${horaFinInicio}:00`);
 
-        while (horaActual < horaFinDate) {
-          const horaString = horaActual.toTimeString().slice(0, 5);
+        while (horaActualInicio < horaActualFin) {
+          const horaString = horaActualInicio.toTimeString().slice(0, 5);
           
           // Obtener el lugar para saber cuántos exhibidores tiene
           const lugar = await Lugar.findByPk(lugarId);
@@ -651,7 +692,7 @@ export const generarTurnosAutomaticos = async (req: AuthenticatedRequest, res: R
           }
 
           // Avanzar al siguiente intervalo
-          horaActual.setMinutes(horaActual.getMinutes() + intervalo);
+          horaActualInicio.setMinutes(horaActualInicio.getMinutes() + intervalo);
         }
       }
 
@@ -671,6 +712,199 @@ export const generarTurnosAutomaticos = async (req: AuthenticatedRequest, res: R
     });
   } catch (error) {
     console.error('Error generando turnos automáticos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+// Crear turnos recurrentes semanales
+export const createTurnosRecurrentes = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { fechaInicio, hora, lugarId, exhibidorIds, usuarioIds, estado, esRecurrente, semanas } = req.body;
+
+    // Validaciones básicas
+    if (!fechaInicio || !hora || !lugarId || !exhibidorIds || exhibidorIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Fecha, hora, lugar y exhibidores son requeridos'
+      });
+    }
+
+    if (esRecurrente && (!semanas || semanas < 1 || semanas > 52)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Para turnos recurrentes, el número de semanas debe estar entre 1 y 52'
+      });
+    }
+
+    // Verificar que el lugar existe
+    const lugar = await Lugar.findByPk(lugarId);
+    if (!lugar) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lugar no encontrado'
+      });
+    }
+
+    // Verificar que los exhibidores existen
+    const exhibidores = await Exhibidor.findAll({
+      where: { id: { [Op.in]: exhibidorIds } }
+    });
+
+    if (exhibidores.length !== exhibidorIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Uno o más exhibidores no existen'
+      });
+    }
+
+    const turnosCreados = [];
+    const fechaInicioDate = new Date(fechaInicio);
+    
+    if (isNaN(fechaInicioDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Formato de fecha inválido'
+      });
+    }
+
+    if (esRecurrente) {
+      // Crear turnos para cada semana
+      for (let semana = 0; semana < semanas; semana++) {
+        const fechaTurno = new Date(fechaInicioDate);
+        fechaTurno.setDate(fechaTurno.getDate() + (semana * 7));
+
+        // Verificar si ya existe un turno en esa fecha, hora y lugar
+        const turnoExistente = await Turno.findOne({
+          where: {
+            fecha: fechaTurno,
+            hora,
+            lugarId
+          }
+        });
+
+        if (!turnoExistente) {
+          // Crear el turno
+          const nuevoTurno = await Turno.create({
+            fecha: fechaTurno,
+            hora,
+            lugarId,
+            estado: estado || 'libre'
+          });
+
+          // Crear las relaciones con exhibidores
+          const turnoExhibidorRecords = exhibidorIds.map((exhibidorId: number) => ({
+            turnoId: nuevoTurno.id,
+            exhibidorId
+          }));
+          
+          await TurnoExhibidor.bulkCreate(turnoExhibidorRecords);
+
+          // Crear las relaciones con usuarios si se proporcionan
+          if (usuarioIds && Array.isArray(usuarioIds) && usuarioIds.length > 0) {
+            const turnoUsuarioRecords = usuarioIds.map((usuarioId: number) => ({
+              turnoId: nuevoTurno.id,
+              usuarioId
+            }));
+            await TurnoUsuario.bulkCreate(turnoUsuarioRecords);
+          }
+
+          turnosCreados.push(nuevoTurno);
+        }
+      }
+    } else {
+      // Crear solo un turno
+      const turnoExistente = await Turno.findOne({
+        where: {
+          fecha: fechaInicioDate,
+          hora,
+          lugarId
+        }
+      });
+
+      if (turnoExistente) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya existe un turno en esa fecha, hora y lugar'
+        });
+      }
+
+      const nuevoTurno = await Turno.create({
+        fecha: fechaInicioDate,
+        hora,
+        lugarId,
+        estado: estado || 'libre'
+      });
+
+      // Crear las relaciones con exhibidores
+      const turnoExhibidorRecords = exhibidorIds.map((exhibidorId: number) => ({
+        turnoId: nuevoTurno.id,
+        exhibidorId
+      }));
+      
+      await TurnoExhibidor.bulkCreate(turnoExhibidorRecords);
+
+      // Crear las relaciones con usuarios si se proporcionan
+      if (usuarioIds && Array.isArray(usuarioIds) && usuarioIds.length > 0) {
+        const turnoUsuarioRecords = usuarioIds.map((usuarioId: number) => ({
+          turnoId: nuevoTurno.id,
+          usuarioId
+        }));
+        await TurnoUsuario.bulkCreate(turnoUsuarioRecords);
+      }
+
+      turnosCreados.push(nuevoTurno);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: esRecurrente 
+        ? `Se crearon ${turnosCreados.length} turnos recurrentes semanales`
+        : 'Turno creado exitosamente',
+      data: turnosCreados
+    });
+  } catch (error) {
+    console.error('Error creando turnos recurrentes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+export const getTurnos = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const turnos = await Turno.findAll({
+      include: [
+        {
+          model: Lugar,
+          as: 'lugar',
+          attributes: ['id', 'nombre', 'direccion', 'exhibidores']
+        },
+        {
+          model: Usuario,
+          as: 'usuarios',
+          through: { attributes: [] },
+          attributes: ['id', 'nombre', 'email', 'cargo']
+        },
+        {
+          model: Exhibidor,
+          as: 'exhibidores',
+          through: { attributes: [] },
+          attributes: ['id', 'nombre', 'descripcion']
+        }
+      ],
+      order: [['fecha', 'ASC'], ['hora', 'ASC']]
+    });
+
+    res.json({
+      success: true,
+      data: turnos
+    });
+  } catch (error) {
+    console.error('Error obteniendo turnos:', error);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor'

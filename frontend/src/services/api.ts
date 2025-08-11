@@ -9,7 +9,8 @@ import type {
   AuthResponse, 
   RegisterRequest, 
   ApiResponse,
-  TurnoCreationRequest
+  TurnoCreationRequest,
+  TurnoRecurrenteRequest
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
@@ -144,6 +145,11 @@ class ApiService {
 
   async createTurno(data: TurnoCreationRequest): Promise<ApiResponse<Turno>> {
     const response = await this.api.post<ApiResponse<Turno>>('/turnos', data);
+    return response.data;
+  }
+
+  async createTurnosRecurrentes(data: TurnoRecurrenteRequest): Promise<ApiResponse<Turno[]>> {
+    const response = await this.api.post<ApiResponse<Turno[]>>('/turnos/recurrentes', data);
     return response.data;
   }
 

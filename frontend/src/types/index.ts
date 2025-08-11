@@ -49,14 +49,13 @@ export interface Exhibidor {
 export interface Turno {
   id: number;
   lugarId: number;
-  usuarioId?: number;
   fecha: string;
-  hora: string; // Formato HH:MM
+  hora: string; // Formato HH:MM-HH:MM (rango de horas)
   estado: 'libre' | 'ocupado';
   createdAt: string;
   updatedAt: string;
   lugar?: Lugar;
-  usuario?: Usuario;
+  usuarios?: Usuario[];
   exhibidores?: Exhibidor[];
 }
 
@@ -92,11 +91,22 @@ export interface AuthResponse {
 
 export interface TurnoCreationRequest {
   fecha: string;
-  hora: string;
+  hora: string; // Formato HH:MM-HH:MM (rango de horas)
   lugarId: number;
   exhibidorIds: number[];
-  usuarioId?: number;
+  usuarioIds?: number[]; // Cambiado de usuarioId a usuarioIds (array)
   estado?: 'libre' | 'ocupado';
+}
+
+export interface TurnoRecurrenteRequest {
+  fechaInicio: string;
+  hora: string; // Formato HH:MM-HH:MM (rango de horas)
+  lugarId: number;
+  exhibidorIds: number[];
+  usuarioIds?: number[]; // Cambiado de usuarioId a usuarioIds (array)
+  estado?: 'libre' | 'ocupado';
+  esRecurrente: boolean;
+  semanas: number; // Número de semanas para repetir
 }
 
 export interface ApiResponse<T> {

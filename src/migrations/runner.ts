@@ -1,36 +1,41 @@
-import sequelize from '../config/database';
-import { QueryTypes } from 'sequelize';
+import { sequelize } from '../config/database';
+import { QueryInterface } from 'sequelize';
 
-// Importar las migraciones
-import * as createUsuarios from './001-create-usuarios';
-import * as createLugares from './002-create-lugares';
-import * as createDisponibilidades from './003-create-disponibilidades';
-import * as createTurnos from './004-create-turnos';
-import * as addParticipacionMensual from './005-add-participacion-mensual';
-import * as addMissingFields from './006-add-missing-fields';
-import * as createCargosTable from './007-create-cargos-table';
-import * as addLugarFields from './008-add-lugar-fields';
-import * as addCoordinatesToLugares from './010-add-coordinates-to-lugares';
-import * as addExhibidorToTurnos from './012-add-exhibidor-to-turnos';
-import * as createExhibidoresTable from './013-create-exhibidores-table';
-import * as addDescripcionToExhibidores from './015-add-descripcion-to-exhibidores';
-import createTurnoExhibidoresTable from './016-create-turno-exhibidores-table';
+// Importar todas las migraciones
+import { up as createUsuarios } from './001-create-usuarios';
+import { up as createLugares } from './002-create-lugares';
+import { up as createDisponibilidades } from './003-create-disponibilidades';
+import { up as createTurnos } from './004-create-turnos';
+import { up as addParticipacionMensual } from './005-add-participacion-mensual';
+import { up as addMissingFields } from './006-add-missing-fields';
+import { up as createCargosTable } from './007-create-cargos-table';
+import { up as addLugarFields } from './008-add-lugar-fields';
+import { up as addCoordinatesToLugares } from './010-add-coordinates-to-lugares';
+import { up as addExhibidorToTurnos } from './012-add-exhibidor-to-turnos';
+import { up as createExhibidoresTable } from './013-create-exhibidores-table';
+import { up as modifyTurnosExhibidorToExhibidorId } from './014-modify-turnos-exhibidor-to-exhibidorId';
+import { up as addDescripcionToExhibidores } from './015-add-descripcion-to-exhibidores';
+import { up as createTurnoExhibidoresTable } from './016-create-turno-exhibidores-table';
+import { up as modifyHoraToRange } from './017-modify-hora-to-range';
+import { up as createTurnoUsuariosTable } from './018-create-turno-usuarios-table';
 
-// Lista de migraciones en orden de ejecución
 const migrations = [
-  { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.down },
-  { name: '002-create-lugares', up: createLugares.up, down: createLugares.down },
-  { name: '003-create-disponibilidades', up: createDisponibilidades.up, down: createDisponibilidades.down },
-  { name: '004-create-turnos', up: createTurnos.up, down: createTurnos.down },
-  { name: '005-add-participacion-mensual', up: addParticipacionMensual.up, down: addParticipacionMensual.down },
-  { name: '006-add-missing-fields', up: addMissingFields.up, down: addMissingFields.down },
-  { name: '007-create-cargos-table', up: createCargosTable.up, down: createCargosTable.down },
-  { name: '008-add-lugar-fields', up: addLugarFields.up, down: addLugarFields.down },
-  { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares.up, down: addCoordinatesToLugares.down },
-  { name: '012-add-exhibidor-to-turnos', up: addExhibidorToTurnos.up, down: addExhibidorToTurnos.down },
-  { name: '013-create-exhibidores-table', up: createExhibidoresTable.up, down: createExhibidoresTable.down },
-  { name: '015-add-descripcion-to-exhibidores', up: addDescripcionToExhibidores.up, down: addDescripcionToExhibidores.down },
-  { name: '016-create-turno-exhibidores-table', up: createTurnoExhibidoresTable.up, down: createTurnoExhibidoresTable.down }
+  { name: '001-create-usuarios', up: createUsuarios },
+  { name: '002-create-lugares', up: createLugares },
+  { name: '003-create-disponibilidades', up: createDisponibilidades },
+  { name: '004-create-turnos', up: createTurnos },
+  { name: '005-add-participacion-mensual', up: addParticipacionMensual },
+  { name: '006-add-missing-fields', up: addMissingFields },
+  { name: '007-create-cargos-table', up: createCargosTable },
+  { name: '008-add-lugar-fields', up: addLugarFields },
+  { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares },
+  { name: '012-add-exhibidor-to-turnos', up: addExhibidorToTurnos },
+  { name: '013-create-exhibidores-table', up: createExhibidoresTable },
+  { name: '014-modify-turnos-exhibidor-to-exhibidorId', up: modifyTurnosExhibidorToExhibidorId },
+  { name: '015-add-descripcion-to-exhibidores', up: addDescripcionToExhibidores },
+  { name: '016-create-turno-exhibidores-table', up: createTurnoExhibidoresTable },
+  { name: '017-modify-hora-to-range', up: modifyHoraToRange },
+  { name: '018-create-turno-usuarios-table', up: createTurnoUsuariosTable },
 ];
 
 // Función para crear la tabla de migraciones si no existe
@@ -42,7 +47,7 @@ async function createMigrationsTable() {
         name VARCHAR(255) NOT NULL UNIQUE,
         executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `, { type: QueryTypes.RAW });
+    `, { type: 'RAW' });
   } catch (error) {
     console.error('Error creando tabla de migraciones:', error);
   }
@@ -55,7 +60,7 @@ async function isMigrationExecuted(migrationName: string): Promise<boolean> {
       'SELECT COUNT(*) as count FROM migrations WHERE name = ?',
       {
         replacements: [migrationName],
-        type: QueryTypes.SELECT
+        type: 'SELECT'
       }
     );
     return (result[0] as any).count > 0;
@@ -71,7 +76,7 @@ async function markMigrationAsExecuted(migrationName: string) {
       'INSERT INTO migrations (name) VALUES (?)',
       {
         replacements: [migrationName],
-        type: QueryTypes.INSERT
+        type: 'INSERT'
       }
     );
   } catch (error) {
@@ -114,7 +119,7 @@ export async function rollbackLastMigration() {
     // Obtener la última migración ejecutada
     const result = await sequelize.query(
       'SELECT name FROM migrations ORDER BY id DESC LIMIT 1',
-      { type: QueryTypes.SELECT }
+      { type: 'SELECT' }
     );
     
     if (result.length === 0) {
@@ -134,7 +139,7 @@ export async function rollbackLastMigration() {
         'DELETE FROM migrations WHERE name = ?',
         {
           replacements: [lastMigrationName],
-          type: QueryTypes.DELETE
+          type: 'DELETE'
         }
       );
       

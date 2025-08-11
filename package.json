@@ -4,9 +4,12 @@
   "description": "Backend con Node.js, Express, TypeScript y Sequelize",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "migrate": "ts-node src/migrations/runner.ts",
+    "migrate:hora-range": "ts-node src/scripts/runHoraRangeMigration.ts",
+    "migrate:turno-usuarios": "ts-node src/scripts/runTurnoUsuariosMigration.ts",
     "seed": "ts-node src/scripts/seedData.ts",
     "test": "ts-node src/scripts/testAPI.ts",
     "test:participacion": "ts-node src/scripts/ejemploParticipacionMensual.ts"
