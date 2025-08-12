@@ -1,8 +1,4 @@
 import { useState, useEffect } from 'react';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '../services/api';
@@ -15,326 +11,8 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewAllTurnos, setViewAllTurnos] = useState(true);
-  const [currentView, setCurrentView] = useState('dayGridMonth');
-
-  // Estilos CSS personalizados para FullCalendar
-  const calendarStyles = `
-    /* Estilos básicos esenciales para FullCalendar */
-    .fc {
-      font-family: inherit;
-      background: white;
-      border-radius: 8px;
-      overflow: visible !important;
-      display: block !important;
-      width: 100% !important;
-    }
-    
-    /* Toolbar */
-    .fc .fc-toolbar {
-      padding: 1rem;
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-      display: flex !important;
-      flex-direction: row !important;
-      align-items: center !important;
-      justify-content: space-between !important;
-    }
-    
-    .fc .fc-toolbar-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #1f2937;
-      margin: 0 !important;
-    }
-    
-    .fc .fc-button {
-      background: #3b82f6;
-      border-color: #3b82f6;
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      font-weight: 500;
-      margin: 0 0.25rem !important;
-      border: 1px solid !important;
-      cursor: pointer !important;
-    }
-    
-    .fc .fc-button:hover {
-      background: #2563eb;
-      border-color: #2563eb;
-    }
-    
-    .fc .fc-button:focus {
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-    
-    /* Grid del calendario */
-    .fc .fc-daygrid {
-      display: block !important;
-      width: 100% !important;
-    }
-    
-    .fc .fc-daygrid-day {
-      min-height: 120px;
-      border: 1px solid #e2e8f0;
-      display: table-cell !important;
-      vertical-align: top !important;
-      width: 14.2857% !important; /* 100% / 7 días */
-      max-width: 14.2857% !important;
-      box-sizing: border-box !important;
-    }
-    
-    .fc .fc-daygrid-day-frame {
-      min-height: 120px;
-      padding: 4px;
-      height: 100% !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    
-    .fc .fc-daygrid-day-events {
-      min-height: 2em;
-      margin-top: 4px;
-      position: relative !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    
-    /* Eventos */
-    .fc .fc-event {
-      border-radius: 4px;
-      padding: 2px 6px;
-      margin: 1px 0;
-      font-size: 0.75rem;
-      font-weight: 500;
-      border: none;
-      cursor: pointer;
-      display: block !important;
-      position: relative !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    
-    .fc .fc-event:hover {
-      opacity: 0.9;
-    }
-    
-    .fc .fc-daygrid-event-dot {
-      display: none;
-    }
-    
-    /* Números de día */
-    .fc .fc-daygrid-day-number {
-      padding: 8px;
-      font-weight: 500;
-      color: #374151;
-      display: block !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    
-    /* Encabezados de columna */
-    .fc .fc-col-header {
-      width: 100% !important;
-    }
-    
-    .fc .fc-col-header-cell {
-      padding: 12px 8px;
-      background-color: #f8fafc;
-      font-weight: 600;
-      color: #374151;
-      border: 1px solid #e2e8f0;
-      display: table-cell !important;
-      vertical-align: middle !important;
-      text-align: center !important;
-      width: 14.2857% !important; /* 100% / 7 días */
-      max-width: 14.2857% !important;
-      box-sizing: border-box !important;
-    }
-    
-    /* Estados de días */
-    .fc .fc-daygrid-day.fc-day-today {
-      background-color: #fef3c7;
-    }
-    
-    .fc .fc-daygrid-day.fc-day-other {
-      background-color: #f9fafb;
-    }
-    
-    .fc .fc-daygrid-day.fc-day-past {
-      background-color: #f9fafb;
-    }
-    
-    .fc .fc-daygrid-day.fc-day-future {
-      background-color: white;
-    }
-    
-    /* Enlaces "more" */
-    .fc .fc-more-link {
-      background: #f3f4f6;
-      color: #374151;
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      margin-top: 2px;
-      display: inline-block !important;
-    }
-    
-    .fc .fc-more-link:hover {
-      background: #e5e7eb;
-    }
-    
-    /* Popover */
-    .fc .fc-popover {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      position: absolute !important;
-      z-index: 1000 !important;
-    }
-    
-    .fc .fc-popover-header {
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 0.75rem;
-      font-weight: 600;
-    }
-    
-    .fc .fc-popover-body {
-      padding: 0.75rem;
-    }
-    
-    /* Tabla del calendario */
-    .fc .fc-daygrid-body {
-      display: table-row-group !important;
-      width: 100% !important;
-    }
-    
-    .fc .fc-daygrid-row {
-      display: table-row !important;
-      width: 100% !important;
-    }
-    
-    /* Asegurar que el contenedor sea visible */
-    .fc .fc-view-harness {
-      height: auto !important;
-      min-height: 400px !important;
-      width: 100% !important;
-      overflow: visible !important;
-    }
-    
-    /* Botones de navegación */
-    .fc .fc-prev-button,
-    .fc .fc-next-button,
-    .fc .fc-today-button {
-      display: inline-block !important;
-    }
-    
-    /* Contenedor principal del calendario */
-    .fc .fc-view {
-      display: block !important;
-      width: 100% !important;
-      height: auto !important;
-      overflow: visible !important;
-    }
-    
-    /* Asegurar que la tabla del calendario sea visible */
-    .fc table {
-      border-collapse: collapse !important;
-      border-spacing: 0 !important;
-      width: 100% !important;
-      height: auto !important;
-      table-layout: fixed !important;
-    }
-    
-    /* Asegurar que las celdas tengan el tamaño correcto */
-    .fc td, .fc th {
-      border: 1px solid #e2e8f0 !important;
-      padding: 0 !important;
-      vertical-align: top !important;
-      width: 14.2857% !important; /* 100% / 7 días */
-      max-width: 14.2857% !important;
-      box-sizing: border-box !important;
-    }
-    
-    /* Asegurar que el contenido del calendario sea visible */
-    .fc .fc-daygrid-day-content {
-      min-height: 100px !important;
-      padding: 4px !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    
-    /* Mostrar todas las filas del calendario */
-    .fc .fc-daygrid-day {
-      height: auto !important;
-      min-height: 120px !important;
-    }
-    
-    .fc .fc-daygrid-day-frame {
-      height: auto !important;
-      min-height: 120px !important;
-    }
-    
-    /* Asegurar que las filas se expandan */
-    .fc .fc-daygrid-row {
-      height: auto !important;
-      min-height: 120px !important;
-    }
-    
-         /* Debug: hacer visible cualquier elemento oculto */
-     .fc * {
-       visibility: visible !important;
-     }
-
-     /* Estilos para vistas de timeGrid (semana y día) */
-     .fc .fc-timegrid {
-       display: block !important;
-       width: 100% !important;
-     }
-
-     .fc .fc-timegrid-slot {
-       height: 2em !important;
-       border-bottom: 1px solid #e2e8f0 !important;
-     }
-
-     .fc .fc-timegrid-slot-label {
-       font-size: 0.75rem !important;
-       color: #6b7280 !important;
-       padding: 0.25rem !important;
-       text-align: center !important;
-     }
-
-     .fc .fc-timegrid-axis {
-       width: 3.5em !important;
-       border-right: 1px solid #e2e8f0 !important;
-     }
-
-     .fc .fc-timegrid-axis-cushion {
-       padding: 0.25rem !important;
-       font-size: 0.75rem !important;
-       color: #6b7280 !important;
-     }
-
-     .fc .fc-timegrid-col {
-       border-right: 1px solid #e2e8f0 !important;
-     }
-
-     .fc .fc-timegrid-col.fc-day-today {
-       background-color: #fef3c7 !important;
-     }
-
-     .fc .fc-timegrid-event {
-       border-radius: 4px !important;
-       padding: 2px 6px !important;
-       margin: 1px !important;
-       font-size: 0.75rem !important;
-       font-weight: 500 !important;
-       border: none !important;
-       cursor: pointer !important;
-     }
-   `;
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentView, setCurrentView] = useState<'month' | 'week' | 'day' | 'list'>('month');
 
   // Cargar datos del dashboard
   const { data: turnosData } = useQuery({
@@ -402,56 +80,182 @@ export default function DashboardOverview() {
     return colors[(lugarId - 1) % colors.length];
   };
 
-  const calendarEvents = getTurnosToShow().map(turno => {
-    // Parsear el rango de horas (formato: "HH:MM-HH:MM")
-    let horaInicio = turno.hora;
-    let horaFin = turno.hora;
+  // Funciones para el calendario personalizado - Vista Mensual
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
     
-    if (turno.hora.includes('-')) {
-      [horaInicio, horaFin] = turno.hora.split('-');
-    }
+    // Ajustar para que la semana empiece en lunes (1) en lugar de domingo (0)
+    // Si el primer día del mes es domingo (0), ajustar a 6 (sábado anterior)
+    // Si es lunes (1), ajustar a 0 (lunes mismo)
+    // Si es martes (2), ajustar a 1 (lunes anterior)
+    // etc.
+    const adjustedStartingDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
     
-    // Crear fechas de inicio y fin
-    const startDate = new Date(`${turno.fecha}T${horaInicio}:00`);
-    const endDate = new Date(`${turno.fecha}T${horaFin}:00`);
-    
-    // Si la hora de fin es menor que la de inicio, ajustar para el día siguiente
-    if (endDate <= startDate) {
-      endDate.setDate(endDate.getDate() + 1);
-    }
-    
-    const event = {
-      id: turno.id.toString(),
-      title: `${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'} - ${turno.lugar?.nombre || 'Sin lugar'} (${turno.hora})`,
-      start: startDate,
-      end: endDate,
-      backgroundColor: getEventColor(turno.lugarId),
-      borderColor: getEventColor(turno.lugarId),
-      textColor: 'white',
-      extendedProps: {
-        lugarId: turno.lugarId,
-        usuarios: turno.usuarios,
-        lugar: turno.lugar,
-        hora: turno.hora,
-        estado: turno.estado
-      }
-    };
-    
-    return event;
-  });
+    return { daysInMonth, startingDayOfWeek: adjustedStartingDay };
+  };
 
-  const handleEventClick = (info: any) => {
-    const turno = turnos.find(t => t.id.toString() === info.event.id);
-    if (turno) {
-      alert(`
+  const getCalendarDays = (date: Date) => {
+    const { daysInMonth, startingDayOfWeek } = getDaysInMonth(date);
+    const days = [];
+    
+    // Agregar días del mes anterior para completar la primera semana
+    const prevMonth = new Date(date.getFullYear(), date.getMonth() - 1, 0);
+    const daysInPrevMonth = prevMonth.getDate();
+    
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      const day = daysInPrevMonth - i;
+      days.push({
+        date: new Date(date.getFullYear(), date.getMonth() - 1, day),
+        isCurrentMonth: false,
+        isToday: false
+      });
+    }
+    
+    // Agregar días del mes actual
+    for (let day = 1; day <= daysInMonth; day++) {
+      const currentDate = new Date(date.getFullYear(), date.getMonth(), day);
+      const today = new Date();
+      days.push({
+        date: currentDate,
+        isCurrentMonth: true,
+        isToday: currentDate.toDateString() === today.toDateString()
+      });
+    }
+    
+    // Agregar días del mes siguiente para completar la última semana
+    const remainingDays = 42 - days.length; // 6 semanas * 7 días = 42
+    for (let day = 1; day <= remainingDays; day++) {
+      days.push({
+        date: new Date(date.getFullYear(), date.getMonth() + 1, day),
+        isCurrentMonth: false,
+        isToday: false
+      });
+    }
+    
+    return days;
+  };
+
+  // Funciones para la vista semanal
+  const getWeekDays = (date: Date) => {
+    const days = [];
+    const startOfWeek = new Date(date);
+    
+    // Obtener el día de la semana (0 = domingo, 1 = lunes, ..., 6 = sábado)
+    const dayOfWeek = date.getDay();
+    
+    // Calcular cuántos días retroceder para llegar al lunes
+    // Si es domingo (0), retroceder 6 días; si es lunes (1), no retroceder; etc.
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    
+    // Establecer la fecha al lunes de la semana actual
+    startOfWeek.setDate(date.getDate() - daysToSubtract);
+    
+    // Generar los 7 días de la semana empezando por el lunes
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    
+    return days;
+  };
+
+  const getTurnosForDate = (date: Date) => {
+    // Crear una fecha local sin zona horaria para comparar correctamente
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    
+    // Formatear la fecha como YYYY-MM-DD para comparar con turno.fecha
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    return turnos.filter(turno => turno.fecha === dateString);
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      if (direction === 'prev') {
+        newDate.setMonth(prev.getMonth() - 1);
+      } else {
+        newDate.setMonth(prev.getMonth() + 1);
+      }
+      return newDate;
+    });
+  };
+
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      if (direction === 'prev') {
+        newDate.setDate(prev.getDate() - 7);
+      } else {
+        newDate.setDate(prev.getDate() + 7);
+      }
+      return newDate;
+    });
+  };
+
+  const navigateDay = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      if (direction === 'prev') {
+        newDate.setDate(prev.getDate() - 1);
+      } else {
+        newDate.setDate(prev.getDate() + 1);
+      }
+      return newDate;
+    });
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const formatMonthYear = (date: Date) => {
+    return date.toLocaleDateString('es-ES', { 
+      month: 'long', 
+      year: 'numeric' 
+    });
+  };
+
+  const formatWeekRange = (date: Date) => {
+    const weekDays = getWeekDays(date);
+    const start = weekDays[0];
+    const end = weekDays[6];
+    
+    if (start.getMonth() === end.getMonth()) {
+      return `${start.getDate()} - ${end.getDate()} ${start.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}`;
+    } else if (start.getFullYear() === end.getFullYear()) {
+      return `${start.getDate()} ${start.toLocaleDateString('es-ES', { month: 'short' })} - ${end.getDate()} ${end.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}`;
+    } else {
+      return `${start.getDate()} ${start.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })} - ${end.getDate()} ${end.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}`;
+    }
+  };
+
+  const formatDay = (date: Date) => {
+    return date.toLocaleDateString('es-ES', { 
+      weekday: 'long',
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+  };
+
+  const handleTurnoClick = (turno: Turno) => {
+    alert(`
 Turno #${turno.id}
 Fecha: ${new Date(turno.fecha).toLocaleDateString('es-ES')}
 Horario: ${formatHora(turno.hora)}
 Lugar: ${turno.lugar?.nombre || 'Sin lugar'}
 Usuarios: ${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'}
 Estado: ${turno.estado}
-      `);
-    }
+    `);
   };
 
   if (loading) {
@@ -480,11 +284,12 @@ Estado: ${turno.estado}
     );
   }
 
+  const calendarDays = getCalendarDays(currentDate);
+  const weekDays = getWeekDays(currentDate);
+  const weekDayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
   return (
     <div className="space-y-6">
-      {/* CSS personalizado para FullCalendar */}
-      <style>{calendarStyles}</style>
-      
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -545,7 +350,7 @@ Estado: ${turno.estado}
         </div>
       </div>
 
-      {/* Calendario */}
+      {/* Calendario Personalizado */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
@@ -553,38 +358,49 @@ Estado: ${turno.estado}
               Calendario de Turnos
             </h2>
             <div className="flex items-center space-x-4">
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setCurrentView('dayGridMonth')}
-                  className={`px-3 py-1 text-sm rounded-md ${
-                    currentView === 'dayGridMonth'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  Mes
-                </button>
-                                 <button
-                   onClick={() => setCurrentView('timeGridWeek')}
+                             {/* Selector de vista */}
+               <div className="flex space-x-2">
+                 <button
+                   onClick={() => setCurrentView('month')}
                    className={`px-3 py-1 text-sm rounded-md ${
-                     currentView === 'timeGridWeek'
+                     currentView === 'month'
+                       ? 'bg-blue-600 text-white'
+                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                   }`}
+                 >
+                   Mes
+                 </button>
+                 <button
+                   onClick={() => setCurrentView('week')}
+                   className={`px-3 py-1 text-sm rounded-md ${
+                     currentView === 'week'
                        ? 'bg-blue-600 text-white'
                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                    }`}
                  >
                    Semana
                  </button>
-                <button
-                  onClick={() => setCurrentView('timeGridDay')}
-                  className={`px-3 py-1 text-sm rounded-md ${
-                    currentView === 'timeGridDay'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  Día
-                </button>
-              </div>
+                 <button
+                   onClick={() => setCurrentView('day')}
+                   className={`px-3 py-1 text-sm rounded-md ${
+                     currentView === 'day'
+                       ? 'bg-blue-600 text-white'
+                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                   }`}
+                 >
+                   Día
+                 </button>
+                 <button
+                   onClick={() => setCurrentView('list')}
+                   className={`px-3 py-1 text-sm rounded-md ${
+                     currentView === 'list'
+                       ? 'bg-blue-600 text-white'
+                       : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                   }`}
+                 >
+                   Lista
+                 </button>
+               </div>
               <button
                 onClick={() => setViewAllTurnos(!viewAllTurnos)}
                 className={`px-4 py-2 text-sm rounded-md ${
@@ -600,40 +416,365 @@ Estado: ${turno.estado}
         </div>
         
         <div className="p-6">
-          <div className="w-full h-auto min-h-[600px]">
-                         <FullCalendar
-               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-               initialView={currentView}
-               headerToolbar={{
-                 left: 'prev,next today',
-                 center: 'title',
-                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
-               }}
-              events={calendarEvents}
-              eventClick={handleEventClick}
-              height="auto"
-              locale="es"
-              buttonText={{
-                today: 'Hoy',
-                month: 'Mes',
-                week: 'Semana',
-                day: 'Día'
+          {/* Navegación del calendario */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => {
+                if (currentView === 'month') navigateMonth('prev');
+                else if (currentView === 'week') navigateWeek('prev');
+                else if (currentView === 'day') navigateDay('prev');
               }}
-              dayMaxEvents={true}
-              moreLinkClick="popover"
-              eventDisplay="block"
-              eventTimeFormat={{
-                hour: '2-digit',
-                minute: '2-digit',
-                meridiem: false
-              }}
-              expandRows={true}
-              aspectRatio={1.35}
-              firstDay={1}
-              weekNumbers={false}
-              dayHeaderFormat={{ weekday: 'long' }}
-            />
+              className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+              {currentView === 'month' ? formatMonthYear(currentDate) : 
+               currentView === 'week' ? formatWeekRange(currentDate) :
+               currentView === 'day' ? formatDay(currentDate) :
+               'Lista de Turnos'}
+            </h3>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={goToToday}
+                className="px-3 py-1 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Hoy
+              </button>
+                             <button
+                 onClick={() => {
+                   if (currentView === 'month') navigateMonth('next');
+                   else if (currentView === 'week') navigateWeek('next');
+                   else if (currentView === 'day') navigateDay('next');
+                 }}
+                 className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+               >
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                 </svg>
+               </button>
+            </div>
           </div>
+
+          {/* Vista del Mes */}
+          {currentView === 'month' && (
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              {/* Encabezados de días */}
+              <div className="grid grid-cols-7 bg-gray-50 dark:bg-gray-700">
+                {weekDayNames.map((day, index) => (
+                  <div
+                    key={index}
+                    className="p-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-600 last:border-r-0"
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              {/* Días del calendario */}
+              <div className="grid grid-cols-7">
+                {calendarDays.map((day, index) => {
+                  const turnosDelDia = getTurnosForDate(day.date);
+                  const isCurrentMonth = day.isCurrentMonth;
+                  const isToday = day.isToday;
+                   
+                  return (
+                    <div
+                      key={index}
+                      className={`min-h-[120px] border-r border-b border-gray-200 dark:border-gray-600 last:border-r-0 ${
+                        isCurrentMonth 
+                          ? 'bg-white dark:bg-gray-800' 
+                          : 'bg-gray-50 dark:bg-gray-900'
+                      } ${
+                        isToday 
+                          ? 'bg-blue-50 dark:bg-blue-900/20' 
+                          : ''
+                      }`}
+                    >
+                      {/* Número del día */}
+                      <div className={`p-2 text-sm font-medium ${
+                        isCurrentMonth 
+                          ? 'text-gray-900 dark:text-white' 
+                          : 'text-gray-400 dark:text-gray-500'
+                      } ${
+                        isToday 
+                          ? 'text-blue-600 dark:text-blue-400 font-bold' 
+                          : ''
+                      }`}>
+                        {day.date.getDate()}
+                      </div>
+
+                      {/* Turnos del día */}
+                      <div className="px-2 pb-2 space-y-1">
+                        {turnosDelDia.slice(0, 3).map((turno) => (
+                          <div
+                            key={turno.id}
+                            onClick={() => handleTurnoClick(turno)}
+                            className="text-xs p-1 rounded cursor-pointer text-white font-medium truncate"
+                            style={{ backgroundColor: getEventColor(turno.lugarId) }}
+                            title={`${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'} - ${turno.lugar?.nombre || 'Sin lugar'} (${turno.hora})`}
+                          >
+                            {turno.lugar?.nombre || 'Sin lugar'} ({turno.hora})
+                          </div>
+                        ))}
+                        
+                        {/* Mostrar "X más" si hay más de 3 turnos */}
+                        {turnosDelDia.length > 3 && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 text-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
+                            +{turnosDelDia.length - 3} más
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Vista de la Semana */}
+          {currentView === 'week' && (
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              {/* Encabezados de días */}
+              <div className="grid grid-cols-8 bg-gray-50 dark:bg-gray-700">
+                <div className="p-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-600">
+                  Hora
+                </div>
+                {weekDays.map((day, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-600 last:border-r-0 ${
+                      day.toDateString() === new Date().toDateString() ? 'bg-blue-100 dark:bg-blue-900/30' : ''
+                    }`}
+                  >
+                    <div className="font-bold">{weekDayNames[index]}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {day.getDate()}/{day.getMonth() + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Horas y turnos */}
+              <div className="grid grid-cols-8">
+                {/* Columna de horas */}
+                <div className="border-r border-gray-200 dark:border-gray-600">
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <div
+                      key={hour}
+                      className="h-16 border-b border-gray-200 dark:border-gray-600 p-2 text-xs text-gray-500 dark:text-gray-400 text-right"
+                    >
+                      {hour.toString().padStart(2, '0')}:00
+                    </div>
+                  ))}
+                </div>
+
+                {/* Columnas de días */}
+                {weekDays.map((day, dayIndex) => {
+                  const turnosDelDia = getTurnosForDate(day);
+                  const isToday = day.toDateString() === new Date().toDateString();
+                   
+                  return (
+                    <div
+                      key={dayIndex}
+                      className={`border-r border-gray-200 dark:border-gray-600 last:border-r-0 ${
+                        isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      }`}
+                    >
+                      {Array.from({ length: 24 }, (_, hour) => {
+                        // Buscar turnos que empiecen en esta hora específica
+                        const turnosQueEmpiezanEnEstaHora = turnosDelDia.filter(turno => {
+                          if (turno.hora.includes('-')) {
+                            const [horaInicio] = turno.hora.split('-');
+                            const [horaInicioNum] = horaInicio.split(':').map(Number);
+                            return hour === horaInicioNum;
+                          } else {
+                            const [horaTurno] = turno.hora.split(':').map(Number);
+                            return hour === horaTurno;
+                          }
+                        });
+
+                        return (
+                          <div
+                            key={hour}
+                            className="h-16 border-b border-gray-200 dark:border-gray-600 relative"
+                          >
+                            {turnosQueEmpiezanEnEstaHora.map((turno, turnoIndex) => {
+                              // Calcular la duración del turno
+                              let duracionHoras = 1; // Por defecto 1 hora
+                              if (turno.hora.includes('-')) {
+                                const [horaInicio, horaFin] = turno.hora.split('-');
+                                const [horaInicioNum, minInicioNum] = horaInicio.split(':').map(Number);
+                                const [horaFinNum, minFinNum] = horaFin.split(':').map(Number);
+                                
+                                // Calcular diferencia en minutos
+                                const inicioMinutos = horaInicioNum * 60 + minInicioNum;
+                                const finMinutos = horaFinNum * 60 + minFinNum;
+                                
+                                // Si la hora de fin es menor que la de inicio, asumir que es del día siguiente
+                                const diferenciaMinutos = finMinutos > inicioMinutos ? finMinutos - inicioMinutos : (24 * 60 - inicioMinutos) + finMinutos;
+                                duracionHoras = diferenciaMinutos / 60;
+                              }
+
+                              return (
+                                <div
+                                  key={turno.id}
+                                  onClick={() => handleTurnoClick(turno)}
+                                  className="absolute left-1 right-1 text-xs p-1 rounded cursor-pointer text-white font-medium truncate z-10"
+                                  style={{ 
+                                    backgroundColor: getEventColor(turno.lugarId),
+                                    top: `${turnoIndex * 20 + 2}px`,
+                                    height: `${Math.max(duracionHoras * 64 - 4, 20)}px`, // 64px por hora, menos 4px de padding
+                                    minHeight: '20px'
+                                  }}
+                                  title={`${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'} - ${turno.lugar?.nombre || 'Sin lugar'} (${turno.hora})`}
+                                >
+                                  {turno.lugar?.nombre || 'Sin lugar'}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Vista del Día */}
+          {currentView === 'day' && (
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              {/* Encabezado del día */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 border-b border-gray-200 dark:border-gray-600">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center">
+                  {formatDay(currentDate)}
+                </h3>
+              </div>
+
+              {/* Horas y turnos del día */}
+              <div className="p-4">
+                {Array.from({ length: 24 }, (_, hour) => {
+                  const turnosEnEstaHora = getTurnosForDate(currentDate).filter(turno => {
+                    if (turno.hora.includes('-')) {
+                      const [horaInicio] = turno.hora.split('-');
+                      const [horaInicioNum] = horaInicio.split(':').map(Number);
+                      return hour === horaInicioNum;
+                    } else {
+                      const [horaTurno] = turno.hora.split(':').map(Number);
+                      return hour === horaTurno;
+                    }
+                  });
+
+                  return (
+                    <div key={hour} className="flex items-start mb-4">
+                      {/* Hora */}
+                      <div className="w-20 text-sm font-medium text-gray-500 dark:text-gray-400 text-right pr-4 pt-2">
+                        {hour.toString().padStart(2, '0')}:00
+                      </div>
+                      
+                      {/* Turnos en esta hora */}
+                      <div className="flex-1 min-h-[60px] border-l border-gray-200 dark:border-gray-600 pl-4">
+                        {turnosEnEstaHora.length > 0 ? (
+                          turnosEnEstaHora.map((turno) => (
+                            <div
+                              key={turno.id}
+                              onClick={() => handleTurnoClick(turno)}
+                              className="mb-2 p-3 rounded-lg cursor-pointer text-white font-medium"
+                              style={{ backgroundColor: getEventColor(turno.lugarId) }}
+                            >
+                              <div className="font-bold">{turno.lugar?.nombre || 'Sin lugar'}</div>
+                              <div className="text-sm opacity-90">{turno.hora}</div>
+                              {turno.usuarios && turno.usuarios.length > 0 && (
+                                <div className="text-xs opacity-75 mt-1">
+                                  {turno.usuarios.map(u => u.nombre).join(', ')}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-400 dark:text-gray-500 pt-2">
+                            Sin turnos
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Vista de Lista */}
+          {currentView === 'list' && (
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              {/* Encabezado de la lista */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 border-b border-gray-200 dark:border-gray-600">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Lista de Turnos
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {viewAllTurnos ? 'Todos los turnos' : 'Turnos de esta semana'}
+                </p>
+              </div>
+
+              {/* Lista de turnos */}
+              <div className="p-4">
+                {getTurnosToShow().length > 0 ? (
+                  <div className="space-y-3">
+                    {getTurnosToShow()
+                      .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
+                      .map((turno) => (
+                        <div
+                          key={turno.id}
+                          onClick={() => handleTurnoClick(turno)}
+                          className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className="w-4 h-4 rounded-full"
+                                  style={{ backgroundColor: getEventColor(turno.lugarId) }}
+                                ></div>
+                                <div>
+                                  <div className="font-medium text-gray-900 dark:text-white">
+                                    {turno.lugar?.nombre || 'Sin lugar'}
+                                  </div>
+                                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    {new Date(turno.fecha).toLocaleDateString('es-ES')} • {turno.hora}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {turno.usuarios && turno.usuarios.length > 0 
+                                  ? turno.usuarios.map(u => u.nombre).join(', ')
+                                  : 'Sin usuarios'
+                                }
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {turno.estado}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No hay turnos para mostrar
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
