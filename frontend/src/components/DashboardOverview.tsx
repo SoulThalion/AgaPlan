@@ -13,6 +13,7 @@ export default function DashboardOverview() {
   const [viewAllTurnos, setViewAllTurnos] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<'month' | 'week' | 'day' | 'list'>('month');
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
   // Cargar datos del dashboard
   const { data: turnosData } = useQuery({
@@ -67,6 +68,35 @@ export default function DashboardOverview() {
     });
   };
 
+  const getTurnosDelMes = () => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    return turnos.filter(turno => {
+      const turnoDate = new Date(turno.fecha);
+      return turnoDate >= startOfMonth && turnoDate <= endOfMonth;
+    });
+  };
+
+  const turnoTieneUsuario = (turno: Turno, userId?: number) => {
+    if (!userId) return false;
+    return turno.usuarios && turno.usuarios.some(usuario => usuario.id === userId);
+  };
+
+  const getTurnosForDate = (date: Date) => {
+    // Crear una fecha local sin zona horaria para comparar correctamente
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    
+    // Formatear la fecha como YYYY-MM-DD para comparar con turno.fecha
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    // Usar getTurnosToShow() en lugar de turnos para respetar el filtro de semana
+    return getTurnosToShow().filter(turno => turno.fecha === dateString);
+  };
+
   const formatHora = (hora: string) => {
     if (hora.includes('-')) {
       const [horaInicio, horaFin] = hora.split('-');
@@ -78,6 +108,23 @@ export default function DashboardOverview() {
   const getEventColor = (lugarId: number) => {
     const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'];
     return colors[(lugarId - 1) % colors.length];
+  };
+
+  const toggleDayExpansion = (dateString: string) => {
+    console.log('toggleDayExpansion ejecutada con:', dateString);
+    console.log('Estado actual expandedDays:', Array.from(expandedDays));
+    
+    const newExpandedDays = new Set(expandedDays);
+    if (newExpandedDays.has(dateString)) {
+      newExpandedDays.delete(dateString);
+      console.log('Día contraído:', dateString);
+    } else {
+      newExpandedDays.add(dateString);
+      console.log('Día expandido:', dateString);
+    }
+    
+    console.log('Nuevo estado expandedDays:', Array.from(newExpandedDays));
+    setExpandedDays(newExpandedDays);
   };
 
   // Funciones para el calendario personalizado - Vista Mensual
@@ -165,17 +212,7 @@ export default function DashboardOverview() {
     return days;
   };
 
-  const getTurnosForDate = (date: Date) => {
-    // Crear una fecha local sin zona horaria para comparar correctamente
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const day = date.getDate();
-    
-    // Formatear la fecha como YYYY-MM-DD para comparar con turno.fecha
-    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
-    return turnos.filter(turno => turno.fecha === dateString);
-  };
+
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
@@ -333,21 +370,26 @@ Estado: ${turno.estado}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900">
-              <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Turnos Esta Semana</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {getTurnosToShow().length}
-              </p>
+                                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900">
+                <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {viewAllTurnos ? 'Mis Turnos del Mes' : 'Mis Turnos Esta Semana'}
+                </p>
+                                 <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                   {viewAllTurnos 
+                     ? getTurnosDelMes().filter(turno => turnoTieneUsuario(turno, _user?.id)).length
+                     : getTurnosToShow().filter(turno => turnoTieneUsuario(turno, _user?.id)).length
+                   }
+                 </p>
+              </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Calendario Personalizado */}
@@ -510,24 +552,52 @@ Estado: ${turno.estado}
 
                       {/* Turnos del día */}
                       <div className="px-2 pb-2 space-y-1">
-                        {turnosDelDia.slice(0, 3).map((turno) => (
-                          <div
-                            key={turno.id}
-                            onClick={() => handleTurnoClick(turno)}
-                            className="text-xs p-1 rounded cursor-pointer text-white font-medium truncate"
-                            style={{ backgroundColor: getEventColor(turno.lugarId) }}
-                            title={`${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'} - ${turno.lugar?.nombre || 'Sin lugar'} (${turno.hora})`}
-                          >
-                            {turno.lugar?.nombre || 'Sin lugar'} ({turno.hora})
-                          </div>
-                        ))}
-                        
-                        {/* Mostrar "X más" si hay más de 3 turnos */}
-                        {turnosDelDia.length > 3 && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 text-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-                            +{turnosDelDia.length - 3} más
-                          </div>
-                        )}
+                        {(() => {
+                          // Crear la fecha en formato YYYY-MM-DD para comparar
+                          const dateString = `${day.date.getFullYear()}-${String(day.date.getMonth() + 1).padStart(2, '0')}-${String(day.date.getDate()).padStart(2, '0')}`;
+                          const isExpanded = expandedDays.has(dateString);
+                          const turnosToShow = isExpanded ? turnosDelDia : turnosDelDia.slice(0, 3);
+                          
+                          return (
+                            <>
+                              {turnosToShow.map((turno) => (
+                                <div
+                                  key={turno.id}
+                                  onClick={() => handleTurnoClick(turno)}
+                                  className="text-xs p-1 rounded cursor-pointer text-white font-medium truncate"
+                                  style={{ backgroundColor: getEventColor(turno.lugarId) }}
+                                  title={`${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'} - ${turno.lugar?.nombre || 'Sin lugar'} (${turno.hora})`}
+                                >
+                                  {turno.lugar?.nombre || 'Sin lugar'} ({turno.hora})
+                                </div>
+                              ))}
+                              
+                              {/* Mostrar "X más" si hay más de 3 turnos y no está expandido */}
+                              {turnosDelDia.length > 3 && !isExpanded && (
+                                <div 
+                                  className="text-xs text-gray-500 dark:text-gray-400 text-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                                  onClick={() => {
+                                    console.log('Click en +X más para fecha:', dateString);
+                                    console.log('isExpanded:', isExpanded);
+                                    toggleDayExpansion(dateString);
+                                  }}
+                                >
+                                  +{turnosDelDia.length - 3} más
+                                </div>
+                              )}
+                              
+                              {/* Mostrar botón para contraer si está expandido */}
+                              {turnosDelDia.length > 3 && isExpanded && (
+                                <div 
+                                  className="text-xs text-blue-600 dark:text-blue-400 text-center cursor-pointer hover:text-blue-800 dark:hover:text-blue-300"
+                                  onClick={() => toggleDayExpansion(dateString)}
+                                >
+                                  Mostrar menos
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
@@ -658,7 +728,11 @@ Estado: ${turno.estado}
               </div>
 
               {/* Horas y turnos del día */}
-              <div className="p-4">
+              <div className="relative">
+                {/* Líneas de tiempo */}
+                <div className="absolute left-20 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-600"></div>
+                
+                {/* Horas y turnos */}
                 {Array.from({ length: 24 }, (_, hour) => {
                   const turnosEnEstaHora = getTurnosForDate(currentDate).filter(turno => {
                     if (turno.hora.includes('-')) {
@@ -672,31 +746,63 @@ Estado: ${turno.estado}
                   });
 
                   return (
-                    <div key={hour} className="flex items-start mb-4">
+                    <div key={hour} className="flex items-start relative" style={{ height: '64px' }}>
                       {/* Hora */}
                       <div className="w-20 text-sm font-medium text-gray-500 dark:text-gray-400 text-right pr-4 pt-2">
                         {hour.toString().padStart(2, '0')}:00
                       </div>
                       
+                      {/* Línea horizontal de la hora */}
+                      <div className="absolute left-20 right-0 top-0 w-full h-px bg-gray-200 dark:bg-gray-600"></div>
+                      
                       {/* Turnos en esta hora */}
-                      <div className="flex-1 min-h-[60px] border-l border-gray-200 dark:border-gray-600 pl-4">
+                      <div className="flex-1 pl-4 relative">
                         {turnosEnEstaHora.length > 0 ? (
-                          turnosEnEstaHora.map((turno) => (
-                            <div
-                              key={turno.id}
-                              onClick={() => handleTurnoClick(turno)}
-                              className="mb-2 p-3 rounded-lg cursor-pointer text-white font-medium"
-                              style={{ backgroundColor: getEventColor(turno.lugarId) }}
-                            >
-                              <div className="font-bold">{turno.lugar?.nombre || 'Sin lugar'}</div>
-                              <div className="text-sm opacity-90">{turno.hora}</div>
-                              {turno.usuarios && turno.usuarios.length > 0 && (
-                                <div className="text-xs opacity-75 mt-1">
-                                  {turno.usuarios.map(u => u.nombre).join(', ')}
+                          <div className="flex space-x-2">
+                            {turnosEnEstaHora.map((turno) => {
+                              // Calcular la duración del turno
+                              let duracionHoras = 1; // Por defecto 1 hora
+                              if (turno.hora.includes('-')) {
+                                const [horaInicio, horaFin] = turno.hora.split('-');
+                                const [horaInicioNum, minInicioNum] = horaInicio.split(':').map(Number);
+                                const [horaFinNum, minFinNum] = horaFin.split(':').map(Number);
+                                
+                                // Calcular diferencia en minutos
+                                const inicioMinutos = horaInicioNum * 60 + minInicioNum;
+                                const finMinutos = horaFinNum * 60 + minFinNum;
+                                
+                                // Si la hora de fin es menor que la de inicio, asumir que es del día siguiente
+                                const diferenciaMinutos = finMinutos > inicioMinutos ? finMinutos - inicioMinutos : (24 * 60 - inicioMinutos) + finMinutos;
+                                duracionHoras = diferenciaMinutos / 60;
+                              }
+
+                              // Calcular el ancho del turno basado en cuántos turnos hay en esta hora
+                              const totalTurnos = turnosEnEstaHora.length;
+                              const turnoWidth = totalTurnos > 1 ? `calc((100% - ${(totalTurnos - 1) * 8}px) / ${totalTurnos})` : '100%';
+
+                              return (
+                                <div
+                                  key={turno.id}
+                                  onClick={() => handleTurnoClick(turno)}
+                                  className="p-3 rounded-lg cursor-pointer text-white font-medium z-10 flex-shrink-0"
+                                  style={{ 
+                                    backgroundColor: getEventColor(turno.lugarId),
+                                    height: `${Math.max(duracionHoras * 64 - 4, 20)}px`, // 64px por hora, menos 4px de padding
+                                    minHeight: '20px',
+                                    width: turnoWidth
+                                  }}
+                                >
+                                  <div className="font-bold text-sm truncate">{turno.lugar?.nombre || 'Sin lugar'}</div>
+                                  <div className="text-xs opacity-90 truncate">{turno.hora}</div>
+                                  {turno.usuarios && turno.usuarios.length > 0 && (
+                                    <div className="text-xs opacity-75 mt-1 truncate">
+                                      {turno.usuarios.map(u => u.nombre).join(', ')}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          ))
+                              );
+                            })}
+                          </div>
                         ) : (
                           <div className="text-sm text-gray-400 dark:text-gray-500 pt-2">
                             Sin turnos
