@@ -7,6 +7,7 @@ import {
   deleteTurno,
   ocuparTurno,
   liberarTurno,
+  asignarUsuarioATurno,
   generarTurnosAutomaticos,
   createTurnosRecurrentes
 } from '../controllers/turnoController';
@@ -31,5 +32,8 @@ router.post('/generar-automaticos', authMiddleware, requireSuperAdmin, generarTu
 // Rutas para voluntarios (requieren autenticación)
 router.post('/:id/ocupar', authMiddleware, ocuparTurno);
 router.post('/:id/liberar', authMiddleware, liberarTurno);
+
+// Ruta para asignar usuarios a turnos (admin)
+router.post('/:id/asignar-usuario', authMiddleware, requireAdmin, asignarUsuarioATurno);
 
 export default router;

@@ -40,9 +40,9 @@ Exhibidor.belongsToMany(Turno, {
 Usuario.hasMany(Disponibilidad, { foreignKey: 'usuarioId', as: 'disponibilidades' });
 Disponibilidad.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
 
-// Asociaciones Lugar - Disponibilidad
-Lugar.hasMany(Disponibilidad, { foreignKey: 'lugarId', as: 'disponibilidades' });
-Disponibilidad.belongsTo(Lugar, { foreignKey: 'lugarId', as: 'lugar' });
+// Asociaciones Lugar - Disponibilidad (comentadas porque la tabla no tiene lugarId)
+// Lugar.hasMany(Disponibilidad, { foreignKey: 'lugarId', as: 'disponibilidades' });
+// Disponibilidad.belongsTo(Lugar, { foreignKey: 'lugarId', as: 'lugar' });
 
 export {
   Usuario,

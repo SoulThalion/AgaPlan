@@ -163,15 +163,20 @@ class ApiService {
     return response.data;
   }
 
-  async asignarTurno(turnoId: number, usuarioId: number): Promise<ApiResponse<Turno>> {
-    const response = await this.api.patch<ApiResponse<Turno>>(`/turnos/${turnoId}/asignar`, {
-      usuarioId
-    });
+  async ocuparTurno(turnoId: number): Promise<ApiResponse<Turno>> {
+    const response = await this.api.post<ApiResponse<Turno>>(`/turnos/${turnoId}/ocupar`);
     return response.data;
   }
 
   async liberarTurno(turnoId: number): Promise<ApiResponse<Turno>> {
-    const response = await this.api.patch<ApiResponse<Turno>>(`/turnos/${turnoId}/liberar`);
+    const response = await this.api.post<ApiResponse<Turno>>(`/turnos/${turnoId}/liberar`);
+    return response.data;
+  }
+
+  async asignarUsuarioATurno(turnoId: number, usuarioId: number): Promise<ApiResponse<Turno>> {
+    const response = await this.api.post<ApiResponse<Turno>>(`/turnos/${turnoId}/asignar-usuario`, {
+      usuarioId
+    });
     return response.data;
   }
 
@@ -183,6 +188,12 @@ class ApiService {
 
   async getDisponibilidadesByUsuario(usuarioId: number): Promise<ApiResponse<Disponibilidad[]>> {
     const response = await this.api.get<ApiResponse<Disponibilidad[]>>(`/disponibilidades/usuario/${usuarioId}`);
+    return response.data;
+  }
+
+  async getDisponibilidadUsuarioParaFecha(usuarioId: number, fecha: string): Promise<ApiResponse<Disponibilidad | null>> {
+    const diaSemana = new Date(fecha).getDay();
+    const response = await this.api.get<ApiResponse<Disponibilidad | null>>(`/disponibilidades/usuario/${usuarioId}/dia/${diaSemana}`);
     return response.data;
   }
 

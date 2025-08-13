@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Turno, Lugar } from '../types';
 
@@ -26,6 +26,43 @@ export default function DashboardOverview() {
     queryKey: ['lugares'],
     queryFn: () => apiService.getLugares(),
     enabled: true,
+  });
+
+  const queryClient = useQueryClient();
+
+  // Mutaciones para ocupar y liberar turnos
+  const ocuparTurnoMutation = useMutation({
+    mutationFn: (turnoId: number) => apiService.ocuparTurno(turnoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turnos'] });
+    },
+    onError: (error: any) => {
+      console.error('Error ocupando turno:', error);
+      setError('Error al ocupar el turno');
+    }
+  });
+
+  const liberarTurnoMutation = useMutation({
+    mutationFn: (turnoId: number) => apiService.liberarTurno(turnoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turnos'] });
+    },
+    onError: (error: any) => {
+      console.error('Error liberando turno:', error);
+      setError('Error al liberar el turno');
+    }
+  });
+
+  const asignarUsuarioMutation = useMutation({
+    mutationFn: ({ turnoId, usuarioId }: { turnoId: number; usuarioId: number }) => 
+      apiService.asignarUsuarioATurno(turnoId, usuarioId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['turnos'] });
+    },
+    onError: (error: any) => {
+      console.error('Error asignando usuario:', error);
+      setError('Error al asignar usuario al turno');
+    }
   });
 
   useEffect(() => {
@@ -293,6 +330,79 @@ Lugar: ${turno.lugar?.nombre || 'Sin lugar'}
 Usuarios: ${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'}
 Estado: ${turno.estado}
     `);
+  };
+
+  const handleOcuparTurno = async (turno: Turno) => {
+    try {
+      // Si soy admin o superAdmin, puedo ocupar cualquier turno
+      if (_user?.rol === 'admin' || _user?.rol === 'superAdmin') {
+        await ocuparTurnoMutation.mutateAsync(turno.id);
+      } else {
+        // Si soy usuario normal, verificar disponibilidad
+        await ocuparTurnoMutation.mutateAsync(turno.id);
+      }
+    } catch (error) {
+      console.error('Error al ocupar turno:', error);
+    }
+  };
+
+  const handleAsignarUsuario = async (turno: Turno, usuarioId: number) => {
+    try {
+      // Si me estoy asignando a mí mismo, no verificar disponibilidad
+      if (usuarioId === _user?.id) {
+        await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
+        return;
+      }
+
+      // Si estoy asignando a otro usuario, verificar disponibilidad y mostrar confirmación
+      try {
+        const disponibilidadResponse = await apiService.getDisponibilidadesByUsuario(usuarioId);
+        const disponibilidades = disponibilidadResponse.data;
+        
+        // Buscar disponibilidad para el día del turno
+        const diaSemana = new Date(turno.fecha).getDay();
+        const disponibilidad = disponibilidades?.find(d => d.diaSemana === diaSemana);
+        
+        let mensaje = `¿Estás seguro de que quieres asignar a este usuario al turno?\n\n`;
+        mensaje += `Turno: ${turno.lugar?.nombre} - ${turno.fecha} ${turno.hora}\n`;
+        
+        if (disponibilidad) {
+          mensaje += `\nDisponibilidad del usuario:\n`;
+          mensaje += `Día: ${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana]}\n`;
+          mensaje += `Horario: ${disponibilidad.horaInicio} - ${disponibilidad.horaFin}\n`;
+          
+          // Verificar si el turno está dentro de la disponibilidad
+          const [horaInicio, horaFin] = turno.hora.split('-');
+          if (horaInicio >= disponibilidad.horaInicio && horaFin <= disponibilidad.horaFin) {
+            mensaje += `✅ El turno está dentro de la disponibilidad del usuario`;
+          } else {
+            mensaje += `⚠️ El turno NO está dentro de la disponibilidad del usuario`;
+          }
+        } else {
+          mensaje += `\n⚠️ El usuario no tiene disponibilidad configurada para este día`;
+        }
+        
+        if (confirm(mensaje)) {
+          await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
+        }
+      } catch (error) {
+        console.error('Error obteniendo disponibilidad:', error);
+        // Si no se puede obtener la disponibilidad, asignar de todas formas
+        if (confirm('No se pudo verificar la disponibilidad del usuario. ¿Deseas asignarlo de todas formas?')) {
+          await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
+        }
+      }
+    } catch (error) {
+      console.error('Error al asignar usuario:', error);
+    }
+  };
+
+  const handleLiberarTurno = async (turno: Turno) => {
+    try {
+      await liberarTurnoMutation.mutateAsync(turno.id);
+    } catch (error) {
+      console.error('Error al liberar turno:', error);
+    }
   };
 
   if (loading) {
@@ -563,12 +673,48 @@ Estado: ${turno.estado}
                               {turnosToShow.map((turno) => (
                                 <div
                                   key={turno.id}
-                                  onClick={() => handleTurnoClick(turno)}
-                                  className="text-xs p-1 rounded cursor-pointer text-white font-medium truncate"
+                                  className="text-xs p-1 rounded text-white font-medium truncate relative group"
                                   style={{ backgroundColor: getEventColor(turno.lugarId) }}
-                                  title={`${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'} - ${turno.lugar?.nombre || 'Sin lugar'} (${turno.hora})`}
                                 >
-                                  {turno.lugar?.nombre || 'Sin lugar'} ({turno.hora})
+                                  <div className="flex items-center justify-between">
+                                    <span className="truncate">
+                                      {turno.lugar?.nombre || 'Sin lugar'} ({turno.hora})
+                                    </span>
+                                    <div className="flex space-x-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      {turno.estado === 'libre' ? (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOcuparTurno(turno);
+                                          }}
+                                          disabled={ocuparTurnoMutation.isPending}
+                                          className="w-4 h-4 bg-green-700 hover:bg-green-800 disabled:bg-green-500 rounded text-white text-xs flex items-center justify-center"
+                                          title="Ocupar turno"
+                                        >
+                                          +
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleLiberarTurno(turno);
+                                          }}
+                                          disabled={liberarTurnoMutation.isPending}
+                                          className="w-4 h-4 bg-red-700 hover:bg-red-800 disabled:bg-red-500 rounded text-white text-xs flex items-center justify-center"
+                                          title="Liberar turno"
+                                        >
+                                          -
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => handleTurnoClick(turno)}
+                                        className="w-4 h-4 bg-blue-700 hover:bg-blue-800 rounded text-white text-xs flex items-center justify-center"
+                                        title="Ver detalles"
+                                      >
+                                          i
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               ))}
                               
@@ -693,17 +839,53 @@ Estado: ${turno.estado}
                               return (
                                 <div
                                   key={turno.id}
-                                  onClick={() => handleTurnoClick(turno)}
-                                  className="absolute left-1 right-1 text-xs p-1 rounded cursor-pointer text-white font-medium truncate z-10"
+                                  className="absolute left-1 right-1 text-xs p-1 rounded text-white font-medium truncate z-10 group"
                                   style={{ 
                                     backgroundColor: getEventColor(turno.lugarId),
                                     top: `${turnoIndex * 20 + 2}px`,
                                     height: `${Math.max(duracionHoras * 64 - 4, 20)}px`, // 64px por hora, menos 4px de padding
                                     minHeight: '20px'
                                   }}
-                                  title={`${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'} - ${turno.lugar?.nombre || 'Sin lugar'} (${turno.hora})`}
                                 >
-                                  {turno.lugar?.nombre || 'Sin lugar'}
+                                  <div className="flex items-center justify-between h-full">
+                                    <span className="truncate flex-1">
+                                      {turno.lugar?.nombre || 'Sin lugar'}
+                                    </span>
+                                    <div className="flex space-x-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      {turno.estado === 'libre' ? (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOcuparTurno(turno);
+                                          }}
+                                          disabled={ocuparTurnoMutation.isPending}
+                                          className="w-4 h-4 bg-green-700 hover:bg-green-800 disabled:bg-green-500 rounded text-white text-xs flex items-center justify-center"
+                                          title="Ocupar turno"
+                                        >
+                                          +
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleLiberarTurno(turno);
+                                          }}
+                                          disabled={liberarTurnoMutation.isPending}
+                                          className="w-4 h-4 bg-red-700 hover:bg-red-800 disabled:bg-red-500 rounded text-white text-xs flex items-center justify-center"
+                                          title="Liberar turno"
+                                        >
+                                          -
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => handleTurnoClick(turno)}
+                                        className="w-4 h-4 bg-blue-700 hover:bg-blue-800 rounded text-white text-xs flex items-center justify-center"
+                                        title="Ver detalles"
+                                      >
+                                          i
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               );
                             })}
@@ -783,8 +965,7 @@ Estado: ${turno.estado}
                               return (
                                 <div
                                   key={turno.id}
-                                  onClick={() => handleTurnoClick(turno)}
-                                  className="p-3 rounded-lg cursor-pointer text-white font-medium z-10 flex-shrink-0"
+                                  className="p-3 rounded-lg text-white font-medium z-10 flex-shrink-0 group"
                                   style={{ 
                                     backgroundColor: getEventColor(turno.lugarId),
                                     height: `${Math.max(duracionHoras * 64 - 4, 20)}px`, // 64px por hora, menos 4px de padding
@@ -792,13 +973,53 @@ Estado: ${turno.estado}
                                     width: turnoWidth
                                   }}
                                 >
-                                  <div className="font-bold text-sm truncate">{turno.lugar?.nombre || 'Sin lugar'}</div>
-                                  <div className="text-xs opacity-90 truncate">{turno.hora}</div>
-                                  {turno.usuarios && turno.usuarios.length > 0 && (
-                                    <div className="text-xs opacity-75 mt-1 truncate">
-                                      {turno.usuarios.map(u => u.nombre).join(', ')}
+                                  <div className="h-full flex flex-col justify-between">
+                                    <div>
+                                      <div className="font-bold text-sm truncate">{turno.lugar?.nombre || 'Sin lugar'}</div>
+                                      <div className="text-xs opacity-90 truncate">{turno.hora}</div>
+                                      {turno.usuarios && turno.usuarios.length > 0 && (
+                                        <div className="text-xs opacity-75 mt-1 truncate">
+                                          {turno.usuarios.map(u => u.nombre).join(', ')}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
+                                    
+                                    {/* Botones de acción */}
+                                    <div className="flex space-x-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      {turno.estado === 'libre' ? (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOcuparTurno(turno);
+                                          }}
+                                          disabled={ocuparTurnoMutation.isPending}
+                                          className="w-5 h-5 bg-green-700 hover:bg-green-800 disabled:bg-green-500 rounded text-white text-xs flex items-center justify-center"
+                                          title="Ocupar turno"
+                                        >
+                                          +
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleLiberarTurno(turno);
+                                          }}
+                                          disabled={liberarTurnoMutation.isPending}
+                                          className="w-5 h-5 bg-red-700 hover:bg-red-800 disabled:bg-red-500 rounded text-white text-xs flex items-center justify-center"
+                                          title="Liberar turno"
+                                        >
+                                          -
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => handleTurnoClick(turno)}
+                                        className="w-5 h-5 bg-blue-700 hover:bg-blue-800 rounded text-white text-xs flex items-center justify-center"
+                                        title="Ver detalles"
+                                      >
+                                          i
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               );
                             })}
@@ -838,8 +1059,7 @@ Estado: ${turno.estado}
                       .map((turno) => (
                         <div
                           key={turno.id}
-                          onClick={() => handleTurnoClick(turno)}
-                          className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -858,16 +1078,67 @@ Estado: ${turno.estado}
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                {turno.usuarios && turno.usuarios.length > 0 
-                                  ? turno.usuarios.map(u => u.nombre).join(', ')
-                                  : 'Sin usuarios'
-                                }
+                            <div className="flex items-center space-x-3">
+                              <div className="text-right mr-4">
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {turno.usuarios && turno.usuarios.length > 0 
+                                    ? turno.usuarios.map(u => u.nombre).join(', ')
+                                    : 'Sin usuarios'
+                                  }
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {turno.estado}
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                {turno.estado}
-                              </div>
+                              
+                                                             {/* Botones de acción */}
+                               <div className="flex space-x-2">
+                                 {turno.estado === 'libre' ? (
+                                   <button
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       handleOcuparTurno(turno);
+                                     }}
+                                     disabled={ocuparTurnoMutation.isPending}
+                                     className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-xs rounded-md transition-colors"
+                                   >
+                                     {ocuparTurnoMutation.isPending ? 'Ocupando...' : 'Ocupar'}
+                                   </button>
+                                 ) : (
+                                   <button
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       handleLiberarTurno(turno);
+                                     }}
+                                     disabled={liberarTurnoMutation.isPending}
+                                     className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-xs rounded-md transition-colors"
+                                   >
+                                     {liberarTurnoMutation.isPending ? 'Liberando...' : 'Liberar'}
+                                   </button>
+                                 )}
+                                 
+                                 {/* Botón para asignar usuarios (solo para admins) */}
+                                 {(_user?.rol === 'admin' || _user?.rol === 'superAdmin') && (
+                                   <button
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       // Por ahora asignar al usuario actual, pero esto se puede expandir
+                                       handleAsignarUsuario(turno, _user.id);
+                                     }}
+                                     disabled={asignarUsuarioMutation.isPending}
+                                     className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white text-xs rounded-md transition-colors"
+                                   >
+                                     {asignarUsuarioMutation.isPending ? 'Asignando...' : 'Asignar'}
+                                   </button>
+                                 )}
+                                 
+                                 <button
+                                   onClick={() => handleTurnoClick(turno)}
+                                   className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-md transition-colors"
+                                 >
+                                   Ver
+                                 </button>
+                               </div>
                             </div>
                           </div>
                         </div>

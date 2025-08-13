@@ -424,29 +424,31 @@ export const ocuparTurno = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Verificar disponibilidad del usuario
-    const diaSemana = new Date(turno.fecha).getDay();
-    const disponibilidad = await Disponibilidad.findOne({
-      where: {
-        usuarioId,
-        dia_semana: diaSemana
+    // Verificar disponibilidad del usuario (solo si no es admin)
+    if (req.user!.rol !== 'admin' && req.user!.rol !== 'superAdmin') {
+      const diaSemana = new Date(turno.fecha).getDay();
+      const disponibilidad = await Disponibilidad.findOne({
+        where: {
+          usuarioId,
+          dia_semana: diaSemana
+        }
+      });
+
+      if (!disponibilidad) {
+        return res.status(400).json({
+          success: false,
+          message: 'No tienes disponibilidad para este día de la semana'
+        });
       }
-    });
 
-    if (!disponibilidad) {
-      return res.status(400).json({
-        success: false,
-        message: 'No tienes disponibilidad para este día de la semana'
-      });
-    }
-
-    // Verificar que la hora del turno esté dentro de tu disponibilidad
-    const [horaInicio, horaFin] = turno.hora.split('-');
-    if (horaInicio < disponibilidad.hora_inicio || horaFin > disponibilidad.hora_fin) {
-      return res.status(400).json({
-        success: false,
-        message: `La hora del turno (${turno.hora}) no está dentro de tu disponibilidad (${disponibilidad.hora_inicio} - ${disponibilidad.hora_fin})`
-      });
+      // Verificar que la hora del turno esté dentro de tu disponibilidad
+      const [horaInicio, horaFin] = turno.hora.split('-');
+      if (horaInicio < disponibilidad.hora_inicio || horaFin > disponibilidad.hora_fin) {
+        return res.status(400).json({
+          success: false,
+          message: `La hora del turno (${turno.hora}) no está dentro de tu disponibilidad (${disponibilidad.hora_inicio} - ${disponibilidad.hora_fin})`
+        });
+      }
     }
 
     // Asignar el turno al usuario usando la tabla intermedia
@@ -482,6 +484,106 @@ export const ocuparTurno = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error ocupando turno:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+};
+
+// Asignar un usuario a un turno (admin)
+export const asignarUsuarioATurno = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { usuarioId } = req.body;
+
+    if (!usuarioId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere el ID del usuario'
+      });
+    }
+
+    const turno = await Turno.findByPk(id, {
+      include: [
+        { model: Usuario, as: 'usuarios', through: { attributes: [] } }
+      ]
+    });
+    
+    if (!turno) {
+      return res.status(404).json({
+        success: false,
+        message: 'Turno no encontrado'
+      });
+    }
+
+    // Verificar que el usuario no esté ya asignado al turno
+    const usuarioYaAsignado = turno.usuarios?.find(u => u.id === usuarioId);
+    if (usuarioYaAsignado) {
+      return res.status(400).json({
+        success: false,
+        message: 'El usuario ya está asignado a este turno'
+      });
+    }
+
+    // Verificar que el usuario no tenga otro turno en la misma fecha
+    const turnoExistente = await Turno.findOne({
+      include: [
+        { 
+          model: Usuario, 
+          as: 'usuarios', 
+          where: { id: usuarioId },
+          through: { attributes: [] }
+        }
+      ],
+      where: {
+        fecha: turno.fecha,
+        id: { [Op.ne]: id }
+      }
+    });
+
+    if (turnoExistente) {
+      return res.status(400).json({
+        success: false,
+        message: 'El usuario ya tiene un turno asignado en esa fecha'
+      });
+    }
+
+    // Asignar el turno al usuario usando la tabla intermedia
+    await TurnoUsuario.create({
+      turnoId: turno.id,
+      usuarioId: usuarioId
+    });
+
+    // Actualizar el estado del turno si es necesario
+    if (turno.estado === 'libre') {
+      turno.estado = 'ocupado';
+      await turno.save();
+    }
+
+    // Obtener el turno con información completa
+    const turnoActualizado = await Turno.findByPk(id, {
+      include: [
+        {
+          model: Lugar,
+          as: 'lugar',
+          attributes: ['id', 'nombre', 'direccion']
+        },
+        {
+          model: Usuario,
+          as: 'usuarios',
+          attributes: ['id', 'nombre', 'email']
+        }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Usuario asignado al turno exitosamente',
+      data: turnoActualizado
+    });
+  } catch (error) {
+    console.error('Error asignando usuario al turno:', error);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor'
