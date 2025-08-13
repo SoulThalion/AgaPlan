@@ -3,13 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Turno, Lugar } from '../types';
+import Swal from 'sweetalert2';
 
 export default function DashboardOverview() {
   const { user: _user } = useAuth();
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
   const [viewAllTurnos, setViewAllTurnos] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<'month' | 'week' | 'day' | 'list'>('month');
@@ -35,10 +36,22 @@ export default function DashboardOverview() {
     mutationFn: (turnoId: number) => apiService.ocuparTurno(turnoId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      Swal.fire({
+        icon: 'success',
+        title: '¡Turno ocupado!',
+        text: 'El turno se ha ocupado correctamente',
+        confirmButtonText: 'Aceptar'
+      });
     },
     onError: (error: any) => {
       console.error('Error ocupando turno:', error);
-      setError('Error al ocupar el turno');
+      const errorMessage = error?.response?.data?.message || 'Error al ocupar el turno';
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: errorMessage,
+        confirmButtonText: 'Aceptar'
+      });
     }
   });
 
@@ -46,10 +59,22 @@ export default function DashboardOverview() {
     mutationFn: (turnoId: number) => apiService.liberarTurno(turnoId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      Swal.fire({
+        icon: 'success',
+        title: '¡Turno liberado!',
+        text: 'El turno se ha liberado correctamente',
+        confirmButtonText: 'Aceptar'
+      });
     },
     onError: (error: any) => {
       console.error('Error liberando turno:', error);
-      setError('Error al liberar el turno');
+      const errorMessage = error?.response?.data?.message || 'Error al liberar el turno';
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: errorMessage,
+        confirmButtonText: 'Aceptar'
+      });
     }
   });
 
@@ -58,10 +83,22 @@ export default function DashboardOverview() {
       apiService.asignarUsuarioATurno(turnoId, usuarioId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      Swal.fire({
+        icon: 'success',
+        title: '¡Usuario asignado!',
+        text: 'El usuario se ha asignado al turno correctamente',
+        confirmButtonText: 'Aceptar'
+      });
     },
     onError: (error: any) => {
       console.error('Error asignando usuario:', error);
-      setError('Error al asignar usuario al turno');
+      const errorMessage = error?.response?.data?.message || 'Error al asignar usuario al turno';
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: errorMessage,
+        confirmButtonText: 'Aceptar'
+      });
     }
   });
 
@@ -69,7 +106,6 @@ export default function DashboardOverview() {
     const loadData = async () => {
       try {
         setLoading(true);
-        setError(null);
 
         if (turnosData?.data) {
           setTurnos(turnosData.data);
@@ -77,10 +113,15 @@ export default function DashboardOverview() {
         if (lugaresData?.data) {
           setLugares(lugaresData.data);
         }
-      } catch (err) {
-        setError('Error al cargar los datos del dashboard');
-        console.error('Error loading dashboard data:', err);
-      } finally {
+              } catch (err) {
+          console.error('Error loading dashboard data:', err);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error al cargar los datos del dashboard',
+            confirmButtonText: 'Aceptar'
+          });
+        } finally {
         setLoading(false);
       }
     };
@@ -322,24 +363,43 @@ export default function DashboardOverview() {
   };
 
   const handleTurnoClick = (turno: Turno) => {
-    alert(`
-Turno #${turno.id}
-Fecha: ${new Date(turno.fecha).toLocaleDateString('es-ES')}
-Horario: ${formatHora(turno.hora)}
-Lugar: ${turno.lugar?.nombre || 'Sin lugar'}
-Usuarios: ${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'}
-Estado: ${turno.estado}
-    `);
+    Swal.fire({
+      title: `Turno #${turno.id}`,
+      html: `
+        <div class="text-left">
+          <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES')}</p>
+          <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+          <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
+          <p><strong>Usuarios:</strong> ${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'}</p>
+          <p><strong>Estado:</strong> ${turno.estado}</p>
+        </div>
+      `,
+      icon: 'info',
+      confirmButtonText: 'Cerrar'
+    });
   };
 
   const handleOcuparTurno = async (turno: Turno) => {
     try {
-      // Si soy admin o superAdmin, puedo ocupar cualquier turno
-      if (_user?.rol === 'admin' || _user?.rol === 'superAdmin') {
-        await ocuparTurnoMutation.mutateAsync(turno.id);
-      } else {
-        // Si soy usuario normal, verificar disponibilidad
-        await ocuparTurnoMutation.mutateAsync(turno.id);
+      const result = await Swal.fire({
+        title: 'Confirmar ocupación',
+        text: `¿Estás seguro de que quieres ocupar el turno en ${turno.lugar?.nombre} el ${new Date(turno.fecha).toLocaleDateString('es-ES')} de ${turno.hora}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, ocupar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33'
+      });
+      
+      if (result.isConfirmed) {
+        // Si soy admin o superAdmin, puedo ocupar cualquier turno
+        if (_user?.rol === 'admin' || _user?.rol === 'superAdmin') {
+          await ocuparTurnoMutation.mutateAsync(turno.id);
+        } else {
+          // Si soy usuario normal, verificar disponibilidad
+          await ocuparTurnoMutation.mutateAsync(turno.id);
+        }
       }
     } catch (error) {
       console.error('Error al ocupar turno:', error);
@@ -363,13 +423,13 @@ Estado: ${turno.estado}
         const diaSemana = new Date(turno.fecha).getDay();
         const disponibilidad = disponibilidades?.find(d => d.diaSemana === diaSemana);
         
-        let mensaje = `¿Estás seguro de que quieres asignar a este usuario al turno?\n\n`;
-        mensaje += `Turno: ${turno.lugar?.nombre} - ${turno.fecha} ${turno.hora}\n`;
+        let mensaje = `¿Estás seguro de que quieres asignar a este usuario al turno?<br><br>`;
+        mensaje += `<strong>Turno:</strong> ${turno.lugar?.nombre} - ${turno.fecha} ${turno.hora}<br>`;
         
         if (disponibilidad) {
-          mensaje += `\nDisponibilidad del usuario:\n`;
-          mensaje += `Día: ${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana]}\n`;
-          mensaje += `Horario: ${disponibilidad.horaInicio} - ${disponibilidad.horaFin}\n`;
+          mensaje += `<br><strong>Disponibilidad del usuario:</strong><br>`;
+          mensaje += `Día: ${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana]}<br>`;
+          mensaje += `Horario: ${disponibilidad.horaInicio} - ${disponibilidad.horaFin}<br>`;
           
           // Verificar si el turno está dentro de la disponibilidad
           const [horaInicio, horaFin] = turno.hora.split('-');
@@ -379,16 +439,38 @@ Estado: ${turno.estado}
             mensaje += `⚠️ El turno NO está dentro de la disponibilidad del usuario`;
           }
         } else {
-          mensaje += `\n⚠️ El usuario no tiene disponibilidad configurada para este día`;
+          mensaje += `<br>⚠️ El usuario no tiene disponibilidad configurada para este día`;
         }
         
-        if (confirm(mensaje)) {
+        const result = await Swal.fire({
+          title: 'Confirmar asignación',
+          html: mensaje,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, asignar',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33'
+        });
+        
+        if (result.isConfirmed) {
           await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
         }
       } catch (error) {
         console.error('Error obteniendo disponibilidad:', error);
         // Si no se puede obtener la disponibilidad, asignar de todas formas
-        if (confirm('No se pudo verificar la disponibilidad del usuario. ¿Deseas asignarlo de todas formas?')) {
+        const result = await Swal.fire({
+          title: 'Confirmar asignación',
+          text: 'No se pudo verificar la disponibilidad del usuario. ¿Deseas asignarlo de todas formas?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, asignar',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33'
+        });
+        
+        if (result.isConfirmed) {
           await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
         }
       }
@@ -399,11 +481,24 @@ Estado: ${turno.estado}
 
   const handleLiberarTurno = async (turno: Turno) => {
     try {
-      await liberarTurnoMutation.mutateAsync(turno.id);
+      const result = await Swal.fire({
+        title: 'Confirmar liberación',
+        text: `¿Estás seguro de que quieres liberar el turno en ${turno.lugar?.nombre} el ${new Date(turno.fecha).toLocaleDateString('es-ES')} de ${turno.hora}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, liberar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6'
+      });
+      
+      if (result.isConfirmed) {
+        await liberarTurnoMutation.mutateAsync(turno.id);
+      }
     } catch (error) {
       console.error('Error al liberar turno:', error);
     }
-  };
+    }
 
   if (loading) {
     return (
@@ -413,23 +508,7 @@ Estado: ${turno.estado}
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Error</h3>
-            <div className="mt-2 text-sm text-red-700">{error}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   const calendarDays = getCalendarDays(currentDate);
   const weekDays = getWeekDays(currentDate);
