@@ -263,6 +263,41 @@ class ApiService {
     const response = await this.api.delete<ApiResponse<void>>(`/exhibidores/${id}`);
     return response.data;
   }
+
+  // Configuración de disponibilidad de usuarios
+  async createUserDisponibilidadConfig(data: {
+    usuarioId: number;
+    mes: string;
+    tipo_disponibilidad: string;
+    configuracion: any;
+  }): Promise<any> {
+    const response = await this.api.post('/user-disponibilidad-config', data);
+    return response.data;
+  }
+
+  async getUserDisponibilidadConfig(usuarioId: number, mes?: string): Promise<any> {
+    const params = mes ? { mes } : {};
+    const response = await this.api.get(`/user-disponibilidad-config/usuario/${usuarioId}`, { params });
+    return response.data;
+  }
+
+  async updateUserDisponibilidadConfig(id: number, data: {
+    configuracion?: any;
+    activo?: boolean;
+  }): Promise<any> {
+    const response = await this.api.put(`/user-disponibilidad-config/${id}`, data);
+    return response.data;
+  }
+
+  async deleteUserDisponibilidadConfig(id: number): Promise<any> {
+    const response = await this.api.delete(`/user-disponibilidad-config/${id}`);
+    return response.data;
+  }
+
+  async getUserDisponibilidadConfigByMes(mes: string): Promise<any> {
+    const response = await this.api.get(`/user-disponibilidad-config/usuario-autenticado/${mes}`);
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

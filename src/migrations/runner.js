@@ -53,6 +53,8 @@ var addLugarFields = require("./008-add-lugar-fields");
 var addCoordinatesToLugares = require("./010-add-coordinates-to-lugares");
 var addExhibidorToTurnos = require("./012-add-exhibidor-to-turnos");
 var addTieneCocheToUsuarios = require("./019-add-tiene-coche-to-usuarios");
+var createUserDisponibilidadConfig = require("./021-create-user-disponibilidad-config");
+var removeUniqueIndexUserDisponibilidadConfig = require("./022-remove-unique-index-user-disponibilidad-config");
 // Lista de migraciones en orden de ejecución
 var migrations = [
     { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.up },
@@ -64,7 +66,9 @@ var migrations = [
     { name: '007-create-cargos-table', up: createCargosTable.up, down: createCargosTable.up },
     { name: '008-add-lugar-fields', up: addLugarFields.up, down: addLugarFields.up },
     { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares.up, down: addCoordinatesToLugares.up },
-    { name: '012-add-exhibidor-to-turnos', up: addExhibidorToTurnos.up, down: addExhibidorToTurnos.up }
+    { name: '012-add-exhibidor-to-turnos', up: addExhibidorToTurnos.up, down: addExhibidorToTurnos.up },
+    { name: '021-create-user-disponibilidad-config', up: createUserDisponibilidadConfig.up, down: createUserDisponibilidadConfig.down },
+    { name: '022-remove-unique-index-user-disponibilidad-config', up: removeUniqueIndexUserDisponibilidadConfig.up, down: removeUniqueIndexUserDisponibilidadConfig.down }
     // { name: '019-add-tiene-coche-to-usuarios', up: addTieneCocheToUsuarios.up, down: addTieneCocheToUsuarios.down }
 ];
 // Función para crear la tabla de migraciones si no existe

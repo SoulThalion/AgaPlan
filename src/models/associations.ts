@@ -5,6 +5,7 @@ import Disponibilidad from './Disponibilidad';
 import Exhibidor from './Exhibidor';
 import TurnoExhibidor from './TurnoExhibidor';
 import TurnoUsuario from './TurnoUsuario';
+import UserDisponibilidadConfig from './UserDisponibilidadConfig';
 
 // Asociaciones Usuario - Turno (muchos a muchos)
 Usuario.belongsToMany(Turno, { 
@@ -40,6 +41,10 @@ Exhibidor.belongsToMany(Turno, {
 Usuario.hasMany(Disponibilidad, { foreignKey: 'usuarioId', as: 'disponibilidades' });
 Disponibilidad.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
 
+// Asociaciones Usuario - UserDisponibilidadConfig
+Usuario.hasMany(UserDisponibilidadConfig, { foreignKey: 'usuarioId', as: 'configuracionesDisponibilidad' });
+UserDisponibilidadConfig.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
+
 // Asociaciones Lugar - Disponibilidad (comentadas porque la tabla no tiene lugarId)
 // Lugar.hasMany(Disponibilidad, { foreignKey: 'lugarId', as: 'disponibilidades' });
 // Disponibilidad.belongsTo(Lugar, { foreignKey: 'lugarId', as: 'lugar' });
@@ -51,5 +56,6 @@ export {
   Disponibilidad,
   Exhibidor,
   TurnoExhibidor,
-  TurnoUsuario
+  TurnoUsuario,
+  UserDisponibilidadConfig
 };
