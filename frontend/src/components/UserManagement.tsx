@@ -196,279 +196,391 @@ const UserManagement: React.FC = () => {
         </button>
       </div>
 
-      {/* Tabla de usuarios */}
-      <div className="bg-white dark:bg-neutral-dark rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-neutral-light dark:divide-neutral">
-          <thead className="bg-neutral-light dark:bg-neutral">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
-                Usuario
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
-                Cargo
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
-                Rol
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
-                Participación Mensual
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
-                Tiene Coche
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
-                Siempre Con
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
-                Nunca Con
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-neutral-dark divide-y divide-neutral-light dark:divide-neutral">
-            {usuarios?.data && usuarios.data.length > 0 ? (
-              usuarios.data.map((user: Usuario) => (
-                <tr key={user.id} className="hover:bg-neutral-light/50 dark:hover:bg-neutral/50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-3 h-3 rounded-full ${
-                        user.rol === 'admin' || user.rol === 'superAdmin' ? 'bg-success' : 'bg-primary'
-                      }`}></div>
-                      
-                      <div>
-                        <div className="font-medium font-poppins text-neutral-text dark:text-white">
-                          {user.nombre}
-                        </div>
-                        <div className="text-sm text-neutral-text/70 dark:text-white/70">
-                          {user.email}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
-                    {user.cargo || '-'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.rol === 'superAdmin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
-                      user.rol === 'admin' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                    }`}>
-                      {user.rol}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
-                    {user.participacionMensual ? `${user.participacionMensual}%` : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
-                    {user.tieneCoche ? 'Sí' : 'No'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
-                    {user.siempreConUsuario ? user.siempreConUsuario.nombre : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
-                    {user.nuncaConUsuario ? user.nuncaConUsuario.nombre : '-'}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(user)}
-                        className="text-primary hover:text-primary-dark font-medium font-poppins text-sm"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="text-red-600 hover:text-red-900 font-medium font-poppins text-sm"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
+      {/* Vista de escritorio - Tabla */}
+      <div className="hidden lg:block bg-white dark:bg-neutral-dark rounded-lg shadow overflow-hidden">
+        <div className="relative">
+          <div className="overflow-x-auto custom-scrollbar" style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgb(156 163 175) transparent'
+          }}>
+            <table className="min-w-full divide-y divide-neutral-light dark:divide-neutral" style={{ minWidth: '1200px' }}>
+              <thead className="bg-neutral-light dark:bg-neutral sticky top-0 z-10">
+                <tr>
+                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[180px]">
+                    Usuario
+                  </th>
+                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[120px]">
+                    Cargo
+                  </th>
+                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[100px]">
+                    Rol
+                  </th>
+                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[100px]">
+                    Participación
+                  </th>
+                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[80px]">
+                    Coche
+                  </th>
+                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[120px]">
+                    Siempre Con
+                  </th>
+                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[120px]">
+                    Nunca Con
+                  </th>
+                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[120px]">
+                    Acciones
+                  </th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={8} className="px-6 py-8 text-center text-neutral-text/70 dark:text-white/70">
-                  No hay usuarios registrados.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              </thead>
+              <tbody className="bg-white dark:bg-neutral-dark divide-y divide-neutral-light dark:divide-neutral">
+                {usuarios?.data && usuarios.data.length > 0 ? (
+                  usuarios.data.map((user: Usuario) => (
+                    <tr key={user.id} className="hover:bg-neutral-light/50 dark:hover:bg-neutral/50">
+                      <td className="px-2 py-3">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2.5 h-2.5 rounded-full ${
+                            user.rol === 'admin' || user.rol === 'superAdmin' ? 'bg-success' : 'bg-primary'
+                          }`}></div>
+                          
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium font-poppins text-neutral-text dark:text-white truncate text-sm">
+                              {user.nombre}
+                            </div>
+                            <div className="text-xs text-neutral-text/70 dark:text-white/70 truncate">
+                              {user.email}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                        {user.cargo || '-'}
+                      </td>
+                      <td className="px-2 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          user.rol === 'superAdmin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                          user.rol === 'admin' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                          'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        }`}>
+                          {user.rol}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                        {user.participacionMensual ? `${user.participacionMensual}%` : '-'}
+                      </td>
+                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                        {user.tieneCoche ? 'Sí' : 'No'}
+                      </td>
+                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                        {user.siempreConUsuario ? user.siempreConUsuario.nombre : '-'}
+                      </td>
+                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                        {user.nuncaConUsuario ? user.nuncaConUsuario.nombre : '-'}
+                      </td>
+                      <td className="px-2 py-3 text-sm font-medium">
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="text-primary hover:text-primary-dark p-1 rounded hover:bg-primary/10 transition-colors"
+                            title="Editar usuario"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user.id)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            title="Eliminar usuario"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="px-2 py-6 text-center text-neutral-text/70 dark:text-white/70">
+                      No hay usuarios registrados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Vista móvil/tablet - Tarjetas */}
+      <div className="lg:hidden space-y-4">
+        {usuarios?.data && usuarios.data.length > 0 ? (
+          usuarios.data.map((user: Usuario) => (
+            <div key={user.id} className="bg-white dark:bg-neutral-dark rounded-lg shadow p-4">
+              {/* Header de la tarjeta */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-3 h-3 rounded-full ${
+                    user.rol === 'admin' || user.rol === 'superAdmin' ? 'bg-success' : 'bg-primary'
+                  }`}></div>
+                  <div>
+                    <h3 className="font-medium font-poppins text-neutral-text dark:text-white">
+                      {user.nombre}
+                    </h3>
+                    <p className="text-sm text-neutral-text/70 dark:text-white/70">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  user.rol === 'superAdmin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                  user.rol === 'admin' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                  'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                }`}>
+                  {user.rol}
+                </span>
+              </div>
+
+              {/* Información del usuario */}
+              <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                <div>
+                  <span className="text-neutral-text/60 dark:text-white/60">Cargo:</span>
+                  <p className="text-neutral-text dark:text-white font-medium">{user.cargo || '-'}</p>
+                </div>
+                <div>
+                  <span className="text-neutral-text/60 dark:text-white/60">Participación:</span>
+                  <p className="text-neutral-text dark:text-white font-medium">
+                    {user.participacionMensual ? `${user.participacionMensual}%` : '-'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-neutral-text/60 dark:text-white/60">Tiene Coche:</span>
+                  <p className="text-neutral-text dark:text-white font-medium">
+                    {user.tieneCoche ? 'Sí' : 'No'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-neutral-text/60 dark:text-white/60">Siempre Con:</span>
+                  <p className="text-neutral-text dark:text-white font-medium">
+                    {user.siempreConUsuario ? user.siempreConUsuario.nombre : '-'}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-neutral-text/60 dark:text-white/60">Nunca Con:</span>
+                  <p className="text-neutral-text dark:text-white font-medium">
+                    {user.nuncaConUsuario ? user.nuncaConUsuario.nombre : '-'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Acciones */}
+              <div className="flex space-x-2 pt-3 border-t border-neutral-light dark:border-neutral">
+                <button
+                  onClick={() => handleEdit(user)}
+                  className="flex-1 text-primary hover:text-primary-dark font-medium font-poppins text-sm py-2 px-3 rounded-lg border border-primary hover:bg-primary/10 transition-colors"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(user.id)}
+                  className="flex-1 text-red-600 hover:text-red-900 font-medium font-poppins text-sm py-2 px-3 rounded-lg border border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="bg-white dark:bg-neutral-dark rounded-lg shadow p-8 text-center">
+            <p className="text-neutral-text/70 dark:text-white/70">
+              No hay usuarios registrados.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Modal para crear/editar usuario */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-neutral-dark rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white dark:bg-neutral-dark rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium font-poppins text-neutral-text dark:text-white mb-4">
               {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
             </h3>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Nombre
-                </label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                  required
-                />
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Columna Izquierda */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Nombre
+                    </label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      value={formData.nombre}
+                      onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                  required
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      required
+                    />
+                  </div>
 
-              {!editingUser && (
-                <div>
-                  <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                    Contraseña
-                  </label>
-                  <input
-                    type="password"
-                    name="contraseña"
-                    value={formData.contraseña}
-                    onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
-                    className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                    required
-                  />
+                  {!editingUser && (
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Contraseña
+                      </label>
+                      <input
+                        type="password"
+                        name="contraseña"
+                        value={formData.contraseña}
+                        onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Sexo
+                    </label>
+                    <select
+                      name="sexo"
+                      value={formData.sexo}
+                      onChange={(e) => setFormData({...formData, sexo: e.target.value as 'M' | 'F' | 'O'})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                    >
+                      <option value="M">Masculino</option>
+                      <option value="F">Femenino</option>
+                      <option value="O">Otro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Cargo
+                    </label>
+                    <input
+                      type="text"
+                      name="cargo"
+                      value={formData.cargo}
+                      onChange={(e) => setFormData({...formData, cargo: e.target.value})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      required
+                    />
+                  </div>
                 </div>
-              )}
 
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Sexo
-                </label>
-                <select
-                  name="sexo"
-                  value={formData.sexo}
-                  onChange={(e) => setFormData({...formData, sexo: e.target.value as 'M' | 'F' | 'O'})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                >
-                  <option value="M">Masculino</option>
-                  <option value="F">Femenino</option>
-                  <option value="O">Otro</option>
-                </select>
+                {/* Columna Derecha */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Rol
+                    </label>
+                    <select
+                      name="rol"
+                      value={formData.rol}
+                      onChange={(e) => setFormData({...formData, rol: e.target.value as 'voluntario' | 'admin' | 'superAdmin'})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      required
+                    >
+                      <option value="voluntario">Voluntario</option>
+                      <option value="admin">Administrador</option>
+                      <option value="superAdmin">Super Administrador</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Participación Mensual (opcional)
+                    </label>
+                    <input
+                      type="number"
+                      name="participacionMensual"
+                      value={formData.participacionMensual || ''}
+                      onChange={(e) => setFormData({...formData, participacionMensual: e.target.value ? parseInt(e.target.value) : undefined})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      min="0"
+                      placeholder="Número de veces al mes"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Tiene Coche
+                    </label>
+                    <select
+                      name="tieneCoche"
+                      value={formData.tieneCoche ? 'true' : 'false'}
+                      onChange={(e) => setFormData({...formData, tieneCoche: e.target.value === 'true'})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                    >
+                      <option value="false">No</option>
+                      <option value="true">Sí</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Siempre Con (opcional)
+                    </label>
+                    <select
+                      name="siempreCon"
+                      value={formData.siempreCon || ''}
+                      onChange={(e) => setFormData({...formData, siempreCon: e.target.value ? parseInt(e.target.value) : undefined})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                    >
+                      <option value="">Sin usuario específico</option>
+                      {usuarios?.data && usuarios.data
+                        .filter((user: Usuario) => !editingUser || user.id !== editingUser.id)
+                        .map((user: Usuario) => (
+                          <option key={user.id} value={user.id}>
+                            {user.nombre} ({user.email})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      Nunca Con (opcional)
+                    </label>
+                    <select
+                      name="nuncaCon"
+                      value={formData.nuncaCon || ''}
+                      onChange={(e) => setFormData({...formData, nuncaCon: e.target.value ? parseInt(e.target.value) : undefined})}
+                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                    >
+                      <option value="">Sin usuario específico</option>
+                      {usuarios?.data && usuarios.data
+                        .filter((user: Usuario) => !editingUser || user.id !== editingUser.id)
+                        .map((user: Usuario) => (
+                          <option key={user.id} value={user.id}>
+                            {user.nombre} ({user.email})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Cargo
-                </label>
-                <input
-                  type="text"
-                  name="cargo"
-                  value={formData.cargo}
-                  onChange={(e) => setFormData({...formData, cargo: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Rol
-                </label>
-                <select
-                  name="rol"
-                  value={formData.rol}
-                  onChange={(e) => setFormData({...formData, rol: e.target.value as 'voluntario' | 'admin' | 'superAdmin'})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                  required
-                >
-                  <option value="voluntario">Voluntario</option>
-                  <option value="admin">Administrador</option>
-                                                <option value="superAdmin">Super Administrador</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Participación Mensual (opcional)
-                </label>
-                <input
-                  type="number"
-                  name="participacionMensual"
-                  value={formData.participacionMensual || ''}
-                  onChange={(e) => setFormData({...formData, participacionMensual: e.target.value ? parseInt(e.target.value) : undefined})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                  min="0"
-                  placeholder="Número de veces al mes"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Tiene Coche
-                </label>
-                <select
-                  name="tieneCoche"
-                  value={formData.tieneCoche ? 'true' : 'false'}
-                  onChange={(e) => setFormData({...formData, tieneCoche: e.target.value === 'true'})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                >
-                  <option value="false">No</option>
-                  <option value="true">Sí</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Siempre Con (opcional)
-                </label>
-                <select
-                  name="siempreCon"
-                  value={formData.siempreCon || ''}
-                  onChange={(e) => setFormData({...formData, siempreCon: e.target.value ? parseInt(e.target.value) : undefined})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                >
-                  <option value="">Sin usuario específico</option>
-                  {usuarios?.data && usuarios.data.map((user: Usuario) => (
-                    <option key={user.id} value={user.id}>
-                      {user.nombre} ({user.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                  Nunca Con (opcional)
-                </label>
-                <select
-                  name="nuncaCon"
-                  value={formData.nuncaCon || ''}
-                  onChange={(e) => setFormData({...formData, nuncaCon: e.target.value ? parseInt(e.target.value) : undefined})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                >
-                  <option value="">Sin usuario específico</option>
-                  {usuarios?.data && usuarios.data.map((user: Usuario) => (
-                    <option key={user.id} value={user.id}>
-                      {user.nombre} ({user.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-light dark:border-neutral">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
