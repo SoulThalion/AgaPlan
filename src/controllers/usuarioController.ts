@@ -81,35 +81,54 @@ export const createUsuario = async (req: Request, res: Response) => {
   try {
     const { nombre, email, contraseña, sexo, cargo, rol, participacionMensual, tieneCoche, siempreCon, nuncaCon } = req.body;
 
-    // Validaciones básicas
-    if (!nombre || !email || !contraseña || !sexo || !cargo) {
+    // Validaciones básicas - solo nombre, sexo y cargo son obligatorios
+    if (!nombre || !sexo || !cargo) {
       return res.status(400).json({
         success: false,
-        message: 'Todos los campos son requeridos'
+        message: 'Nombre, sexo y cargo son campos obligatorios'
       });
     }
 
-    if (contraseña.length < 6) {
+    // Validación: si se proporciona email, también debe proporcionarse contraseña
+    if (email && !contraseña) {
+      return res.status(400).json({
+        success: false,
+        message: 'Si proporcionas un email, también debes proporcionar una contraseña'
+      });
+    }
+
+    // Validación: si se proporciona contraseña, también debe proporcionarse email
+    if (contraseña && !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Si proporcionas una contraseña, también debes proporcionar un email'
+      });
+    }
+
+    // Validación de contraseña solo si se proporciona
+    if (contraseña && contraseña.length < 6) {
       return res.status(400).json({
         success: false,
         message: 'La contraseña debe tener al menos 6 caracteres'
       });
     }
 
-    // Verificar si el email ya existe
-    const existingUser = await Usuario.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'El email ya está registrado'
-      });
+    // Verificar si el email ya existe (solo si se proporciona email)
+    if (email) {
+      const existingUser = await Usuario.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'El email ya está registrado'
+        });
+      }
     }
 
     // Crear el usuario (el hash de contraseña se maneja en el modelo)
     const newUsuario = await Usuario.create({
       nombre,
-      email,
-      contraseña,
+      email: email || null, // null si no se proporciona
+      contraseña: contraseña || null, // null si no se proporciona
       sexo,
       cargo,
       rol: rol || 'voluntario',
@@ -191,6 +210,40 @@ export const updateUsuario = async (req: AuthenticatedRequest, res: Response) =>
     // Si no se está cambiando la contraseña, eliminarla del updateData
     if (!updateData.contraseña || updateData.contraseña === '') {
       delete updateData.contraseña;
+    }
+
+    // Validaciones para email y contraseña
+    if (updateData.email && !updateData.contraseña) {
+      return res.status(400).json({
+        success: false,
+        message: 'Si proporcionas un email, también debes proporcionar una contraseña'
+      });
+    }
+
+    if (updateData.contraseña && !updateData.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Si proporcionas una contraseña, también debes proporcionar un email'
+      });
+    }
+
+    // Validación de contraseña solo si se proporciona
+    if (updateData.contraseña && updateData.contraseña.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'La contraseña debe tener al menos 6 caracteres'
+      });
+    }
+
+    // Verificar si el email ya existe (solo si se está cambiando)
+    if (updateData.email && updateData.email !== usuario.email) {
+      const existingUser = await Usuario.findOne({ where: { email: updateData.email } });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'El email ya está registrado'
+        });
+      }
     }
 
     // Actualizar el usuario

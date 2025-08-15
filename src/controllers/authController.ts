@@ -57,7 +57,7 @@ export const register = async (req: Request, res: Response) => {
     // Generar token JWT (sin la propiedad exp manual)
     const tokenPayload: Omit<JwtPayload, 'exp' | 'iat'> = {
       id: newUser.id,
-      email: newUser.email,
+      email: newUser.email!, // Usar ! porque sabemos que tiene email en este contexto
       rol: newUser.rol
     };
 
@@ -71,7 +71,7 @@ export const register = async (req: Request, res: Response) => {
       user: {
         id: newUser.id,
         nombre: newUser.nombre,
-        email: newUser.email,
+        email: newUser.email!, // Usar ! porque sabemos que tiene email en este contexto
         rol: newUser.rol
       }
     };
@@ -98,7 +98,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Buscar usuario por email
+    // Buscar el usuario por email
     const user = await Usuario.findOne({ where: { email } });
     if (!user) {
       return res.status(401).json({
@@ -107,9 +107,17 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Verificar contraseña
-    const isPasswordValid = await bcrypt.compare(contraseña, user.contraseña);
-    if (!isPasswordValid) {
+    // Verificar que el usuario tenga contraseña (no es un usuario sin acceso)
+    if (!user.contraseña) {
+      return res.status(401).json({
+        success: false,
+        message: 'Este usuario no tiene acceso a la aplicación. Contacta al administrador.'
+      });
+    }
+
+    // Verificar la contraseña
+    const isValidPassword = await user.comparePassword(contraseña);
+    if (!isValidPassword) {
       return res.status(401).json({
         success: false,
         message: 'Credenciales inválidas'
@@ -119,7 +127,7 @@ export const login = async (req: Request, res: Response) => {
     // Generar token JWT (sin la propiedad exp manual)
     const tokenPayload: Omit<JwtPayload, 'exp' | 'iat'> = {
       id: user.id,
-      email: user.email,
+      email: user.email!, // Usar ! porque sabemos que tiene email en este contexto
       rol: user.rol
     };
 
@@ -133,7 +141,7 @@ export const login = async (req: Request, res: Response) => {
       user: {
         id: user.id,
         nombre: user.nombre,
-        email: user.email,
+        email: user.email!, // Usar ! porque sabemos que tiene email en este contexto
         rol: user.rol
       }
     };
@@ -165,7 +173,7 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
       user: {
         id: user.id,
         nombre: user.nombre,
-        email: user.email,
+        email: user.email || null, // Manejar caso donde email puede ser undefined
         rol: user.rol
       }
     });

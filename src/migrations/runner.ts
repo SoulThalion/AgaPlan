@@ -18,6 +18,7 @@ import * as addDescripcionToExhibidores from './015-add-descripcion-to-exhibidor
 import createTurnoExhibidoresTable from './016-create-turno-exhibidores-table';
 import * as modifyHoraToRange from './017-modify-hora-to-range';
 import * as createTurnoUsuariosTable from './018-create-turno-usuarios-table';
+import * as makeEmailPasswordOptional from './022-make-email-password-optional';
 const createUserDisponibilidadConfig = require('./021-create-user-disponibilidad-config');
 
 const migrations = [
@@ -38,6 +39,7 @@ const migrations = [
   { name: '017-modify-hora-to-range', up: modifyHoraToRange.up, down: modifyHoraToRange.down },
   { name: '018-create-turno-usuarios-table', up: createTurnoUsuariosTable.up, down: createTurnoUsuariosTable.down },
   { name: '021-create-user-disponibilidad-config', up: createUserDisponibilidadConfig.up, down: createUserDisponibilidadConfig.down },
+  { name: '022-make-email-password-optional', up: makeEmailPasswordOptional.up, down: makeEmailPasswordOptional.down },
 ];
 
 // Función para crear la tabla de migraciones si no existe

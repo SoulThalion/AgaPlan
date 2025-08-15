@@ -5,8 +5,8 @@ import bcrypt from 'bcryptjs';
 export interface UsuarioAttributes {
   id?: number;
   nombre: string;
-  email: string;
-  contraseña: string;
+  email?: string; // Ahora opcional
+  contraseña?: string; // Ahora opcional
   sexo: 'M' | 'F' | 'O';
   cargo: string;
   rol: 'voluntario' | 'admin' | 'superAdmin';
@@ -26,8 +26,8 @@ export interface UsuarioCreationAttributes extends Omit<UsuarioAttributes, 'id' 
 class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implements UsuarioAttributes {
   public id!: number;
   public nombre!: string;
-  public email!: string;
-  public contraseña!: string;
+  public email?: string; // Ahora opcional
+  public contraseña?: string; // Ahora opcional
   public sexo!: 'M' | 'F' | 'O';
   public cargo!: string;
   public rol!: 'voluntario' | 'admin' | 'superAdmin';
@@ -39,8 +39,9 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Método para comparar contraseñas
+  // Método para comparar contraseñas (solo si tiene contraseña)
   public async comparePassword(candidatePassword: string): Promise<boolean> {
+    if (!this.contraseña) return false;
     return bcrypt.compare(candidatePassword, this.contraseña);
   }
 }
@@ -62,19 +63,19 @@ Usuario.init(
     },
     email: {
       type: DataTypes.STRING(100),
-      allowNull: false,
+      allowNull: true, // Ahora opcional
       unique: true,
       validate: {
         isEmail: true,
-        notEmpty: true,
+        notEmpty: false, // Permitir vacío
       },
     },
     contraseña: {
       type: DataTypes.STRING(255),
-      allowNull: false,
+      allowNull: true, // Ahora opcional
       validate: {
-        len: [6, 255],
-        notEmpty: true,
+        len: [0, 255], // Permitir longitud 0
+        notEmpty: false, // Permitir vacío
       },
     },
     sexo: {
@@ -140,14 +141,14 @@ Usuario.init(
     hooks: {
       // Hash de contraseña antes de crear
       beforeCreate: async (usuario: Usuario) => {
-        if (usuario.contraseña) {
+        if (usuario.contraseña && usuario.contraseña.length > 0) {
           const saltRounds = 12;
           usuario.contraseña = await bcrypt.hash(usuario.contraseña, saltRounds);
         }
       },
       // Hash de contraseña antes de actualizar (solo si cambió)
       beforeUpdate: async (usuario: Usuario) => {
-        if (usuario.changed('contraseña')) {
+        if (usuario.changed('contraseña') && usuario.contraseña && usuario.contraseña.length > 0) {
           const saltRounds = 12;
           usuario.contraseña = await bcrypt.hash(usuario.contraseña, saltRounds);
         }

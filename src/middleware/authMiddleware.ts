@@ -40,7 +40,7 @@ export const authMiddleware = async (
       // Añadir información del usuario a la request
       req.user = {
         id: usuario.id,
-        email: usuario.email,
+        email: usuario.email || '', // Proporcionar valor por defecto si email es undefined
         nombre: usuario.nombre,
         rol: usuario.rol
       };

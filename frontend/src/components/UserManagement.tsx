@@ -125,6 +125,28 @@ const UserManagement: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validación: si se proporciona email, también debe proporcionarse contraseña
+    if (formData.email && !formData.contraseña) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campo requerido',
+        text: 'Si proporcionas un email, también debes proporcionar una contraseña para que el usuario pueda acceder a la aplicación.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+    
+    // Validación: si se proporciona contraseña, también debe proporcionarse email
+    if (formData.contraseña && !formData.email) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campo requerido',
+        text: 'Si proporcionas una contraseña, también debes proporcionar un email para que el usuario pueda acceder a la aplicación.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+    
     if (editingUser) {
       updateUserMutation.mutate({
         id: editingUser.id,
@@ -437,6 +459,23 @@ const UserManagement: React.FC = () => {
               {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
             </h3>
             
+            {/* Nota informativa */}
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="text-sm text-blue-800 dark:text-blue-200">
+                  <p className="font-medium mb-1">Información importante:</p>
+                  <ul className="list-disc list-inside space-y-1 text-xs">
+                    <li><strong>Sin email ni contraseña:</strong> El usuario será registrado pero NO tendrá acceso a la aplicación</li>
+                    <li><strong>Con email y contraseña:</strong> El usuario podrá acceder a la aplicación normalmente</li>
+                    <li><strong>Campos obligatorios:</strong> Nombre, Cargo y Rol siempre son requeridos</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Columna Izquierda */}
@@ -457,7 +496,7 @@ const UserManagement: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Email
+                      Email <span className="text-xs text-gray-500">(opcional)</span>
                     </label>
                     <input
                       type="email"
@@ -465,14 +504,17 @@ const UserManagement: React.FC = () => {
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
                       className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                      required
+                      placeholder="Dejar vacío si no tendrá acceso a la app"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Sin email = sin acceso a la aplicación
+                    </p>
                   </div>
 
                   {!editingUser && (
                     <div>
                       <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                        Contraseña
+                        Contraseña <span className="text-xs text-gray-500">(opcional)</span>
                       </label>
                       <input
                         type="password"
@@ -480,8 +522,11 @@ const UserManagement: React.FC = () => {
                         value={formData.contraseña}
                         onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
                         className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                        required
+                        placeholder="Dejar vacía si no tendrá acceso a la app"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Sin contraseña = sin acceso a la aplicación
+                      </p>
                     </div>
                   )}
 
