@@ -69,10 +69,21 @@ export default function WeekView({
                   if (turno.hora.includes('-')) {
                     const [horaInicio] = turno.hora.split('-');
                     const [horaInicioNum] = horaInicio.split(':').map(Number);
+                    // Si el turno empieza en esta hora (ej: 17:30 en hora 17)
                     return hour === horaInicioNum;
                   } else {
                     const [horaTurno] = turno.hora.split(':').map(Number);
                     return hour === horaTurno;
+                  }
+                });
+                
+                // Agrupar por franja exacta (misma cadena turno.hora)
+                const conteoPorFranja: Record<string, number> = {};
+                const primerIndicePorFranja: Record<string, number> = {};
+                turnosQueEmpiezanEnEstaHora.forEach((t, idx) => {
+                  conteoPorFranja[t.hora] = (conteoPorFranja[t.hora] || 0) + 1;
+                  if (primerIndicePorFranja[t.hora] === undefined) {
+                    primerIndicePorFranja[t.hora] = idx;
                   }
                 });
 
@@ -82,8 +93,9 @@ export default function WeekView({
                     className="h-16 border-b border-gray-200 dark:border-gray-600 relative"
                   >
                     {turnosQueEmpiezanEnEstaHora.map((turno, turnoIndex) => {
-                      // Calcular la duración del turno
-                      let duracionHoras = 1; // Por defecto 1 hora
+                      // Calcular la duración del turno y la posición exacta
+                      let offsetMinutos = 0; // Offset desde el inicio de la hora
+                      let duracionMinutos = 60; // Duración en minutos por defecto
                       if (turno.hora.includes('-')) {
                         const [horaInicio, horaFin] = turno.hora.split('-');
                         const [horaInicioNum, minInicioNum] = horaInicio.split(':').map(Number);
@@ -95,23 +107,49 @@ export default function WeekView({
                         
                         // Si la hora de fin es menor que la de inicio, asumir que es del día siguiente
                         const diferenciaMinutos = finMinutos > inicioMinutos ? finMinutos - inicioMinutos : (24 * 60 - inicioMinutos) + finMinutos;
-                        duracionHoras = diferenciaMinutos / 60;
+                        duracionMinutos = diferenciaMinutos;
+                        
+                        // Calcular el offset desde el inicio de la hora (ej: 17:30 -> offset 30 minutos)
+                        offsetMinutos = minInicioNum;
                       }
+
+                      // Si hay varios turnos con la misma franja exacta y este no es el primero del grupo,
+                      // aplicar un desplazamiento visual de 30 minutos y reducir la altura 30 minutos.
+                      const cantidadEnFranjaIgual = conteoPorFranja[turno.hora] || 0;
+                      const primerIndiceDeEstaFranja = primerIndicePorFranja[turno.hora];
+                      const noEsPrimeroDeSuFranja = cantidadEnFranjaIgual > 1 && primerIndiceDeEstaFranja !== turnoIndex;
+                      if (noEsPrimeroDeSuFranja) {
+                        offsetMinutos += 30;
+                        duracionMinutos = Math.max(duracionMinutos - 30, 15); // mínimo 15 minutos visuales
+                      }
+
+                      // Determinar el z-index y la posición del texto según el índice
+                      const zIndex = 10 + turnoIndex; // Z-index normal para que se superpongan correctamente
+                      const textPosition = turnoIndex === 0 ? 'top' : 'center'; // Primer turno arriba, resto centrado
+                      
+                      // Calcular el desplazamiento máximo disponible para superposición
+                      const alturaTurno = Math.max((duracionMinutos / 60) * 64 - 4, 20);
+                      const alturaHora = 64; // 64px por hora
+                      const desplazamientoMaximo = Math.max(0, alturaHora - alturaTurno);
+                      const desplazamientoSuperposicion = Math.min(turnoIndex * 20, desplazamientoMaximo);
 
                       return (
                         <div
                           key={turno.id}
                           onClick={() => handleTurnoClick(turno)}
-                          className="absolute left-1 right-1 text-xs p-1 rounded text-white font-medium truncate z-10 cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="absolute left-1 right-1 text-xs p-1 rounded text-white font-medium truncate cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md"
                           style={{ 
                             backgroundColor: getEventColor(turno.lugarId),
-                            top: `${turnoIndex * 20 + 2}px`,
-                            height: `${Math.max(duracionHoras * 64 - 4, 20)}px`, // 64px por hora, menos 4px de padding
-                            minHeight: '20px'
+                            top: `${desplazamientoSuperposicion + (offsetMinutos * 64 / 60)}px`, // Posición limitada + offset de minutos
+                            height: `${alturaTurno}px`, // Altura calculada del turno
+                            minHeight: '20px',
+                            zIndex: zIndex
                           }}
                           title={`Haz clic para ver detalles del turno en ${turno.lugar?.nombre || 'Sin lugar'}`}
                         >
-                          <div className="flex items-center justify-between h-full">
+                          <div className={`flex justify-between h-full ${
+                            textPosition === 'top' ? 'items-start pt-1' : 'items-center'
+                          }`}>
                             <span className="truncate flex-1">
                               {turno.lugar?.nombre || 'Sin lugar'}
                               {turno.lugar?.capacidad && (
@@ -120,11 +158,11 @@ export default function WeekView({
                                 </span>
                               )}
                             </span>
-                                                                    <div className="ml-1 flex-shrink-0">
-                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                                            {turno.lugar?.capacidad ? `${turno.usuarios?.length || 0}/${turno.lugar.capacidad}` : (turno.usuarios?.length || 0)}
-                                          </span>
-                                        </div>
+                            <div className="ml-1 flex-shrink-0">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                {turno.lugar?.capacidad ? `${turno.usuarios?.length || 0}/${turno.lugar.capacidad}` : (turno.usuarios?.length || 0)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       );
