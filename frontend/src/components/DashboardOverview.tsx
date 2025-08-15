@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Turno, Lugar, Usuario } from '../types';
 import Swal from 'sweetalert2';
+import DashboardStats from './dashboard/DashboardStats';
 
 export default function DashboardOverview() {
   const { user: _user } = useAuth();
@@ -178,9 +179,9 @@ export default function DashboardOverview() {
     });
   };
 
-  const turnoTieneUsuario = (turno: Turno, userId?: number) => {
+  const turnoTieneUsuario = (turno: Turno, userId?: number): boolean => {
     if (!userId) return false;
-    return turno.usuarios && turno.usuarios.some(usuario => usuario.id === userId);
+    return !!(turno.usuarios && turno.usuarios.some(usuario => usuario.id === userId));
   };
 
   // Función para calcular el estado real del turno basado en la capacidad del lugar
@@ -462,32 +463,7 @@ export default function DashboardOverview() {
     }
   };
 
-  const handleOcuparTurno = async (turno: Turno) => {
-    try {
-      const result = await Swal.fire({
-        title: 'Confirmar ocupación',
-        text: `¿Estás seguro de que quieres ocupar el turno en ${turno.lugar?.nombre} el ${new Date(turno.fecha).toLocaleDateString('es-ES')} de ${turno.hora}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, ocupar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33'
-      });
-      
-      if (result.isConfirmed) {
-        // Si soy admin o superAdmin, puedo ocupar cualquier turno
-        if (_user?.rol === 'admin' || _user?.rol === 'superAdmin') {
-          await ocuparTurnoMutation.mutateAsync(turno.id);
-        } else {
-          // Si soy usuario normal, verificar disponibilidad
-          await ocuparTurnoMutation.mutateAsync(turno.id);
-        }
-      }
-    } catch (error) {
-      console.error('Error al ocupar turno:', error);
-    }
-  };
+
 
   const handleAsignarUsuario = async (turno: Turno, usuarioId: number) => {
     try {
@@ -693,59 +669,15 @@ export default function DashboardOverview() {
       </div>
 
       {/* Estadísticas rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900">
-              <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Turnos</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">{turnos.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 rounded-full bg-green-100 dark:bg-green-900">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Lugares Activos</p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {lugares.filter(l => l.activo !== false).length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-                                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900">
-                <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {viewAllTurnos ? 'Mis Turnos del Mes' : 'Mis Turnos Esta Semana'}
-                </p>
-                                 <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                   {viewAllTurnos 
-                     ? getTurnosDelMes().filter(turno => turnoTieneUsuario(turno, _user?.id)).length
-                     : getTurnosToShow().filter(turno => turnoTieneUsuario(turno, _user?.id)).length
-                   }
-                 </p>
-              </div>
-            </div>
-          </div>
-      </div>
+      <DashboardStats
+        turnos={turnos}
+        lugares={lugares}
+        viewAllTurnos={viewAllTurnos}
+        getTurnosDelMes={getTurnosDelMes}
+        getTurnosToShow={getTurnosToShow}
+        turnoTieneUsuario={turnoTieneUsuario}
+        currentUser={_user}
+      />
 
       {/* Calendario Personalizado */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
