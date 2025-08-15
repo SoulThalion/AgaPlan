@@ -36,8 +36,10 @@ const DisponibilidadModal: React.FC<DisponibilidadModalProps> = ({ isOpen, onClo
   }, [isOpen, user]);
 
   const loadDisponibilidades = async (mes: string) => {
+    if (!user) return;
+    
     try {
-      const response = await apiService.getUserDisponibilidadConfigByMes(mes);
+      const response = await apiService.getUserDisponibilidadConfig(user.id, mes);
       const data = response?.data || [];
       setDisponibilidades(data);
     } catch (error) {

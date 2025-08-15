@@ -437,7 +437,9 @@ export default function DashboardOverview() {
       try {
         const response = await apiService.getUsuarios();
         if (response.data) {
-          setUsuariosDisponibles(response.data);
+          // Filtrar usuarios por disponibilidad para este turno
+          const usuariosFiltrados = await filtrarUsuariosPorDisponibilidad(response.data, turno);
+          setUsuariosDisponibles(usuariosFiltrados);
         }
       } catch (error) {
         console.error('Error cargando usuarios:', error);
@@ -447,6 +449,132 @@ export default function DashboardOverview() {
     }
   };
 
+  // Función para filtrar usuarios por disponibilidad
+  const filtrarUsuariosPorDisponibilidad = async (usuarios: Usuario[], turno: Turno): Promise<Usuario[]> => {
+    const usuariosFiltrados: Usuario[] = [];
+    
+    for (const usuario of usuarios) {
+      try {
+        // Obtener la configuración de disponibilidad del usuario específico para el mes del turno
+        const mesTurno = `${new Date(turno.fecha).getFullYear()}-${(new Date(turno.fecha).getMonth() + 1).toString().padStart(2, '0')}`;
+        const disponibilidadResponse = await apiService.getUserDisponibilidadConfig(usuario.id, mesTurno);
+        const configuraciones = disponibilidadResponse?.data || [];
+        
+        // Verificar si el usuario tiene disponibilidad para este turno
+        if (await verificarDisponibilidadParaTurno(configuraciones, turno, usuario)) {
+          usuariosFiltrados.push(usuario);
+        }
+      } catch (error) {
+        console.error(`Error verificando disponibilidad para usuario ${usuario.id}:`, error);
+        // Si no se puede verificar, no incluir al usuario
+      }
+    }
+    
+    return usuariosFiltrados;
+  };
+
+  // Función para verificar si un usuario tiene disponibilidad para un turno específico
+  const verificarDisponibilidadParaTurno = async (configuraciones: any[], turno: Turno, usuario: Usuario): Promise<boolean> => {
+    const fechaTurno = new Date(turno.fecha);
+    const diaSemana = fechaTurno.getDay();
+    const [horaInicioTurno, horaFinTurno] = turno.hora.split('-');
+    
+    // Verificar si el usuario tiene restricción "nuncaCon" y esa persona ya está en el turno
+    if (usuario.nuncaCon && turno.usuarios) {
+      const usuarioNuncaCon = turno.usuarios.find(u => u.id === usuario.nuncaCon);
+      if (usuarioNuncaCon) {
+        return false; // El usuario no está disponible porque no quiere trabajar con alguien que ya está en el turno
+      }
+    }
+    
+    for (const config of configuraciones) {
+      switch (config.tipo_disponibilidad) {
+        case 'todasTardes':
+          // Verificar si es tarde (después de las 12:00)
+          if (horaInicioTurno >= '12:00') {
+            // Si tiene hora personalizada, verificar que coincida
+            if (config.configuracion.hora_inicio && config.configuracion.hora_fin) {
+              if (horaInicioTurno >= config.configuracion.hora_inicio && horaFinTurno <= config.configuracion.hora_fin) {
+                return true;
+              }
+            } else {
+              // Sin hora personalizada, cualquier tarde
+              return true;
+            }
+          }
+          break;
+          
+        case 'todasMananas':
+          // Verificar si es mañana (antes de las 12:00)
+          if (horaFinTurno <= '12:00') {
+            // Si tiene hora personalizada, verificar que coincida
+            if (config.configuracion.hora_inicio && config.configuracion.hora_fin) {
+              if (horaInicioTurno >= config.configuracion.hora_inicio && horaFinTurno <= config.configuracion.hora_fin) {
+                return true;
+              }
+            } else {
+              // Sin hora personalizada, cualquier mañana
+              return true;
+            }
+          }
+          break;
+          
+        case 'diasSemana':
+          // Verificar si el día del turno está en los días configurados
+          if (config.configuracion.dias && config.configuracion.dias.includes(diaSemana)) {
+            const periodo = config.configuracion.periodo;
+            
+            if (periodo === 'manana' && horaFinTurno <= '12:00') {
+              return true;
+            } else if (periodo === 'tarde' && horaInicioTurno >= '12:00') {
+              return true;
+            } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_personalizado && config.configuracion.hora_fin_personalizado) {
+              if (horaInicioTurno >= config.configuracion.hora_inicio_personalizado && horaFinTurno <= config.configuracion.hora_fin_personalizado) {
+                return true;
+              }
+            }
+          }
+          break;
+          
+        case 'fechaConcreta':
+          // Verificar si la fecha del turno coincide
+          if (config.configuracion.fecha === turno.fecha) {
+            const periodo = config.configuracion.periodo_fecha;
+            
+            if (periodo === 'manana' && horaFinTurno <= '12:00') {
+              return true;
+            } else if (periodo === 'tarde' && horaInicioTurno >= '12:00') {
+              return true;
+            } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_fecha && config.configuracion.hora_fin_fecha) {
+              if (horaInicioTurno >= config.configuracion.hora_inicio_fecha && horaFinTurno <= config.configuracion.hora_fin_fecha) {
+                return true;
+              }
+            }
+          }
+          break;
+          
+        case 'noDisponibleFecha':
+          // Si el usuario NO está disponible en esta fecha, no incluirlo
+          if (config.configuracion.fecha === turno.fecha) {
+            const periodo = config.configuracion.periodo_fecha;
+            
+            if (periodo === 'manana' && horaFinTurno <= '12:00') {
+              return false; // No disponible en la mañana
+            } else if (periodo === 'tarde' && horaInicioTurno >= '12:00') {
+              return false; // No disponible en la tarde
+            } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_fecha && config.configuracion.hora_fin_fecha) {
+              if (horaInicioTurno >= config.configuracion.hora_inicio_fecha && horaFinTurno <= config.configuracion.hora_fin_fecha) {
+                return false; // No disponible en el horario personalizado
+              }
+            }
+          }
+          break;
+      }
+    }
+    
+    // Si no hay configuraciones específicas, el usuario no está disponible
+    return false;
+  };
 
 
   const handleAsignarUsuario = async (turno: Turno, usuarioId: number) => {
