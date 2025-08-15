@@ -14,7 +14,10 @@ const UserManagement: React.FC = () => {
     sexo: 'M' as 'M' | 'F' | 'O',
     cargo: '',
     rol: 'voluntario' as 'voluntario' | 'admin' | 'superAdmin',
-    participacionMensual: undefined as number | undefined
+    participacionMensual: undefined as number | undefined,
+    tieneCoche: false,
+    siempreCon: undefined as number | undefined,
+    nuncaCon: undefined as number | undefined
   });
 
   const queryClient = useQueryClient();
@@ -103,7 +106,10 @@ const UserManagement: React.FC = () => {
       sexo: 'M',
       cargo: '',
       rol: 'voluntario',
-      participacionMensual: undefined
+      participacionMensual: undefined,
+      tieneCoche: false,
+      siempreCon: undefined,
+      nuncaCon: undefined
     });
   };
 
@@ -129,7 +135,10 @@ const UserManagement: React.FC = () => {
       sexo: user.sexo,
       cargo: user.cargo,
       rol: user.rol,
-      participacionMensual: user.participacionMensual
+      participacionMensual: user.participacionMensual,
+      tieneCoche: user.tieneCoche || false,
+      siempreCon: user.siempreCon,
+      nuncaCon: user.nuncaCon
     });
     setIsModalOpen(true);
   };
@@ -205,6 +214,15 @@ const UserManagement: React.FC = () => {
                 Participación Mensual
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
+                Tiene Coche
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
+                Siempre Con
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
+                Nunca Con
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
@@ -244,6 +262,15 @@ const UserManagement: React.FC = () => {
                   <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
                     {user.participacionMensual ? `${user.participacionMensual}%` : '-'}
                   </td>
+                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
+                    {user.tieneCoche ? 'Sí' : 'No'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
+                    {user.siempreConUsuario ? user.siempreConUsuario.nombre : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-neutral-text dark:text-white">
+                    {user.nuncaConUsuario ? user.nuncaConUsuario.nombre : '-'}
+                  </td>
                   <td className="px-6 py-4 text-sm font-medium">
                     <div className="flex space-x-2">
                       <button
@@ -264,7 +291,7 @@ const UserManagement: React.FC = () => {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-neutral-text/70 dark:text-white/70">
+                <td colSpan={8} className="px-6 py-8 text-center text-neutral-text/70 dark:text-white/70">
                   No hay usuarios registrados.
                 </td>
               </tr>
@@ -386,6 +413,59 @@ const UserManagement: React.FC = () => {
                   min="0"
                   placeholder="Número de veces al mes"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Tiene Coche
+                </label>
+                <select
+                  name="tieneCoche"
+                  value={formData.tieneCoche ? 'true' : 'false'}
+                  onChange={(e) => setFormData({...formData, tieneCoche: e.target.value === 'true'})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Sí</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Siempre Con (opcional)
+                </label>
+                <select
+                  name="siempreCon"
+                  value={formData.siempreCon || ''}
+                  onChange={(e) => setFormData({...formData, siempreCon: e.target.value ? parseInt(e.target.value) : undefined})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                >
+                  <option value="">Sin usuario específico</option>
+                  {usuarios?.data && usuarios.data.map((user: Usuario) => (
+                    <option key={user.id} value={user.id}>
+                      {user.nombre} ({user.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Nunca Con (opcional)
+                </label>
+                <select
+                  name="nuncaCon"
+                  value={formData.nuncaCon || ''}
+                  onChange={(e) => setFormData({...formData, nuncaCon: e.target.value ? parseInt(e.target.value) : undefined})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                >
+                  <option value="">Sin usuario específico</option>
+                  {usuarios?.data && usuarios.data.map((user: Usuario) => (
+                    <option key={user.id} value={user.id}>
+                      {user.nombre} ({user.email})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">

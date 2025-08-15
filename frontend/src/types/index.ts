@@ -7,6 +7,11 @@ export interface Usuario {
   cargo: string;
   rol: 'voluntario' | 'admin' | 'superAdmin';
   participacionMensual?: number;
+  tieneCoche?: boolean; // Si el usuario tiene coche disponible
+  siempreCon?: number; // ID del usuario que siempre debe acompañar a este usuario
+  nuncaCon?: number; // ID del usuario que nunca debe acompañar a este usuario
+  siempreConUsuario?: Usuario; // Usuario que siempre debe acompañar
+  nuncaConUsuario?: Usuario; // Usuario que nunca debe acompañar
   createdAt?: Date;
   updatedAt?: Date;
 }

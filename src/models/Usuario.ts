@@ -12,6 +12,9 @@ export interface UsuarioAttributes {
   rol: 'voluntario' | 'admin' | 'superAdmin';
   participacionMensual?: number; // Número de veces al mes que quiere participar (opcional)
   activo?: boolean; // Si el usuario está activo
+  tieneCoche?: boolean; // Si el usuario tiene coche disponible
+  siempreCon?: number; // ID del usuario que siempre debe acompañar a este usuario
+  nuncaCon?: number; // ID del usuario que nunca debe acompañar a este usuario
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -30,6 +33,9 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
   public rol!: 'voluntario' | 'admin' | 'superAdmin';
   public participacionMensual?: number;
   public activo?: boolean;
+  public tieneCoche?: boolean;
+  public siempreCon?: number;
+  public nuncaCon?: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -107,6 +113,19 @@ Usuario.init(
       allowNull: true,
       defaultValue: true,
     },
+    tieneCoche: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    siempreCon: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    nuncaCon: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   },
   {
     sequelize,
@@ -136,5 +155,9 @@ Usuario.init(
     },
   }
 );
+
+// Definir las asociaciones
+Usuario.belongsTo(Usuario, { as: 'siempreConUsuario', foreignKey: 'siempreCon' });
+Usuario.belongsTo(Usuario, { as: 'nuncaConUsuario', foreignKey: 'nuncaCon' });
 
 export default Usuario;

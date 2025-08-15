@@ -52,18 +52,20 @@ var createCargosTable = require("./007-create-cargos-table");
 var addLugarFields = require("./008-add-lugar-fields");
 var addCoordinatesToLugares = require("./010-add-coordinates-to-lugares");
 var addExhibidorToTurnos = require("./012-add-exhibidor-to-turnos");
+var addTieneCocheToUsuarios = require("./019-add-tiene-coche-to-usuarios");
 // Lista de migraciones en orden de ejecución
 var migrations = [
-    { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.down },
-    { name: '002-create-lugares', up: createLugares.up, down: createLugares.down },
-    { name: '003-create-disponibilidades', up: createDisponibilidades.up, down: createDisponibilidades.down },
-    { name: '004-create-turnos', up: createTurnos.up, down: createTurnos.down },
-    { name: '005-add-participacion-mensual', up: addParticipacionMensual.up, down: addParticipacionMensual.down },
-    { name: '006-add-missing-fields', up: addMissingFields.up, down: addMissingFields.down },
-    { name: '007-create-cargos-table', up: createCargosTable.up, down: createCargosTable.down },
-    { name: '008-add-lugar-fields', up: addLugarFields.up, down: addLugarFields.down },
-    { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares.up, down: addCoordinatesToLugares.down },
-    { name: '012-add-exhibidor-to-turnos', up: addExhibidorToTurnos.up, down: addExhibidorToTurnos.down }
+    { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.up },
+    { name: '002-create-lugares', up: createLugares.up, down: createLugares.up },
+    { name: '003-create-disponibilidades', up: createDisponibilidades.up, down: createDisponibilidades.up },
+    { name: '004-create-turnos', up: createTurnos.up, down: createTurnos.up },
+    { name: '005-add-participacion-mensual', up: addParticipacionMensual.up, down: addParticipacionMensual.up },
+    { name: '006-add-missing-fields', up: addMissingFields.up, down: addMissingFields.up },
+    { name: '007-create-cargos-table', up: createCargosTable.up, down: createCargosTable.up },
+    { name: '008-add-lugar-fields', up: addLugarFields.up, down: addLugarFields.up },
+    { name: '010-add-coordinates-to-lugares', up: addCoordinatesToLugares.up, down: addCoordinatesToLugares.up },
+    { name: '012-add-exhibidor-to-turnos', up: addExhibidorToTurnos.up, down: addExhibidorToTurnos.up }
+    // { name: '019-add-tiene-coche-to-usuarios', up: addTieneCocheToUsuarios.up, down: addTieneCocheToUsuarios.down }
 ];
 // Función para crear la tabla de migraciones si no existe
 function createMigrationsTable() {

@@ -5,7 +5,21 @@ import Usuario from '../models/Usuario';
 export const getAllUsuarios = async (req: Request, res: Response) => {
   try {
     const usuarios = await Usuario.findAll({
-      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'rol', 'participacionMensual', 'createdAt'],
+      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt'],
+      include: [
+        {
+          model: Usuario,
+          as: 'siempreConUsuario',
+          attributes: ['id', 'nombre', 'email'],
+          required: false
+        },
+        {
+          model: Usuario,
+          as: 'nuncaConUsuario',
+          attributes: ['id', 'nombre', 'email'],
+          required: false
+        }
+      ],
       order: [['createdAt', 'DESC']]
     });
 
@@ -26,7 +40,21 @@ export const getUsuarioById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const usuario = await Usuario.findByPk(id, {
-      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'rol', 'participacionMensual', 'createdAt', 'updatedAt']
+      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt', 'updatedAt'],
+      include: [
+        {
+          model: Usuario,
+          as: 'siempreConUsuario',
+          attributes: ['id', 'nombre', 'email'],
+          required: false
+        },
+        {
+          model: Usuario,
+          as: 'nuncaConUsuario',
+          attributes: ['id', 'nombre', 'email'],
+          required: false
+        }
+      ]
     });
 
     if (!usuario) {
@@ -51,7 +79,7 @@ export const getUsuarioById = async (req: Request, res: Response) => {
 
 export const createUsuario = async (req: Request, res: Response) => {
   try {
-    const { nombre, email, contraseña, sexo, cargo, rol, participacionMensual } = req.body;
+    const { nombre, email, contraseña, sexo, cargo, rol, participacionMensual, tieneCoche, siempreCon, nuncaCon } = req.body;
 
     // Validaciones básicas
     if (!nombre || !email || !contraseña || !sexo || !cargo) {
@@ -85,7 +113,10 @@ export const createUsuario = async (req: Request, res: Response) => {
       sexo,
       cargo,
       rol: rol || 'voluntario',
-      participacionMensual: participacionMensual || undefined
+      participacionMensual: participacionMensual || undefined,
+      tieneCoche: tieneCoche || false,
+      siempreCon: siempreCon || undefined,
+      nuncaCon: nuncaCon || undefined
     });
 
     // Excluir la contraseña de la respuesta
@@ -145,7 +176,7 @@ export const updateUsuario = async (req: AuthenticatedRequest, res: Response) =>
 
     // Si es voluntario, solo puede actualizar ciertos campos de su propio perfil
     if (currentUser.rol === 'voluntario' && currentUser.id === parseInt(id)) {
-      const allowedFields = ['nombre', 'cargo', 'participacionMensual'];
+      const allowedFields = ['nombre', 'cargo', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon'];
       const filteredData: any = {};
       
       allowedFields.forEach(field => {
@@ -155,6 +186,11 @@ export const updateUsuario = async (req: AuthenticatedRequest, res: Response) =>
       });
       
       updateData = filteredData;
+    }
+
+    // Si no se está cambiando la contraseña, eliminarla del updateData
+    if (!updateData.contraseña || updateData.contraseña === '') {
+      delete updateData.contraseña;
     }
 
     // Actualizar el usuario
