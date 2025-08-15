@@ -5,9 +5,6 @@ interface DayViewProps {
   getTurnosForDate: (date: Date) => Turno[];
   handleTurnoClick: (turno: Turno) => void;
   getEventColor: (lugarId: number) => string;
-  getEstadoColor: (estado: string) => string;
-  getEstadoText: (estado: string) => string;
-  getTurnoEstado: (turno: Turno) => string;
   formatDay: (date: Date) => string;
 }
 
@@ -16,9 +13,6 @@ export default function DayView({
   getTurnosForDate,
   handleTurnoClick,
   getEventColor,
-  getEstadoColor,
-  getEstadoText,
-  getTurnoEstado,
   formatDay
 }: DayViewProps) {
   return (
@@ -107,10 +101,10 @@ export default function DayView({
                               )}
                             </div>
                             
-                            {/* Indicador de estado */}
+                            {/* Indicador de ocupación */}
                             <div className="mt-2 text-right">
-                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(getTurnoEstado(turno))}`}>
-                                {getEstadoText(getTurnoEstado(turno))}
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                {turno.lugar?.capacidad ? `${turno.usuarios?.length || 0}/${turno.lugar.capacidad}` : (turno.usuarios?.length || 0)}
                               </span>
                             </div>
                           </div>

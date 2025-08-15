@@ -6,9 +6,6 @@ interface WeekViewProps {
   getTurnosForDate: (date: Date) => Turno[];
   handleTurnoClick: (turno: Turno) => void;
   getEventColor: (lugarId: number) => string;
-  getEstadoColor: (estado: string) => string;
-  getEstadoText: (estado: string) => string;
-  getTurnoEstado: (turno: Turno) => string;
 }
 
 export default function WeekView({
@@ -16,10 +13,7 @@ export default function WeekView({
   weekDayNames,
   getTurnosForDate,
   handleTurnoClick,
-  getEventColor,
-  getEstadoColor,
-  getEstadoText,
-  getTurnoEstado
+  getEventColor
 }: WeekViewProps) {
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -126,11 +120,11 @@ export default function WeekView({
                                 </span>
                               )}
                             </span>
-                            <div className="ml-1 flex-shrink-0">
-                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(getTurnoEstado(turno))}`}>
-                                {getEstadoText(getTurnoEstado(turno))}
-                              </span>
-                            </div>
+                                                                    <div className="ml-1 flex-shrink-0">
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                            {turno.lugar?.capacidad ? `${turno.usuarios?.length || 0}/${turno.lugar.capacidad}` : (turno.usuarios?.length || 0)}
+                                          </span>
+                                        </div>
                           </div>
                         </div>
                       );

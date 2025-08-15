@@ -218,33 +218,8 @@ export default function DashboardOverview() {
     }
   };
 
-  // Función para obtener el texto del estado
-  const getEstadoText = (estado: string) => {
-    switch (estado) {
-      case 'libre':
-        return 'Libre';
-      case 'parcialmente_ocupado':
-        return 'Parcialmente Ocupado';
-      case 'ocupado':
-        return 'Ocupado';
-      default:
-        return estado;
-    }
-  };
 
-  // Función para obtener el color del estado
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'libre':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'parcialmente_ocupado':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'ocupado':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
+
 
   // Función para verificar si un turno puede aceptar más usuarios
   const turnoPuedeAceptarUsuarios = (turno: Turno) => {
@@ -720,9 +695,6 @@ export default function DashboardOverview() {
               handleTurnoClick={handleTurnoClick}
               toggleDayExpansion={toggleDayExpansion}
               getEventColor={getEventColor}
-              getEstadoColor={getEstadoColor}
-              getEstadoText={getEstadoText}
-              getTurnoEstado={getTurnoEstado}
             />
           )}
 
@@ -734,9 +706,6 @@ export default function DashboardOverview() {
               getTurnosForDate={getTurnosForDate}
               handleTurnoClick={handleTurnoClick}
               getEventColor={getEventColor}
-              getEstadoColor={getEstadoColor}
-              getEstadoText={getEstadoText}
-              getTurnoEstado={getTurnoEstado}
             />
           )}
 
@@ -747,9 +716,6 @@ export default function DashboardOverview() {
               getTurnosForDate={getTurnosForDate}
               handleTurnoClick={handleTurnoClick}
               getEventColor={getEventColor}
-              getEstadoColor={getEstadoColor}
-              getEstadoText={getEstadoText}
-              getTurnoEstado={getTurnoEstado}
               formatDay={formatDay}
             />
           )}
@@ -761,9 +727,6 @@ export default function DashboardOverview() {
               getTurnosToShow={getTurnosToShow}
               handleTurnoClick={handleTurnoClick}
               getEventColor={getEventColor}
-              getEstadoColor={getEstadoColor}
-              getEstadoText={getEstadoText}
-              getTurnoEstado={getTurnoEstado}
             />
           )}
         </div>
@@ -796,9 +759,6 @@ export default function DashboardOverview() {
         handleClickPuestoVacio={handleClickPuestoVacio}
         handleLiberarTurno={handleLiberarTurno}
         handleAsignarUsuario={handleAsignarUsuario}
-        getTurnoEstado={getTurnoEstado}
-        getEstadoColor={getEstadoColor}
-        getEstadoText={getEstadoText}
         formatHora={formatHora}
       />
     </div>

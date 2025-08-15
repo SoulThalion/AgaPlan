@@ -5,19 +5,13 @@ interface ListViewProps {
   getTurnosToShow: () => Turno[];
   handleTurnoClick: (turno: Turno) => void;
   getEventColor: (lugarId: number) => string;
-  getEstadoColor: (estado: string) => string;
-  getEstadoText: (estado: string) => string;
-  getTurnoEstado: (turno: Turno) => string;
 }
 
 export default function ListView({
   viewAllTurnos,
   getTurnosToShow,
   handleTurnoClick,
-  getEventColor,
-  getEstadoColor,
-  getEstadoText,
-  getTurnoEstado
+  getEventColor
 }: ListViewProps) {
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -74,8 +68,8 @@ export default function ListView({
                       
                       {/* Indicador de estado y botón ver */}
                       <div className="flex items-center space-x-3">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getEstadoColor(getTurnoEstado(turno))}`}>
-                          {getEstadoText(getTurnoEstado(turno))}
+                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                          {turno.lugar?.capacidad ? `${turno.usuarios?.length || 0}/${turno.lugar.capacidad}` : (turno.usuarios?.length || 0)}
                         </span>
                        
                         <button

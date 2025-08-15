@@ -13,9 +13,6 @@ interface TurnoModalProps {
   handleClickPuestoVacio: (turno: Turno) => Promise<void>;
   handleLiberarTurno: (turno: Turno, usuarioId?: number) => Promise<void>;
   handleAsignarUsuario: (turno: Turno, usuarioId: number) => Promise<void>;
-  getTurnoEstado: (turno: Turno) => string;
-  getEstadoColor: (estado: string) => string;
-  getEstadoText: (estado: string) => string;
   formatHora: (hora: string) => string;
 }
 
@@ -32,9 +29,6 @@ export default function TurnoModal({
   handleClickPuestoVacio,
   handleLiberarTurno,
   handleAsignarUsuario,
-  getTurnoEstado,
-  getEstadoColor,
-  getEstadoText,
   formatHora
 }: TurnoModalProps) {
   if (!showTurnoModal || !selectedTurno) return null;
@@ -84,12 +78,12 @@ export default function TurnoModal({
                     {selectedTurno.lugar?.nombre || 'Sin lugar'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400">Estado:</p>
-                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getEstadoColor(getTurnoEstado(selectedTurno))}`}>
-                    {getEstadoText(getTurnoEstado(selectedTurno))}
-                  </span>
-                </div>
+                                     <div>
+                       <p className="text-gray-600 dark:text-gray-400">Ocupación:</p>
+                       <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                         {selectedTurno.lugar?.capacidad ? `${selectedTurno.usuarios?.length || 0}/${selectedTurno.lugar.capacidad}` : (selectedTurno.usuarios?.length || 0)}
+                       </span>
+                     </div>
               </div>
             </div>
             <button
@@ -311,10 +305,10 @@ export default function TurnoModal({
                       Puestos libres: <span className="font-medium">{Math.max(0, selectedTurno.lugar.capacidad - (selectedTurno.usuarios?.length || 0))}</span>
                     </p>
                   </div>
-                  <div className="text-right">
-                    <div className={`inline-flex items-center px-3 py-2 rounded-lg text-lg font-bold ${getEstadoColor(getTurnoEstado(selectedTurno))}`}>
-                      {getEstadoText(getTurnoEstado(selectedTurno))}
-                    </div>
+                                         <div className="text-right">
+                         <div className="inline-flex items-center px-3 py-2 rounded-lg text-lg font-bold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                           {selectedTurno.lugar?.capacidad ? `${selectedTurno.usuarios?.length || 0}/${selectedTurno.lugar.capacidad}` : (selectedTurno.usuarios?.length || 0)}
+                         </div>
                     <div className="mt-2">
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
@@ -345,8 +339,8 @@ export default function TurnoModal({
               Cerrar
             </button>
             
-            {/* Botones de acción según el estado real del turno */}
-            {getTurnoEstado(selectedTurno) === 'ocupado' ? (
+            {/* Botones de acción según la ocupación real del turno */}
+            {selectedTurno.lugar?.capacidad && (selectedTurno.usuarios?.length || 0) >= selectedTurno.lugar.capacidad ? (
               <button
                 onClick={() => {
                   handleLiberarTurno(selectedTurno);
