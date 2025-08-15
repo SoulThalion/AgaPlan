@@ -33,6 +33,20 @@ export default function TurnoModal({
 }: TurnoModalProps) {
   if (!showTurnoModal || !selectedTurno) return null;
 
+  // Función para calcular el estado de los requisitos del turno
+  const calcularRequisitosTurno = () => {
+    const usuarios = selectedTurno.usuarios || [];
+    const capacidad = selectedTurno.lugar?.capacidad || 0;
+    
+    return {
+      completo: capacidad > 0 ? usuarios.length >= capacidad : usuarios.length > 0,
+      tieneCoche: usuarios.some(u => u.tieneCoche),
+      tieneMasculino: usuarios.some(u => u.sexo === 'M')
+    };
+  };
+
+  const requisitos = calcularRequisitosTurno();
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -129,6 +143,106 @@ export default function TurnoModal({
               </div>
             </div>
           )}
+
+          {/* Requisitos del Turno */}
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+            <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Requisitos del Turno
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Requisito 1: Turno Completo */}
+              <div className={`p-3 rounded-lg border-2 transition-all duration-300 ${
+                requisitos.completo 
+                  ? 'bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-600' 
+                  : 'bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-600'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Turno Completo</span>
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    requisitos.completo 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-yellow-500 text-white'
+                  }`}>
+                    {requisitos.completo ? '✓' : '!'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {requisitos.completo 
+                    ? 'Capacidad alcanzada' 
+                    : `Faltan ${Math.max(0, (selectedTurno.lugar?.capacidad || 1) - (selectedTurno.usuarios?.length || 0))} voluntarios`
+                  }
+                </p>
+              </div>
+
+              {/* Requisito 2: Al menos un coche */}
+              <div className={`p-3 rounded-lg border-2 transition-all duration-300 ${
+                requisitos.tieneCoche 
+                  ? 'bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-600' 
+                  : 'bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-600'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Con Coche</span>
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    requisitos.tieneCoche 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-red-500 text-white'
+                  }`}>
+                    {requisitos.tieneCoche ? '✓' : '✗'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {requisitos.tieneCoche 
+                    ? 'Al menos uno tiene coche' 
+                    : 'Ninguno tiene coche'
+                  }
+                </p>
+              </div>
+
+              {/* Requisito 3: Al menos un masculino */}
+              <div className={`p-3 rounded-lg border-2 transition-all duration-300 ${
+                requisitos.tieneMasculino 
+                  ? 'bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-600' 
+                  : 'bg-red-100 border-red-300 dark:bg-red-900/30 dark:border-red-600'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Presencia Masculina</span>
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    requisitos.tieneMasculino 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-red-500 text-white'
+                  }`}>
+                    {requisitos.tieneMasculino ? '✓' : '✗'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {requisitos.tieneMasculino 
+                    ? 'Al menos uno es masculino' 
+                    : 'Ninguno es masculino'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* Resumen del estado */}
+            <div className="mt-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Estado General:</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  requisitos.completo && requisitos.tieneCoche && requisitos.tieneMasculino
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                }`}>
+                  {requisitos.completo && requisitos.tieneCoche && requisitos.tieneMasculino
+                    ? '✅ Turno Óptimo'
+                    : '⚠️ Requisitos Pendientes'
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
 
           {/* Usuarios asignados y puestos disponibles */}
           <div className="mb-6">

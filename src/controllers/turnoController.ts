@@ -23,7 +23,7 @@ export const getAllTurnos = async (req: Request, res: Response) => {
           model: Usuario,
           as: 'usuarios',
           through: { attributes: [] },
-          attributes: ['id', 'nombre', 'email']
+          attributes: ['id', 'nombre', 'email', 'cargo', 'sexo', 'tieneCoche']
         },
         {
           model: Exhibidor,
@@ -64,7 +64,7 @@ export const getTurnoById = async (req: Request, res: Response) => {
           model: Usuario,
           as: 'usuarios',
           through: { attributes: [] },
-          attributes: ['id', 'nombre', 'email']
+          attributes: ['id', 'nombre', 'email', 'cargo', 'sexo', 'tieneCoche']
         },
         {
           model: Exhibidor,
@@ -472,7 +472,7 @@ export const ocuparTurno = async (req: AuthenticatedRequest, res: Response) => {
         {
           model: Usuario,
           as: 'usuarios',
-          attributes: ['id', 'nombre', 'email']
+          attributes: ['id', 'nombre', 'email', 'cargo', 'sexo', 'tieneCoche']
         }
       ]
     });
@@ -572,7 +572,7 @@ export const asignarUsuarioATurno = async (req: AuthenticatedRequest, res: Respo
         {
           model: Usuario,
           as: 'usuarios',
-          attributes: ['id', 'nombre', 'email']
+          attributes: ['id', 'nombre', 'email', 'cargo', 'sexo', 'tieneCoche']
         }
       ]
     });
@@ -989,7 +989,7 @@ export const getTurnos = async (req: AuthenticatedRequest, res: Response) => {
           model: Usuario,
           as: 'usuarios',
           through: { attributes: [] },
-          attributes: ['id', 'nombre', 'email', 'cargo']
+          attributes: ['id', 'nombre', 'email', 'cargo', 'sexo', 'tieneCoche']
         },
         {
           model: Exhibidor,
