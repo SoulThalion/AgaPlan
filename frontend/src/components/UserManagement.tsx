@@ -31,6 +31,12 @@ const UserManagement: React.FC = () => {
     queryFn: () => apiService.getUsuarios()
   });
 
+  // Obtener cargos
+  const { data: cargos } = useQuery({
+    queryKey: ['cargos'],
+    queryFn: () => apiService.getCargos(),
+  });
+
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: (data: Partial<Usuario>) => apiService.createUsuario(data),
@@ -499,14 +505,20 @@ const UserManagement: React.FC = () => {
                     <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
                       Cargo
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="cargo"
                       value={formData.cargo}
                       onChange={(e) => setFormData({...formData, cargo: e.target.value})}
                       className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
                       required
-                    />
+                    >
+                      <option value="">Seleccionar Cargo</option>
+                      {cargos?.data?.map((cargo) => (
+                        <option key={cargo.id} value={cargo.nombre}>
+                          {cargo.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
