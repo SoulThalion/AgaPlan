@@ -57,8 +57,9 @@ export default function DayView({
                 {turnosEnEstaHora.length > 0 ? (
                   <div className="flex space-x-2">
                     {turnosEnEstaHora.map((turno) => {
-                      // Calcular la duración del turno
+                      // Calcular la duración del turno y la posición exacta
                       let duracionHoras = 1; // Por defecto 1 hora
+                      let offsetMinutos = 0; // Offset desde el inicio de la hora
                       if (turno.hora.includes('-')) {
                         const [horaInicio, horaFin] = turno.hora.split('-');
                         const [horaInicioNum, minInicioNum] = horaInicio.split(':').map(Number);
@@ -71,6 +72,9 @@ export default function DayView({
                         // Si la hora de fin es menor que la de inicio, asumir que es del día siguiente
                         const diferenciaMinutos = finMinutos > inicioMinutos ? finMinutos - inicioMinutos : (24 * 60 - inicioMinutos) + finMinutos;
                         duracionHoras = diferenciaMinutos / 60;
+                        
+                        // Calcular el offset desde el inicio de la hora (ej: 17:30 -> offset 30 minutos)
+                        offsetMinutos = minInicioNum;
                       }
 
                       // Calcular el ancho del turno basado en cuántos turnos hay en esta hora
@@ -86,7 +90,8 @@ export default function DayView({
                             backgroundColor: getEventColor(turno.lugarId),
                             height: `${Math.max(duracionHoras * 64 - 4, 20)}px`, // 64px por hora, menos 4px de padding
                             minHeight: '20px',
-                            width: turnoWidth
+                            width: turnoWidth,
+                            marginTop: `${offsetMinutos * 64 / 60}px` // Posición exacta considerando minutos
                           }}
                           title={`Haz clic para ver detalles del turno en ${turno.lugar?.nombre || 'Sin lugar'}`}
                         >

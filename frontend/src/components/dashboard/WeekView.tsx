@@ -153,7 +153,7 @@ export default function WeekView({
                           onClick={() => handleTurnoClick(turno)}
                           onMouseEnter={() => setHoveredTurnoId(turno.id)}
                           onMouseLeave={() => setHoveredTurnoId(null)}
-                          className="absolute left-1 right-1 text-xs p-1 rounded text-white font-medium truncate cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="absolute left-1 right-1 text-xs p-1 rounded text-white font-medium truncate cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md border-2 border-white/30"
                           style={{ 
                             backgroundColor: getEventColor(turno.lugarId),
                             top: `${desplazamientoSuperposicion + (offsetFinal * 64 / 60)}px`, // Posición limitada + offset de minutos
