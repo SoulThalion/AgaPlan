@@ -17,9 +17,9 @@ import TurnoModal from './dashboard/TurnoModal';
 
 export default function DashboardOverview() {
   const { user: _user } = useAuth();
-  const [turnos, setTurnos] = useState<Turno[]>([]);
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [loading, setLoading] = useState(true);
+  const [turnosKey, setTurnosKey] = useState(0); // Key para forzar re-render
 
   const [viewAllTurnos, setViewAllTurnos] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -47,6 +47,22 @@ export default function DashboardOverview() {
 
   const queryClient = useQueryClient();
 
+  // Función para obtener turnos con lugares relacionados
+  const getTurnosConLugares = (): Turno[] => {
+    if (!turnosData?.data || !lugares.length) return [];
+    
+    return turnosData.data.map(turno => {
+      const lugarCompleto = lugares.find(lugar => lugar.id === turno.lugarId);
+      return {
+        ...turno,
+        lugar: lugarCompleto
+      };
+    });
+  };
+
+  // Obtener turnos procesados
+  const turnos = getTurnosConLugares();
+
   // Mutaciones para ocupar y liberar turnos
   const ocuparTurnoMutation = useMutation({
     mutationFn: (turnoId: number) => apiService.ocuparTurno(turnoId),
@@ -72,19 +88,30 @@ export default function DashboardOverview() {
   });
 
   const liberarTurnoMutation = useMutation({
-    mutationFn: (turnoId: number) => apiService.liberarTurno(turnoId),
+    mutationFn: (params: number | { turnoId: number; usuarioId: number }) => {
+      if (typeof params === 'number') {
+        // Liberar todo el turno
+        return apiService.liberarTurno(params);
+      } else {
+        // Liberar un usuario específico
+        return apiService.liberarTurno(params.turnoId, params.usuarioId);
+      }
+    },
     onSuccess: () => {
+      console.log('✅ Usuario removido exitosamente, invalidando query...');
+      // Invalidar la query para traer datos frescos de la base de datos
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      
       Swal.fire({
         icon: 'success',
-        title: '¡Turno liberado!',
-        text: 'El turno se ha liberado correctamente',
+        title: '¡Usuario removido!',
+        text: 'El usuario se ha removido del turno correctamente',
         confirmButtonText: 'Aceptar'
       });
     },
-    onError: (error: any) => {
-      console.error('Error liberando turno:', error);
-      const errorMessage = error?.response?.data?.message || 'Error al liberar el turno';
+    onError: (err: any) => {
+      console.error('Error removiendo usuario:', err);
+      const errorMessage = err?.response?.data?.message || 'Error al remover el usuario del turno';
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -98,7 +125,10 @@ export default function DashboardOverview() {
     mutationFn: ({ turnoId, usuarioId }: { turnoId: number; usuarioId: number }) => 
       apiService.asignarUsuarioATurno(turnoId, usuarioId),
     onSuccess: () => {
+      console.log('✅ Usuario asignado exitosamente, invalidando query...');
+      // Invalidar la query para traer datos frescos de la base de datos
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      
       Swal.fire({
         icon: 'success',
         title: '¡Usuario asignado!',
@@ -106,9 +136,9 @@ export default function DashboardOverview() {
         confirmButtonText: 'Aceptar'
       });
     },
-    onError: (error: any) => {
-      console.error('Error asignando usuario:', error);
-      const errorMessage = error?.response?.data?.message || 'Error al asignar usuario al turno';
+    onError: (err: any) => {
+      console.error('Error asignando usuario:', err);
+      const errorMessage = err?.response?.data?.message || 'Error al asignar usuario al turno';
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -123,25 +153,8 @@ export default function DashboardOverview() {
       try {
         setLoading(true);
 
-        if (turnosData?.data && lugaresData?.data) {
-          console.log('Datos de turnos recibidos:', turnosData.data);
+        if (lugaresData?.data) {
           console.log('Datos de lugares recibidos:', lugaresData.data);
-          
-          // Relacionar turnos con información completa del lugar
-          const turnosConLugares = turnosData.data.map(turno => {
-            const lugarCompleto = lugaresData.data!.find(lugar => lugar.id === turno.lugarId);
-            console.log(`Relacionando turno ${turno.id} con lugar:`, lugarCompleto?.nombre, 'capacidad:', lugarCompleto?.capacidad);
-            return {
-              ...turno,
-              lugar: lugarCompleto
-            };
-          });
-          console.log('Turnos con lugares:', turnosConLugares);
-          setTurnos(turnosConLugares);
-          setLugares(lugaresData.data);
-        } else if (turnosData?.data) {
-          setTurnos(turnosData.data);
-        } else if (lugaresData?.data) {
           setLugares(lugaresData.data);
         }
       } catch (err) {
@@ -158,7 +171,16 @@ export default function DashboardOverview() {
     };
 
     loadData();
-  }, [turnosData, lugaresData]);
+  }, [lugaresData, turnosData]); // Agregar turnosData como dependencia
+
+  // Forzar recarga cuando cambien los turnos
+  useEffect(() => {
+    if (turnosData?.data) {
+      console.log('🔄 Datos de turnos actualizados, forzando recarga...');
+      // Cambiar la key para forzar re-render
+      setTurnosKey(prev => prev + 1);
+    }
+  }, [turnosData]);
 
   const getTurnosToShow = () => {
     if (viewAllTurnos) {
@@ -579,74 +601,16 @@ export default function DashboardOverview() {
 
   const handleAsignarUsuario = async (turno: Turno, usuarioId: number) => {
     try {
-      // Si me estoy asignando a mí mismo, no verificar disponibilidad
-      if (usuarioId === _user?.id) {
-        await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
-        return;
-      }
-
-      // Si estoy asignando a otro usuario, verificar disponibilidad y mostrar confirmación
-      try {
-        const disponibilidadResponse = await apiService.getDisponibilidadesByUsuario(usuarioId);
-        const disponibilidades = disponibilidadResponse.data;
-        
-        // Buscar disponibilidad para el día del turno
-        const diaSemana = new Date(turno.fecha).getDay();
-        const disponibilidad = disponibilidades?.find(d => d.diaSemana === diaSemana);
-        
-        let mensaje = `¿Estás seguro de que quieres asignar a este usuario al turno?<br><br>`;
-        mensaje += `<strong>Turno:</strong> ${turno.lugar?.nombre} - ${turno.fecha} ${turno.hora}<br>`;
-        
-        if (disponibilidad) {
-          mensaje += `<br><strong>Disponibilidad del usuario:</strong><br>`;
-          mensaje += `Día: ${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana]}<br>`;
-          mensaje += `Horario: ${disponibilidad.horaInicio} - ${disponibilidad.horaFin}<br>`;
-          
-          // Verificar si el turno está dentro de la disponibilidad
-          const [horaInicio, horaFin] = turno.hora.split('-');
-          if (horaInicio >= disponibilidad.horaInicio && horaFin <= disponibilidad.horaFin) {
-            mensaje += `✅ El turno está dentro de la disponibilidad del usuario`;
-          } else {
-            mensaje += `⚠️ El turno NO está dentro de la disponibilidad del usuario`;
-          }
-        } else {
-          mensaje += `<br>⚠️ El usuario no tiene disponibilidad configurada para este día`;
-        }
-        
-        const result = await Swal.fire({
-          title: 'Confirmar asignación',
-          html: mensaje,
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonText: 'Sí, asignar',
-          cancelButtonText: 'Cancelar',
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33'
-        });
-        
-        if (result.isConfirmed) {
-          await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
-        }
-      } catch (error) {
-        console.error('Error obteniendo disponibilidad:', error);
-        // Si no se puede obtener la disponibilidad, asignar de todas formas
-        const result = await Swal.fire({
-          title: 'Confirmar asignación',
-          text: 'No se pudo verificar la disponibilidad del usuario. ¿Deseas asignarlo de todas formas?',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Sí, asignar',
-          cancelButtonText: 'Cancelar',
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33'
-        });
-        
-        if (result.isConfirmed) {
-          await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
-        }
-      }
+      // Asignar usuario directamente ya que la lista ya está filtrada por disponibilidad
+      await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
     } catch (error) {
       console.error('Error al asignar usuario:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al asignar usuario',
+        text: 'No se pudo asignar el usuario al turno',
+        confirmButtonText: 'Entendido'
+      });
     }
   };
 
@@ -747,7 +711,13 @@ export default function DashboardOverview() {
         });
         
         if (result.isConfirmed) {
-          await liberarTurnoMutation.mutateAsync(turno.id);
+          if (usuarioId) {
+            // Si se especifica un usuarioId, liberar solo ese usuario
+            await liberarTurnoMutation.mutateAsync({ turnoId: turno.id, usuarioId });
+          } else {
+            // Si no se especifica usuarioId, liberar todo el turno
+            await liberarTurnoMutation.mutateAsync(turno.id);
+          }
         }
       } catch (error) {
         console.error('Error al liberar turno:', error);
@@ -769,7 +739,7 @@ export default function DashboardOverview() {
   const weekDayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" key={turnosKey}>
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">

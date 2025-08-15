@@ -168,8 +168,9 @@ class ApiService {
     return response.data;
   }
 
-  async liberarTurno(turnoId: number): Promise<ApiResponse<Turno>> {
-    const response = await this.api.post<ApiResponse<Turno>>(`/turnos/${turnoId}/liberar`);
+  async liberarTurno(turnoId: number, usuarioId?: number): Promise<ApiResponse<Turno>> {
+    const body = usuarioId ? { usuarioId } : {};
+    const response = await this.api.post<ApiResponse<Turno>>(`/turnos/${turnoId}/liberar`, body);
     return response.data;
   }
 

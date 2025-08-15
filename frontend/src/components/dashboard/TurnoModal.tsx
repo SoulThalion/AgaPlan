@@ -40,7 +40,7 @@ export default function TurnoModal({
   // Estado para controlar si los requisitos están desplegados
   const [requisitosDesplegados, setRequisitosDesplegados] = useState(false);
 
-  // Función para calcular el estado de los requisitos del turno
+  // Función para calcular los requisitos del turno
   const calcularRequisitosTurno = () => {
     const usuarios = selectedTurno.usuarios || [];
     const capacidad = selectedTurno.lugar?.capacidad || 0;
@@ -50,14 +50,6 @@ export default function TurnoModal({
       tieneCoche: usuarios.some(u => u.tieneCoche),
       tieneMasculino: usuarios.some(u => u.sexo === 'M')
     };
-  };
-
-  // Función para detectar si el texto se truncó
-  const getTruncatedTitle = (text: string, elementRef: React.RefObject<HTMLParagraphElement>) => {
-    if (!elementRef.current) return undefined;
-    
-    const element = elementRef.current;
-    return element.scrollWidth > element.clientWidth ? text : undefined;
   };
 
   const requisitos = calcularRequisitosTurno();

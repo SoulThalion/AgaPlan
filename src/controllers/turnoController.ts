@@ -596,6 +596,7 @@ export const liberarTurno = async (req: AuthenticatedRequest, res: Response) => 
   try {
     const { id } = req.params;
     const usuarioId = req.user!.id;
+    const userRole = req.user!.rol;
 
     const turno = await Turno.findByPk(id, {
       include: [
@@ -617,20 +618,30 @@ export const liberarTurno = async (req: AuthenticatedRequest, res: Response) => 
       });
     }
 
-    // Verificar que el usuario sea el propietario del turno
-    const usuarioAsignado = turno.usuarios?.find(u => u.id === usuarioId);
-    if (!usuarioAsignado) {
-      return res.status(403).json({
-        success: false,
-        message: 'Solo puedes liberar tus propios turnos'
-      });
+    // Si es superAdmin, puede liberar cualquier turno
+    // Si no, solo puede liberar sus propios turnos
+    if (userRole !== 'superAdmin') {
+      const usuarioAsignado = turno.usuarios?.find(u => u.id === usuarioId);
+      if (!usuarioAsignado) {
+        return res.status(403).json({
+          success: false,
+          message: 'Solo puedes liberar tus propios turnos'
+        });
+      }
+    }
+
+    // Si es superAdmin y no se especificó usuarioId, liberar todo el turno
+    // Si se especificó usuarioId, liberar solo ese usuario
+    let usuarioIdALiberar = usuarioId;
+    if (userRole === 'superAdmin' && req.body.usuarioId) {
+      usuarioIdALiberar = req.body.usuarioId;
     }
 
     // Liberar el turno eliminando la relación con el usuario
     await TurnoUsuario.destroy({
       where: {
         turnoId: turno.id,
-        usuarioId: usuarioId
+        usuarioId: usuarioIdALiberar
       }
     });
 
