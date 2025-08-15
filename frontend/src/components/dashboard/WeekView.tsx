@@ -1,4 +1,5 @@
 import type { Turno } from '../../types';
+import { useState } from 'react';
 
 interface WeekViewProps {
   weekDays: Date[];
@@ -15,6 +16,8 @@ export default function WeekView({
   handleTurnoClick,
   getEventColor
 }: WeekViewProps) {
+  const [hoveredTurnoId, setHoveredTurnoId] = useState<number | null>(null);
+
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       {/* Encabezados de días */}
@@ -96,6 +99,7 @@ export default function WeekView({
                       // Calcular la duración del turno y la posición exacta
                       let offsetMinutos = 0; // Offset desde el inicio de la hora
                       let duracionMinutos = 60; // Duración en minutos por defecto
+                      let duracionMinutosOriginal = 60; // Duración original sin modificar
                       if (turno.hora.includes('-')) {
                         const [horaInicio, horaFin] = turno.hora.split('-');
                         const [horaInicioNum, minInicioNum] = horaInicio.split(':').map(Number);
@@ -108,6 +112,7 @@ export default function WeekView({
                         // Si la hora de fin es menor que la de inicio, asumir que es del día siguiente
                         const diferenciaMinutos = finMinutos > inicioMinutos ? finMinutos - inicioMinutos : (24 * 60 - inicioMinutos) + finMinutos;
                         duracionMinutos = diferenciaMinutos;
+                        duracionMinutosOriginal = diferenciaMinutos;
                         
                         // Calcular el offset desde el inicio de la hora (ej: 17:30 -> offset 30 minutos)
                         offsetMinutos = minInicioNum;
@@ -118,17 +123,26 @@ export default function WeekView({
                       const cantidadEnFranjaIgual = conteoPorFranja[turno.hora] || 0;
                       const primerIndiceDeEstaFranja = primerIndicePorFranja[turno.hora];
                       const noEsPrimeroDeSuFranja = cantidadEnFranjaIgual > 1 && primerIndiceDeEstaFranja !== turnoIndex;
+                      
+                      let offsetMinutosAjustado = offsetMinutos;
+                      let duracionMinutosAjustada = duracionMinutos;
+                      
                       if (noEsPrimeroDeSuFranja) {
-                        offsetMinutos += 30;
-                        duracionMinutos = Math.max(duracionMinutos - 30, 15); // mínimo 15 minutos visuales
+                        offsetMinutosAjustado += 30;
+                        duracionMinutosAjustada = Math.max(duracionMinutos - 30, 15); // mínimo 15 minutos visuales
                       }
+
+                      // Al hacer hover, recuperar la altura y posición original
+                      const isHovered = hoveredTurnoId === turno.id;
+                      const offsetFinal = isHovered ? offsetMinutos : offsetMinutosAjustado;
+                      const duracionFinal = isHovered ? duracionMinutosOriginal : duracionMinutosAjustada;
 
                       // Determinar el z-index y la posición del texto según el índice
                       const zIndex = 10 + turnoIndex; // Z-index normal para que se superpongan correctamente
                       const textPosition = turnoIndex === 0 ? 'top' : 'center'; // Primer turno arriba, resto centrado
                       
                       // Calcular el desplazamiento máximo disponible para superposición
-                      const alturaTurno = Math.max((duracionMinutos / 60) * 64 - 4, 20);
+                      const alturaTurno = Math.max((duracionFinal / 60) * 64 - 4, 20);
                       const alturaHora = 64; // 64px por hora
                       const desplazamientoMaximo = Math.max(0, alturaHora - alturaTurno);
                       const desplazamientoSuperposicion = Math.min(turnoIndex * 20, desplazamientoMaximo);
@@ -137,10 +151,12 @@ export default function WeekView({
                         <div
                           key={turno.id}
                           onClick={() => handleTurnoClick(turno)}
+                          onMouseEnter={() => setHoveredTurnoId(turno.id)}
+                          onMouseLeave={() => setHoveredTurnoId(null)}
                           className="absolute left-1 right-1 text-xs p-1 rounded text-white font-medium truncate cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md"
                           style={{ 
                             backgroundColor: getEventColor(turno.lugarId),
-                            top: `${desplazamientoSuperposicion + (offsetMinutos * 64 / 60)}px`, // Posición limitada + offset de minutos
+                            top: `${desplazamientoSuperposicion + (offsetFinal * 64 / 60)}px`, // Posición limitada + offset de minutos
                             height: `${alturaTurno}px`, // Altura calculada del turno
                             minHeight: '20px',
                             zIndex: zIndex
