@@ -1,5 +1,5 @@
 import sequelize from '../config/database';
-import { QueryInterface } from 'sequelize';
+import { QueryInterface, DataTypes, Sequelize } from 'sequelize';
 
 // Importar todas las migraciones
 import * as createUsuarios from './001-create-usuarios';
@@ -18,6 +18,7 @@ import * as addDescripcionToExhibidores from './015-add-descripcion-to-exhibidor
 import createTurnoExhibidoresTable from './016-create-turno-exhibidores-table';
 import * as modifyHoraToRange from './017-modify-hora-to-range';
 import * as createTurnoUsuariosTable from './018-create-turno-usuarios-table';
+const createUserDisponibilidadConfig = require('./021-create-user-disponibilidad-config');
 
 const migrations = [
   { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.down },
@@ -36,6 +37,7 @@ const migrations = [
   { name: '016-create-turno-exhibidores-table', up: createTurnoExhibidoresTable.up, down: createTurnoExhibidoresTable.down },
   { name: '017-modify-hora-to-range', up: modifyHoraToRange.up, down: modifyHoraToRange.down },
   { name: '018-create-turno-usuarios-table', up: createTurnoUsuariosTable.up, down: createTurnoUsuariosTable.down },
+  { name: '021-create-user-disponibilidad-config', up: createUserDisponibilidadConfig.up, down: createUserDisponibilidadConfig.down },
 ];
 
 // Función para crear la tabla de migraciones si no existe
@@ -99,7 +101,7 @@ export async function runMigrations() {
       }
       
       console.log(`🔄 Ejecutando migración: ${migration.name}`);
-      await migration.up(sequelize.getQueryInterface());
+      await migration.up(sequelize.getQueryInterface(), Sequelize);
       await markMigrationAsExecuted(migration.name);
       console.log(`✅ Migración ${migration.name} ejecutada exitosamente`);
     }
