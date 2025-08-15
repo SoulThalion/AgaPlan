@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
-import type { Turno, Lugar } from '../types';
+import type { Turno, Lugar, Usuario } from '../types';
 import Swal from 'sweetalert2';
 
 export default function DashboardOverview() {
@@ -15,6 +15,12 @@ export default function DashboardOverview() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<'month' | 'week' | 'day' | 'list'>('month');
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+
+  // Estado para el modal del turno
+  const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
+  const [showTurnoModal, setShowTurnoModal] = useState(false);
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState<Usuario[]>([]);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false);
 
   // Cargar datos del dashboard
   const { data: turnosData } = useQuery({
@@ -107,21 +113,36 @@ export default function DashboardOverview() {
       try {
         setLoading(true);
 
-        if (turnosData?.data) {
+        if (turnosData?.data && lugaresData?.data) {
+          console.log('Datos de turnos recibidos:', turnosData.data);
+          console.log('Datos de lugares recibidos:', lugaresData.data);
+          
+          // Relacionar turnos con información completa del lugar
+          const turnosConLugares = turnosData.data.map(turno => {
+            const lugarCompleto = lugaresData.data!.find(lugar => lugar.id === turno.lugarId);
+            console.log(`Relacionando turno ${turno.id} con lugar:`, lugarCompleto?.nombre, 'capacidad:', lugarCompleto?.capacidad);
+            return {
+              ...turno,
+              lugar: lugarCompleto
+            };
+          });
+          console.log('Turnos con lugares:', turnosConLugares);
+          setTurnos(turnosConLugares);
+          setLugares(lugaresData.data);
+        } else if (turnosData?.data) {
           setTurnos(turnosData.data);
-        }
-        if (lugaresData?.data) {
+        } else if (lugaresData?.data) {
           setLugares(lugaresData.data);
         }
-              } catch (err) {
-          console.error('Error loading dashboard data:', err);
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Error al cargar los datos del dashboard',
-            confirmButtonText: 'Aceptar'
-          });
-        } finally {
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Error al cargar los datos del dashboard',
+          confirmButtonText: 'Aceptar'
+        });
+      } finally {
         setLoading(false);
       }
     };
@@ -160,6 +181,65 @@ export default function DashboardOverview() {
   const turnoTieneUsuario = (turno: Turno, userId?: number) => {
     if (!userId) return false;
     return turno.usuarios && turno.usuarios.some(usuario => usuario.id === userId);
+  };
+
+  // Función para calcular el estado real del turno basado en la capacidad del lugar
+  const getTurnoEstado = (turno: Turno) => {
+    // Debug: verificar qué información tenemos del lugar
+    console.log('Turno:', turno.id, 'Lugar:', turno.lugar?.nombre, 'Capacidad:', turno.lugar?.capacidad);
+    
+    if (!turno.lugar?.capacidad) {
+      console.log('No hay capacidad definida para el turno', turno.id, 'usando estado del backend:', turno.estado);
+      // Si no hay capacidad definida, usar el estado del backend
+      return turno.estado;
+    }
+    
+    const usuariosAsignados = turno.usuarios?.length || 0;
+    const capacidad = turno.lugar.capacidad;
+    
+    console.log(`Turno ${turno.id}: ${usuariosAsignados}/${capacidad} usuarios`);
+    
+    if (usuariosAsignados >= capacidad) {
+      return 'ocupado';
+    } else if (usuariosAsignados > 0) {
+      return 'parcialmente_ocupado';
+    } else {
+      return 'libre';
+    }
+  };
+
+  // Función para obtener el texto del estado
+  const getEstadoText = (estado: string) => {
+    switch (estado) {
+      case 'libre':
+        return 'Libre';
+      case 'parcialmente_ocupado':
+        return 'Parcialmente Ocupado';
+      case 'ocupado':
+        return 'Ocupado';
+      default:
+        return estado;
+    }
+  };
+
+  // Función para obtener el color del estado
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'libre':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'parcialmente_ocupado':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'ocupado':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+  };
+
+  // Función para verificar si un turno puede aceptar más usuarios
+  const turnoPuedeAceptarUsuarios = (turno: Turno) => {
+    if (!turno.lugar?.capacidad) return true; // Si no hay capacidad definida, permitir
+    return (turno.usuarios?.length || 0) < turno.lugar.capacidad;
   };
 
   const getTurnosForDate = (date: Date) => {
@@ -362,21 +442,24 @@ export default function DashboardOverview() {
     });
   };
 
-  const handleTurnoClick = (turno: Turno) => {
-    Swal.fire({
-      title: `Turno #${turno.id}`,
-      html: `
-        <div class="text-left">
-          <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES')}</p>
-          <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
-          <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
-          <p><strong>Usuarios:</strong> ${turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Sin usuarios'}</p>
-          <p><strong>Estado:</strong> ${turno.estado}</p>
-        </div>
-      `,
-      icon: 'info',
-      confirmButtonText: 'Cerrar'
-    });
+  const handleTurnoClick = async (turno: Turno) => {
+    setSelectedTurno(turno);
+    setShowTurnoModal(true);
+    
+    // Cargar usuarios disponibles si soy admin o superAdmin
+    if (_user?.rol === 'admin' || _user?.rol === 'superAdmin') {
+      setLoadingUsuarios(true);
+      try {
+        const response = await apiService.getUsuarios();
+        if (response.data) {
+          setUsuariosDisponibles(response.data);
+        }
+      } catch (error) {
+        console.error('Error cargando usuarios:', error);
+      } finally {
+        setLoadingUsuarios(false);
+      }
+    }
   };
 
   const handleOcuparTurno = async (turno: Turno) => {
@@ -479,26 +562,109 @@ export default function DashboardOverview() {
     }
   };
 
-  const handleLiberarTurno = async (turno: Turno) => {
-    try {
-      const result = await Swal.fire({
-        title: 'Confirmar liberación',
-        text: `¿Estás seguro de que quieres liberar el turno en ${turno.lugar?.nombre} el ${new Date(turno.fecha).toLocaleDateString('es-ES')} de ${turno.hora}?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, liberar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6'
-      });
-      
-      if (result.isConfirmed) {
-        await liberarTurnoMutation.mutateAsync(turno.id);
+
+
+       // Función para manejar clic en puesto vacío
+    const handleClickPuestoVacio = async (turno: Turno) => {
+      try {
+        // Verificar si ya estoy asignado a este turno
+        if (turnoTieneUsuario(turno, _user?.id)) {
+          Swal.fire({
+            icon: 'info',
+            title: 'Ya estás asignado',
+            text: 'Ya tienes un puesto en este turno',
+            confirmButtonText: 'Entendido'
+          });
+          return;
+        }
+
+        // Verificar si el turno puede aceptar más usuarios
+        if (!turnoPuedeAceptarUsuarios(turno)) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Turno completo',
+            text: 'Este turno ya no puede aceptar más usuarios',
+            confirmButtonText: 'Entendido'
+          });
+          return;
+        }
+
+        const result = await Swal.fire({
+          title: '¿Ocupar puesto?',
+          html: `
+            <div class="text-left">
+              <p class="mb-3">¿Te quieres añadir a este turno?</p>
+              <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+                <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
+                <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}</p>
+                <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+                <p><strong>Puestos disponibles:</strong> ${Math.max(0, (turno.lugar?.capacidad || 0) - (turno.usuarios?.length || 0))}</p>
+              </div>
+            </div>
+          `,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, ocupar puesto',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#10B981',
+          cancelButtonColor: '#6B7280',
+          customClass: {
+            popup: 'text-left'
+          }
+        });
+        
+        if (result.isConfirmed) {
+          await ocuparTurnoMutation.mutateAsync(turno.id);
+          setShowTurnoModal(false);
+        }
+      } catch (error) {
+        console.error('Error al ocupar puesto:', error);
       }
-    } catch (error) {
-      console.error('Error al liberar turno:', error);
-    }
-    }
+    };
+
+    // Función para liberar turno (solo para admins o para liberarse a sí mismo)
+    const handleLiberarTurno = async (turno: Turno, usuarioId?: number) => {
+      try {
+        // Si no soy admin/superAdmin, solo puedo liberarme a mí mismo
+        if (!(_user?.rol === 'admin' || _user?.rol === 'superAdmin')) {
+          if (usuarioId && usuarioId !== _user?.id) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Acceso denegado',
+              text: 'Solo puedes liberarte a ti mismo de un turno',
+              confirmButtonText: 'Entendido'
+            });
+            return;
+          }
+        }
+
+        const mensaje = usuarioId 
+          ? `¿Estás seguro de que quieres remover a este usuario del turno en ${turno.lugar?.nombre}?`
+          : `¿Estás seguro de que quieres liberar el turno en ${turno.lugar?.nombre} el ${new Date(turno.fecha).toLocaleDateString('es-ES')} de ${turno.hora}?`;
+
+        const result = await Swal.fire({
+          title: usuarioId ? 'Confirmar remoción' : 'Confirmar liberación',
+          text: mensaje,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: usuarioId ? 'Sí, remover' : 'Sí, liberar',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6'
+        });
+        
+        if (result.isConfirmed) {
+          await liberarTurnoMutation.mutateAsync(turno.id);
+        }
+      } catch (error) {
+        console.error('Error al liberar turno:', error);
+      }
+    };
 
   if (loading) {
     return (
@@ -584,10 +750,15 @@ export default function DashboardOverview() {
       {/* Calendario Personalizado */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               Calendario de Turnos
             </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              💡 <strong>Consejo:</strong> Haz clic en cualquier turno para ver sus detalles completos y gestionar usuarios
+            </p>
+          </div>
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
                              {/* Selector de vista */}
                <div className="flex space-x-2">
@@ -752,48 +923,26 @@ export default function DashboardOverview() {
                               {turnosToShow.map((turno) => (
                                 <div
                                   key={turno.id}
-                                  className="text-xs p-1 rounded text-white font-medium truncate relative group"
+                                  onClick={() => handleTurnoClick(turno)}
+                                  className="text-xs p-1 rounded text-white font-medium truncate cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md"
                                   style={{ backgroundColor: getEventColor(turno.lugarId) }}
+                                  title={`Haz clic para ver detalles del turno en ${turno.lugar?.nombre || 'Sin lugar'}`}
                                 >
-                                  <div className="flex items-center justify-between">
-                                    <span className="truncate">
-                                      {turno.lugar?.nombre || 'Sin lugar'} ({turno.hora})
-                                    </span>
-                                    <div className="flex space-x-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      {turno.estado === 'libre' ? (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleOcuparTurno(turno);
-                                          }}
-                                          disabled={ocuparTurnoMutation.isPending}
-                                          className="w-4 h-4 bg-green-700 hover:bg-green-800 disabled:bg-green-500 rounded text-white text-xs flex items-center justify-center"
-                                          title="Ocupar turno"
-                                        >
-                                          +
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleLiberarTurno(turno);
-                                          }}
-                                          disabled={liberarTurnoMutation.isPending}
-                                          className="w-4 h-4 bg-red-700 hover:bg-red-800 disabled:bg-red-500 rounded text-white text-xs flex items-center justify-center"
-                                          title="Liberar turno"
-                                        >
-                                          -
-                                        </button>
-                                      )}
-                                      <button
-                                        onClick={() => handleTurnoClick(turno)}
-                                        className="w-4 h-4 bg-blue-700 hover:bg-blue-800 rounded text-white text-xs flex items-center justify-center"
-                                        title="Ver detalles"
-                                      >
-                                          i
-                                      </button>
-                                    </div>
-                                  </div>
+                                                                     <div className="flex items-center justify-between">
+                                     <span className="truncate flex-1">
+                                       {turno.lugar?.nombre || 'Sin lugar'} ({turno.hora})
+                                       {turno.lugar?.capacidad && (
+                                         <span className="ml-1 text-xs opacity-75">
+                                           ({turno.usuarios?.length || 0}/{turno.lugar.capacidad})
+                                         </span>
+                                       )}
+                                     </span>
+                                     <div className="ml-1 flex-shrink-0">
+                                       <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(getTurnoEstado(turno))}`}>
+                                         {getEstadoText(getTurnoEstado(turno))}
+                                       </span>
+                                     </div>
+                                   </div>
                                 </div>
                               ))}
                               
@@ -918,53 +1067,31 @@ export default function DashboardOverview() {
                               return (
                                 <div
                                   key={turno.id}
-                                  className="absolute left-1 right-1 text-xs p-1 rounded text-white font-medium truncate z-10 group"
+                                  onClick={() => handleTurnoClick(turno)}
+                                  className="absolute left-1 right-1 text-xs p-1 rounded text-white font-medium truncate z-10 cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md"
                                   style={{ 
                                     backgroundColor: getEventColor(turno.lugarId),
                                     top: `${turnoIndex * 20 + 2}px`,
                                     height: `${Math.max(duracionHoras * 64 - 4, 20)}px`, // 64px por hora, menos 4px de padding
                                     minHeight: '20px'
                                   }}
+                                  title={`Haz clic para ver detalles del turno en ${turno.lugar?.nombre || 'Sin lugar'}`}
                                 >
-                                  <div className="flex items-center justify-between h-full">
-                                    <span className="truncate flex-1">
-                                      {turno.lugar?.nombre || 'Sin lugar'}
-                                    </span>
-                                    <div className="flex space-x-1 ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      {turno.estado === 'libre' ? (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleOcuparTurno(turno);
-                                          }}
-                                          disabled={ocuparTurnoMutation.isPending}
-                                          className="w-4 h-4 bg-green-700 hover:bg-green-800 disabled:bg-green-500 rounded text-white text-xs flex items-center justify-center"
-                                          title="Ocupar turno"
-                                        >
-                                          +
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleLiberarTurno(turno);
-                                          }}
-                                          disabled={liberarTurnoMutation.isPending}
-                                          className="w-4 h-4 bg-red-700 hover:bg-red-800 disabled:bg-red-500 rounded text-white text-xs flex items-center justify-center"
-                                          title="Liberar turno"
-                                        >
-                                          -
-                                        </button>
-                                      )}
-                                      <button
-                                        onClick={() => handleTurnoClick(turno)}
-                                        className="w-4 h-4 bg-blue-700 hover:bg-blue-800 rounded text-white text-xs flex items-center justify-center"
-                                        title="Ver detalles"
-                                      >
-                                          i
-                                      </button>
-                                    </div>
-                                  </div>
+                                                                     <div className="flex items-center justify-between h-full">
+                                     <span className="truncate flex-1">
+                                       {turno.lugar?.nombre || 'Sin lugar'}
+                                       {turno.lugar?.capacidad && (
+                                         <span className="ml-1 text-xs opacity-75">
+                                           ({turno.usuarios?.length || 0}/{turno.lugar.capacidad})
+                                         </span>
+                                       )}
+                                     </span>
+                                     <div className="ml-1 flex-shrink-0">
+                                       <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(getTurnoEstado(turno))}`}>
+                                         {getEstadoText(getTurnoEstado(turno))}
+                                       </span>
+                                     </div>
+                                   </div>
                                 </div>
                               );
                             })}
@@ -1044,13 +1171,15 @@ export default function DashboardOverview() {
                               return (
                                 <div
                                   key={turno.id}
-                                  className="p-3 rounded-lg text-white font-medium z-10 flex-shrink-0 group"
+                                  onClick={() => handleTurnoClick(turno)}
+                                  className="p-3 rounded-lg text-white font-medium z-10 flex-shrink-0 cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md"
                                   style={{ 
                                     backgroundColor: getEventColor(turno.lugarId),
                                     height: `${Math.max(duracionHoras * 64 - 4, 20)}px`, // 64px por hora, menos 4px de padding
                                     minHeight: '20px',
                                     width: turnoWidth
                                   }}
+                                  title={`Haz clic para ver detalles del turno en ${turno.lugar?.nombre || 'Sin lugar'}`}
                                 >
                                   <div className="h-full flex flex-col justify-between">
                                     <div>
@@ -1063,41 +1192,12 @@ export default function DashboardOverview() {
                                       )}
                                     </div>
                                     
-                                    {/* Botones de acción */}
-                                    <div className="flex space-x-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      {turno.estado === 'libre' ? (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleOcuparTurno(turno);
-                                          }}
-                                          disabled={ocuparTurnoMutation.isPending}
-                                          className="w-5 h-5 bg-green-700 hover:bg-green-800 disabled:bg-green-500 rounded text-white text-xs flex items-center justify-center"
-                                          title="Ocupar turno"
-                                        >
-                                          +
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleLiberarTurno(turno);
-                                          }}
-                                          disabled={liberarTurnoMutation.isPending}
-                                          className="w-5 h-5 bg-red-700 hover:bg-red-800 disabled:bg-red-500 rounded text-white text-xs flex items-center justify-center"
-                                          title="Liberar turno"
-                                        >
-                                          -
-                                        </button>
-                                      )}
-                                      <button
-                                        onClick={() => handleTurnoClick(turno)}
-                                        className="w-5 h-5 bg-blue-700 hover:bg-blue-800 rounded text-white text-xs flex items-center justify-center"
-                                        title="Ver detalles"
-                                      >
-                                          i
-                                      </button>
-                                    </div>
+                                                                         {/* Indicador de estado */}
+                                     <div className="mt-2 text-right">
+                                       <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(getTurnoEstado(turno))}`}>
+                                         {getEstadoText(getTurnoEstado(turno))}
+                                       </span>
+                                     </div>
                                   </div>
                                 </div>
                               );
@@ -1170,52 +1270,17 @@ export default function DashboardOverview() {
                                 </div>
                               </div>
                               
-                                                             {/* Botones de acción */}
-                               <div className="flex space-x-2">
-                                 {turno.estado === 'libre' ? (
-                                   <button
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       handleOcuparTurno(turno);
-                                     }}
-                                     disabled={ocuparTurnoMutation.isPending}
-                                     className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-xs rounded-md transition-colors"
-                                   >
-                                     {ocuparTurnoMutation.isPending ? 'Ocupando...' : 'Ocupar'}
-                                   </button>
-                                 ) : (
-                                   <button
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       handleLiberarTurno(turno);
-                                     }}
-                                     disabled={liberarTurnoMutation.isPending}
-                                     className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-xs rounded-md transition-colors"
-                                   >
-                                     {liberarTurnoMutation.isPending ? 'Liberando...' : 'Liberar'}
-                                   </button>
-                                 )}
-                                 
-                                 {/* Botón para asignar usuarios (solo para admins) */}
-                                 {(_user?.rol === 'admin' || _user?.rol === 'superAdmin') && (
-                                   <button
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       // Por ahora asignar al usuario actual, pero esto se puede expandir
-                                       handleAsignarUsuario(turno, _user.id);
-                                     }}
-                                     disabled={asignarUsuarioMutation.isPending}
-                                     className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white text-xs rounded-md transition-colors"
-                                   >
-                                     {asignarUsuarioMutation.isPending ? 'Asignando...' : 'Asignar'}
-                                   </button>
-                                 )}
+                                                             {/* Indicador de estado y botón ver */}
+                               <div className="flex items-center space-x-3">
+                                                                   <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getEstadoColor(getTurnoEstado(turno))}`}>
+                                    {getEstadoText(getTurnoEstado(turno))}
+                                  </span>
                                  
                                  <button
                                    onClick={() => handleTurnoClick(turno)}
                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-md transition-colors"
                                  >
-                                   Ver
+                                   Ver Detalles
                                  </button>
                                </div>
                             </div>
@@ -1234,24 +1299,382 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Leyenda de colores */}
-      {lugares.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            Leyenda de Lugares
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {lugares.filter(l => l.activo !== false).map((lugar) => (
-              <div key={lugar.id} className="flex items-center space-x-2">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: getEventColor(lugar.id) }}
-                ></div>
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  {lugar.nombre}
-                </span>
+             {/* Leyenda de colores */}
+       {lugares.length > 0 && (
+         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+             Leyenda de Lugares
+           </h3>
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+             {lugares.filter(l => l.activo !== false).map((lugar) => (
+               <div key={lugar.id} className="flex items-center space-x-2">
+                 <div
+                   className="w-4 h-4 rounded-full"
+                   style={{ backgroundColor: getEventColor(lugar.id) }}
+                 ></div>
+                 <span className="text-sm text-gray-700 dark:text-gray-300">
+                   {lugar.nombre}
+                 </span>
+               </div>
+             ))}
+           </div>
+         </div>
+       )}
+
+       {/* Debug: Información de lugares y turnos */}
+       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+           Debug: Información del Sistema
+         </h3>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div>
+             <h4 className="font-medium text-gray-900 dark:text-white mb-2">Lugares ({lugares.length})</h4>
+             <div className="space-y-2">
+               {lugares.map(lugar => (
+                 <div key={lugar.id} className="text-sm p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                   <strong>{lugar.nombre}</strong> - Capacidad: {lugar.capacidad || 'No definida'} - Activo: {lugar.activo ? 'Sí' : 'No'}
+                 </div>
+               ))}
+             </div>
+           </div>
+           <div>
+             <h4 className="font-medium text-gray-900 dark:text-white mb-2">Turnos ({turnos.length})</h4>
+             <div className="space-y-2">
+               {turnos.slice(0, 5).map(turno => (
+                 <div key={turno.id} className="text-sm p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                   <strong>Turno {turno.id}</strong> - Lugar: {turno.lugar?.nombre || 'Sin lugar'} - Capacidad: {turno.lugar?.capacidad || 'No definida'} - Estado: {getTurnoEstado(turno)}
+                 </div>
+               ))}
+               {turnos.length > 5 && (
+                 <div className="text-sm text-gray-500">... y {turnos.length - 5} más</div>
+               )}
+             </div>
+           </div>
+         </div>
+       </div>
+
+      {/* Modal de Turno */}
+      {showTurnoModal && selectedTurno && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowTurnoModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+                         {/* Header del modal */}
+             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                     Detalles del Turno #{selectedTurno.id}
+                   </h3>
+                   <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                     <p className="text-xs text-blue-700 dark:text-blue-300">
+                       💡 <strong>Sistema de Estados:</strong> Libre (0 usuarios) → Parcialmente Ocupado (1+ usuarios) → Ocupado (capacidad máxima alcanzada)
+                     </p>
+                   </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Fecha:</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {new Date(selectedTurno.fecha).toLocaleDateString('es-ES', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Horario:</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {formatHora(selectedTurno.hora)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Lugar:</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {selectedTurno.lugar?.nombre || 'Sin lugar'}
+                      </p>
+                    </div>
+                                         <div>
+                       <p className="text-gray-600 dark:text-gray-400">Estado:</p>
+                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getEstadoColor(getTurnoEstado(selectedTurno))}`}>
+                         {getEstadoText(getTurnoEstado(selectedTurno))}
+                       </span>
+                     </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTurnoModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-            ))}
+            </div>
+
+            {/* Contenido del modal */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Información del lugar */}
+              {selectedTurno.lugar && (
+                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Información del Lugar
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Dirección:</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {selectedTurno.lugar.direccion}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">Capacidad:</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {selectedTurno.lugar.capacidad || 'No especificada'}
+                      </p>
+                    </div>
+                    {selectedTurno.lugar.descripcion && (
+                      <div className="col-span-2">
+                        <p className="text-gray-600 dark:text-gray-400">Descripción:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {selectedTurno.lugar.descripcion}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+                             {/* Usuarios asignados y puestos disponibles */}
+               <div className="mb-6">
+                 <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                   Ocupación del Turno ({selectedTurno.usuarios?.length || 0}/{selectedTurno.lugar?.capacidad || '∞'})
+                 </h4>
+                 
+                 {/* Grid de usuarios y puestos vacíos */}
+                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                   {/* Usuarios ya asignados */}
+                   {selectedTurno.usuarios && selectedTurno.usuarios.map((usuario) => (
+                     <div key={usuario.id} className="relative group">
+                       <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-300 dark:border-blue-600 rounded-lg text-center hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                         <div className="w-12 h-12 bg-gradient-to-br from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                           <span className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                             {usuario.nombre.charAt(0).toUpperCase()}
+                           </span>
+                         </div>
+                         <p className="font-medium text-blue-900 dark:text-blue-100 text-sm truncate">{usuario.nombre}</p>
+                         <p className="text-xs text-blue-700 dark:text-blue-300 truncate">{usuario.cargo}</p>
+                         
+                                                   {/* Botón de remover (solo para admins o para removerte a ti mismo) */}
+                          {(_user?.rol === 'admin' || _user?.rol === 'superAdmin' || usuario.id === _user?.id) && (
+                            <button
+                              onClick={() => handleLiberarTurno(selectedTurno, usuario.id)}
+                              disabled={liberarTurnoMutation.isPending}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                              title={usuario.id === _user?.id ? "Removerte a ti mismo" : "Remover usuario"}
+                            >
+                              ×
+                            </button>
+                          )}
+                       </div>
+                     </div>
+                   ))}
+                   
+                   {/* Puestos vacíos */}
+                   {selectedTurno.lugar?.capacidad && Array.from({ length: Math.max(0, selectedTurno.lugar.capacidad - (selectedTurno.usuarios?.length || 0)) }, (_, index) => (
+                     <div key={`vacante-${index}`} className="group">
+                       <button
+                         onClick={() => handleClickPuestoVacio(selectedTurno)}
+                         disabled={ocuparTurnoMutation.isPending}
+                         className="w-full p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:border-green-400 dark:hover:border-green-500 hover:from-green-50 hover:to-green-100 dark:hover:from-green-900/20 dark:hover:to-green-800/20 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 hover:shadow-lg"
+                         title="Haz clic para ocupar este puesto"
+                       >
+                         <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:from-green-200 group-hover:to-green-300 dark:group-hover:from-green-800 dark:group-hover:to-green-700 transition-all duration-300">
+                           <svg className="w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                           </svg>
+                         </div>
+                         <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-green-700 dark:group-hover:text-green-300 transition-all duration-300">
+                           Puesto Libre
+                         </p>
+                         <p className="text-xs text-gray-400 dark:text-gray-500 group-hover:text-green-500 dark:group-hover:text-green-400 transition-all duration-300 mt-1">
+                           Haz clic para ocupar
+                         </p>
+                       </button>
+                     </div>
+                   ))}
+                   
+                   {/* Indicador cuando no hay puestos disponibles */}
+                   {selectedTurno.lugar?.capacidad && (selectedTurno.usuarios?.length || 0) >= selectedTurno.lugar.capacidad && (
+                     <div className="col-span-full">
+                       <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-center">
+                         <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-2">
+                           <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                           </svg>
+                         </div>
+                         <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                           Turno Completo
+                         </p>
+                         <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                           No hay puestos disponibles
+                         </p>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+                 
+                                    {/* Mensaje cuando no hay capacidad definida */}
+                   {!selectedTurno.lugar?.capacidad && (
+                     <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                       <p>Este lugar no tiene capacidad definida</p>
+                     </div>
+                   )}
+                   
+                   {/* Mensaje cuando no hay usuarios asignados */}
+                   {selectedTurno.lugar?.capacidad && (!selectedTurno.usuarios || selectedTurno.usuarios.length === 0) && (
+                     <div className="col-span-full">
+                       <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                         <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900 rounded-full flex items-center justify-center mx-auto mb-2">
+                           <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                           </svg>
+                         </div>
+                         <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                           Turno Vacío
+                         </p>
+                         <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                           Haz clic en un puesto libre para ocuparlo
+                         </p>
+                       </div>
+                     </div>
+                   )}
+               </div>
+
+              {/* Asignar usuarios (solo para admins) */}
+              {(_user?.rol === 'admin' || _user?.rol === 'superAdmin') && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Asignar Usuario
+                  </h4>
+                  {loadingUsuarios ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Cargando usuarios...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {usuariosDisponibles
+                        .filter(usuario => !selectedTurno.usuarios?.some(u => u.id === usuario.id))
+                        .map((usuario) => (
+                          <div key={usuario.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                                  {usuario.nombre.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{usuario.nombre}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{usuario.cargo}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                handleAsignarUsuario(selectedTurno, usuario.id);
+                                setShowTurnoModal(false);
+                              }}
+                              disabled={asignarUsuarioMutation.isPending}
+                              className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs rounded-md"
+                            >
+                              {asignarUsuarioMutation.isPending ? 'Asignando...' : 'Asignar'}
+                            </button>
+                          </div>
+                        ))}
+                      {usuariosDisponibles.filter(usuario => !selectedTurno.usuarios?.some(u => u.id === usuario.id)).length === 0 && (
+                        <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                          <p>No hay usuarios disponibles para asignar</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+                             {/* Puestos disponibles */}
+               {selectedTurno.lugar?.capacidad && (
+                 <div className="mb-6">
+                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                     Puestos Disponibles
+                   </h4>
+                   <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                     <div className="grid grid-cols-2 gap-4">
+                       <div>
+                         <p className="text-sm text-gray-600 dark:text-gray-400">
+                           Capacidad total del lugar: <span className="font-medium">{selectedTurno.lugar.capacidad}</span>
+                         </p>
+                         <p className="text-sm text-gray-600 dark:text-gray-400">
+                           Usuarios asignados: <span className="font-medium">{selectedTurno.usuarios?.length || 0}</span>
+                         </p>
+                         <p className="text-sm text-gray-600 dark:text-gray-400">
+                           Puestos libres: <span className="font-medium">{Math.max(0, selectedTurno.lugar.capacidad - (selectedTurno.usuarios?.length || 0))}</span>
+                         </p>
+                       </div>
+                       <div className="text-right">
+                         <div className={`inline-flex items-center px-3 py-2 rounded-lg text-lg font-bold ${getEstadoColor(getTurnoEstado(selectedTurno))}`}>
+                           {getEstadoText(getTurnoEstado(selectedTurno))}
+                         </div>
+                         <div className="mt-2">
+                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                             <div 
+                               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                               style={{ 
+                                 width: `${Math.min(100, ((selectedTurno.usuarios?.length || 0) / selectedTurno.lugar.capacidad) * 100)}%` 
+                               }}
+                             ></div>
+                           </div>
+                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                             {Math.round(((selectedTurno.usuarios?.length || 0) / selectedTurno.lugar.capacidad) * 100)}% ocupado
+                           </p>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               )}
+            </div>
+
+            {/* Footer del modal */}
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowTurnoModal(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Cerrar
+                </button>
+                
+                                 {/* Botones de acción según el estado real del turno */}
+                 {getTurnoEstado(selectedTurno) === 'ocupado' ? (
+                   <button
+                     onClick={() => {
+                       handleLiberarTurno(selectedTurno);
+                       setShowTurnoModal(false);
+                     }}
+                     disabled={liberarTurnoMutation.isPending}
+                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
+                   >
+                     {liberarTurnoMutation.isPending ? 'Liberando...' : 'Liberar Turno'}
+                   </button>
+                                   ) : null}
+              </div>
+            </div>
           </div>
         </div>
       )}
