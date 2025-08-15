@@ -6,6 +6,7 @@ import type { Turno, Lugar, Usuario } from '../types';
 import Swal from 'sweetalert2';
 import DashboardStats from './dashboard/DashboardStats';
 import CalendarHeader from './dashboard/CalendarHeader';
+import CalendarNavigation from './dashboard/CalendarNavigation';
 
 export default function DashboardOverview() {
   const { user: _user } = useAuth();
@@ -689,50 +690,18 @@ export default function DashboardOverview() {
           setViewAllTurnos={setViewAllTurnos}
         />
         
-        <div className="p-6">
-          {/* Navegación del calendario */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              onClick={() => {
-                if (currentView === 'month') navigateMonth('prev');
-                else if (currentView === 'week') navigateWeek('prev');
-                else if (currentView === 'day') navigateDay('prev');
-              }}
-              className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
-              {currentView === 'month' ? formatMonthYear(currentDate) : 
-               currentView === 'week' ? formatWeekRange(currentDate) :
-               currentView === 'day' ? formatDay(currentDate) :
-               'Lista de Turnos'}
-            </h3>
-            
-            <div className="flex space-x-2">
-              <button
-                onClick={goToToday}
-                className="px-3 py-1 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Hoy
-              </button>
-                             <button
-                 onClick={() => {
-                   if (currentView === 'month') navigateMonth('next');
-                   else if (currentView === 'week') navigateWeek('next');
-                   else if (currentView === 'day') navigateDay('next');
-                 }}
-                 className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-               >
-                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                 </svg>
-               </button>
-            </div>
-          </div>
+                <div className="p-6">
+          <CalendarNavigation
+            currentView={currentView}
+            currentDate={currentDate}
+            navigateMonth={navigateMonth}
+            navigateWeek={navigateWeek}
+            navigateDay={navigateDay}
+            goToToday={goToToday}
+            formatMonthYear={formatMonthYear}
+            formatWeekRange={formatWeekRange}
+            formatDay={formatDay}
+          />
 
           {/* Vista del Mes */}
           {currentView === 'month' && (
