@@ -477,7 +477,6 @@ export default function TurnoModal({
                             <button
                               onClick={() => {
                                 handleAsignarUsuario(selectedTurno, usuario.id);
-                                setShowTurnoModal(false);
                               }}
                               disabled={asignarUsuarioMutation.isPending}
                               className="px-2 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs rounded-md transition-colors flex-shrink-0 ml-2"

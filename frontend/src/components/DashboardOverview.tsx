@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
@@ -63,11 +63,23 @@ export default function DashboardOverview() {
   // Obtener turnos procesados
   const turnos = getTurnosConLugares();
 
+  // Función para actualizar el selectedTurno con datos frescos
+  const updateSelectedTurno = useCallback(() => {
+    if (selectedTurno && turnos.length > 0) {
+      const turnoActualizado = turnos.find(t => t.id === selectedTurno.id);
+      if (turnoActualizado) {
+        setSelectedTurno(turnoActualizado);
+      }
+    }
+  }, [selectedTurno, turnos]);
+
   // Mutaciones para ocupar y liberar turnos
   const ocuparTurnoMutation = useMutation({
     mutationFn: (turnoId: number) => apiService.ocuparTurno(turnoId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      // Actualizar selectedTurno después de invalidar la query
+      setTimeout(() => updateSelectedTurno(), 100);
       Swal.fire({
         icon: 'success',
         title: '¡Turno ocupado!',
@@ -101,6 +113,8 @@ export default function DashboardOverview() {
       console.log('✅ Usuario removido exitosamente, invalidando query...');
       // Invalidar la query para traer datos frescos de la base de datos
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      // Actualizar selectedTurno después de invalidar la query
+      setTimeout(() => updateSelectedTurno(), 100);
       
       Swal.fire({
         icon: 'success',
@@ -128,6 +142,8 @@ export default function DashboardOverview() {
       console.log('✅ Usuario asignado exitosamente, invalidando query...');
       // Invalidar la query para traer datos frescos de la base de datos
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      // Actualizar selectedTurno después de invalidar la query
+      setTimeout(() => updateSelectedTurno(), 100);
       
       Swal.fire({
         icon: 'success',
@@ -181,6 +197,11 @@ export default function DashboardOverview() {
       setTurnosKey(prev => prev + 1);
     }
   }, [turnosData]);
+
+  // Actualizar selectedTurno cuando cambien los datos de turnos
+  useEffect(() => {
+    updateSelectedTurno();
+  }, [turnos, updateSelectedTurno]);
 
   const getTurnosToShow = () => {
     if (viewAllTurnos) {
