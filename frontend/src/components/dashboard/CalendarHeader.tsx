@@ -77,13 +77,8 @@ export default function CalendarHeader({
               onClick={() => {
                 const newValue = !viewMyTurnos;
                 setViewMyTurnos(newValue);
-                // Si se activa "Mis Turnos", desactivar "Ver Todos"
-                if (newValue) {
-                  setViewAllTurnos(false);
-                } else {
-                  // Si se desactiva "Mis Turnos", activar "Ver Todos" por defecto
-                  setViewAllTurnos(true);
-                }
+                // "Mis Turnos" puede funcionar independientemente de "Ver Todos"
+                // No desactivamos "Ver Todos" automáticamente
               }}
               className={`px-4 py-2 text-sm rounded-md flex items-center space-x-2 ${
                 viewMyTurnos
@@ -101,11 +96,8 @@ export default function CalendarHeader({
               onClick={() => {
                 const newValue = !viewAllTurnos;
                 setViewAllTurnos(newValue);
-                // Si se activa "Ver Todos", desactivar "Mis Turnos"
-                if (newValue) {
-                  setViewMyTurnos(false);
-                }
-                // Si se desactiva "Ver Todos", mantener "Mis Turnos" si está activo
+                // "Ver Todos" puede funcionar independientemente de "Mis Turnos"
+                // No desactivamos "Mis Turnos" automáticamente
               }}
               className={`px-4 py-2 text-sm rounded-md ${
                 viewAllTurnos
@@ -113,9 +105,22 @@ export default function CalendarHeader({
                   : 'bg-blue-600 text-white'
               }`}
             >
-              {viewAllTurnos ? 'Ver Solo Esta Semana' : 'Ver Todos los Turnos'}
+              {viewAllTurnos 
+                ? (viewMyTurnos ? 'Solo Esta Semana' : 'Ver Solo Esta Semana')
+                : (viewMyTurnos ? 'Todo el Mes' : 'Ver Todos los Turnos')
+              }
             </button>
           </div>
+          
+          {/* Indicador del estado de filtros */}
+          {viewMyTurnos && (
+            <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+              {viewAllTurnos 
+                ? '📅 Mis turnos de esta semana'
+                : '📅 Mis turnos de todo el mes'
+              }
+            </div>
+          )}
         </div>
       </div>
     </div>
