@@ -22,6 +22,7 @@ export default function DashboardOverview() {
   const [turnosKey, setTurnosKey] = useState(0); // Key para forzar re-render
 
   const [viewAllTurnos, setViewAllTurnos] = useState(true);
+  const [viewMyTurnos, setViewMyTurnos] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<'month' | 'week' | 'day' | 'list'>('month');
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
@@ -204,17 +205,28 @@ export default function DashboardOverview() {
   }, [turnos, updateSelectedTurno]);
 
   const getTurnosToShow = () => {
-    if (viewAllTurnos) {
-      return turnos;
+    let turnosFiltrados = turnos;
+
+    // Si "Mis Turnos" está activado, filtrar solo los turnos del usuario actual
+    if (viewMyTurnos && _user) {
+      turnosFiltrados = turnos.filter(turno => 
+        turno.usuarios && turno.usuarios.some(usuario => usuario.id === _user.id)
+      );
     }
-    // Mostrar solo turnos de la semana actual
+
+    // Si "Ver Todos" está activado, mostrar todos los turnos (o solo los filtrados por "Mis Turnos")
+    if (viewAllTurnos) {
+      return turnosFiltrados;
+    }
+
+    // Mostrar solo turnos de la semana actual (aplicando también el filtro de "Mis Turnos" si está activado)
     const now = new Date();
     const startOfCurrentWeek = new Date(now);
     startOfCurrentWeek.setDate(now.getDate() - now.getDay() + 1);
     const endOfCurrentWeek = new Date(startOfCurrentWeek);
     endOfCurrentWeek.setDate(startOfCurrentWeek.getDate() + 6);
 
-    return turnos.filter(turno => {
+    return turnosFiltrados.filter(turno => {
       const turnoDate = new Date(turno.fecha);
       return turnoDate >= startOfCurrentWeek && turnoDate <= endOfCurrentWeek;
     });
@@ -1221,6 +1233,8 @@ export default function DashboardOverview() {
           setCurrentView={setCurrentView}
           viewAllTurnos={viewAllTurnos}
           setViewAllTurnos={setViewAllTurnos}
+          viewMyTurnos={viewMyTurnos}
+          setViewMyTurnos={setViewMyTurnos}
         />
         
                 <div className="p-6">
