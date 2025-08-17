@@ -67,7 +67,7 @@ export default function DashboardOverview() {
   const updateSelectedTurno = useCallback(() => {
     if (selectedTurno && turnos.length > 0) {
       const turnoActualizado = turnos.find(t => t.id === selectedTurno.id);
-      if (turnoActualizado) {
+      if (turnoActualizado && JSON.stringify(turnoActualizado) !== JSON.stringify(selectedTurno)) {
         setSelectedTurno(turnoActualizado);
       }
     }
@@ -474,14 +474,27 @@ export default function DashboardOverview() {
     setSelectedTurno(turno);
     setShowTurnoModal(true);
     
+    // Debug: verificar qué datos tiene el turno
+    console.log('🔍 Turno seleccionado:', turno);
+    console.log('🔍 Usuarios del turno:', turno.usuarios);
+    if (turno.usuarios && turno.usuarios.length > 0) {
+      console.log('🔍 Primer usuario del turno:', turno.usuarios[0]);
+      console.log('🔍 Campos del primer usuario:', Object.keys(turno.usuarios[0]));
+    }
+    
     // Cargar usuarios disponibles si soy admin o superAdmin
     if (_user?.rol === 'admin' || _user?.rol === 'superAdmin') {
       setLoadingUsuarios(true);
       try {
         const response = await apiService.getUsuarios();
         if (response.data) {
+          console.log('🔍 Usuarios obtenidos del backend:', response.data);
+          console.log('🔍 Primer usuario ejemplo:', response.data[0]);
+          console.log('🔍 Campos del primer usuario del backend:', Object.keys(response.data[0]));
           // Filtrar usuarios por disponibilidad para este turno
           const usuariosFiltrados = await filtrarUsuariosPorDisponibilidad(response.data, turno);
+          console.log('🔍 Usuarios filtrados:', usuariosFiltrados);
+          console.log('🔍 Primer usuario filtrado ejemplo:', usuariosFiltrados[0]);
           setUsuariosDisponibles(usuariosFiltrados);
         }
       } catch (error) {
@@ -670,38 +683,68 @@ export default function DashboardOverview() {
             return;
           }
 
-          // Hay espacio para ambos, asignar primero al usuario principal
-          await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
-          
-          // Luego asignar automáticamente al usuario que siempre debe acompañar
-          await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId: usuario.siempreCon });
-          
-          // Mostrar mensaje de éxito
-          Swal.fire({
-            icon: 'success',
-            title: 'Usuarios asignados automáticamente',
-            html: `
-              <div class="text-left">
-                <p class="mb-3">Se han asignado automáticamente:</p>
-                <ul class="list-disc list-inside mb-3">
-                  <li><strong>${usuario.nombre}</strong></li>
-                  <li><strong>${usuarioSiempreCon.nombre}</strong> (siempre debe acompañar)</li>
-                </ul>
-                <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
-                  <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
-                  <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}</p>
-                  <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
-                </div>
-              </div>
-            `,
-            confirmButtonText: 'Entendido',
-            confirmButtonColor: '#10b981'
-          });
+                     // Mostrar confirmación antes de asignar automáticamente
+           const result = await Swal.fire({
+             title: 'Confirmar asignación automática',
+             html: `
+               <div class="text-left">
+                 <p class="mb-3"><strong>${usuario.nombre}</strong> debe estar siempre con <strong>${usuarioSiempreCon.nombre}</strong>.</p>
+                 <p class="mb-3">¿Deseas asignar automáticamente a ambos usuarios al turno?</p>
+                 <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+                   <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
+                   <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
+                     weekday: 'long', 
+                     year: 'numeric', 
+                     month: 'long', 
+                     day: 'numeric' 
+                   })}</p>
+                   <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+                   <p><strong>Puestos disponibles:</strong> ${capacidadDisponible}</p>
+                 </div>
+               </div>
+             `,
+             icon: 'question',
+             showCancelButton: true,
+             confirmButtonText: 'Sí, asignar ambos',
+             cancelButtonText: 'Cancelar',
+             confirmButtonColor: '#10b981',
+             cancelButtonColor: '#6B7280'
+           });
+           
+           if (result.isConfirmed) {
+             // Hay espacio para ambos, asignar primero al usuario principal
+             await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId });
+             
+             // Luego asignar automáticamente al usuario que siempre debe acompañar
+             await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId: usuario.siempreCon });
+             
+             // Mostrar mensaje de éxito
+             Swal.fire({
+               icon: 'success',
+               title: 'Usuarios asignados automáticamente',
+               html: `
+                 <div class="text-left">
+                   <p class="mb-3">Se han asignado automáticamente:</p>
+                   <ul class="list-disc list-inside mb-3">
+                     <li><strong>${usuario.nombre}</strong></li>
+                     <li><strong>${usuarioSiempreCon.nombre}</strong> (siempre debe acompañar)</li>
+                   </ul>
+                   <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+                     <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
+                     <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
+                       weekday: 'long', 
+                       year: 'numeric', 
+                       month: 'long', 
+                       day: 'numeric' 
+                     })}</p>
+                     <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+                   </div>
+                 </div>
+               `,
+               confirmButtonText: 'Entendido',
+               confirmButtonColor: '#10b981'
+             });
+           }
         } else {
           // El usuario "siempreCon" no está disponible, mostrar advertencia
           Swal.fire({
@@ -858,38 +901,68 @@ export default function DashboardOverview() {
                 return;
               }
 
-              // Hay espacio para ambos, asignar primero al usuario actual
-              await ocuparTurnoMutation.mutateAsync(turno.id);
-              
-              // Luego asignar automáticamente al usuario que siempre debe acompañar
-              await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId: _user.siempreCon });
-              
-              // Mostrar mensaje de éxito
-              Swal.fire({
-                icon: 'success',
-                title: 'Usuarios asignados automáticamente',
-                html: `
-                  <div class="text-left">
-                    <p class="mb-3">Se han asignado automáticamente:</p>
-                    <ul class="list-disc list-inside mb-3">
-                      <li><strong>${_user.nombre}</strong></li>
-                      <li><strong>${usuarioSiempreCon.nombre}</strong> (siempre debe acompañar)</li>
-                    </ul>
-                    <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
-                      <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
-                      <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}</p>
-                      <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
-                    </div>
-                  </div>
-                `,
-                confirmButtonText: 'Entendido',
-                confirmButtonColor: '#10b981'
-              });
+                             // Mostrar confirmación antes de asignar automáticamente
+               const resultSiempreCon = await Swal.fire({
+                 title: 'Confirmar asignación automática',
+                 html: `
+                   <div class="text-left">
+                     <p class="mb-3"><strong>${_user.nombre}</strong> debe estar siempre con <strong>${usuarioSiempreCon.nombre}</strong>.</p>
+                     <p class="mb-3">¿Deseas asignar automáticamente a ambos usuarios al turno?</p>
+                     <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+                       <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
+                       <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
+                         weekday: 'long', 
+                         year: 'numeric', 
+                         month: 'long', 
+                         day: 'numeric' 
+                       })}</p>
+                       <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+                       <p><strong>Puestos disponibles:</strong> ${capacidadDisponible}</p>
+                     </div>
+                   </div>
+                 `,
+                 icon: 'question',
+                 showCancelButton: true,
+                 confirmButtonText: 'Sí, asignar ambos',
+                 cancelButtonText: 'Cancelar',
+                 confirmButtonColor: '#10b981',
+                 cancelButtonColor: '#6B7280'
+               });
+               
+               if (resultSiempreCon.isConfirmed) {
+                 // Hay espacio para ambos, asignar primero al usuario actual
+                 await ocuparTurnoMutation.mutateAsync(turno.id);
+                 
+                 // Luego asignar automáticamente al usuario que siempre debe acompañar
+                 await asignarUsuarioMutation.mutateAsync({ turnoId: turno.id, usuarioId: _user.siempreCon });
+                 
+                 // Mostrar mensaje de éxito
+                 Swal.fire({
+                   icon: 'success',
+                   title: 'Usuarios asignados automáticamente',
+                   html: `
+                     <div class="text-left">
+                       <p class="mb-3">Se han asignado automáticamente:</p>
+                       <ul class="list-disc list-inside mb-3">
+                         <li><strong>${_user.nombre}</strong></li>
+                         <li><strong>${usuarioSiempreCon.nombre}</strong> (siempre debe acompañar)</li>
+                       </ul>
+                       <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+                         <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
+                         <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
+                           weekday: 'long', 
+                           year: 'numeric', 
+                           month: 'long', 
+                           day: 'numeric' 
+                         })}</p>
+                         <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+                       </div>
+                     </div>
+                   `,
+                   confirmButtonText: 'Entendido',
+                   confirmButtonColor: '#10b981'
+                 });
+               }
             } else {
               // El usuario "siempreCon" no está disponible, mostrar advertencia
               Swal.fire({
@@ -934,6 +1007,8 @@ export default function DashboardOverview() {
       */
      const handleLiberarTurno = async (turno: Turno, usuarioId?: number) => {
        try {
+         console.log('🔍 handleLiberarTurno ejecutado:', { turnoId: turno.id, usuarioId, turno });
+         
          // Si no soy admin/superAdmin, solo puedo liberarme a mí mismo
          if (!(_user?.rol === 'admin' || _user?.rol === 'superAdmin')) {
            if (usuarioId && usuarioId !== _user?.id) {
@@ -947,75 +1022,109 @@ export default function DashboardOverview() {
            }
          }
 
-         // Si se especifica un usuarioId, verificar si tiene "siempreCon"
-         if (usuarioId) {
-           const usuarioAEliminar = turno.usuarios?.find(u => u.id === usuarioId);
-           
-           if (usuarioAEliminar?.siempreCon) {
-             // Buscar al usuario que siempre debe acompañar
-             const usuarioSiempreCon = turno.usuarios?.find(u => u.id === usuarioAEliminar.siempreCon);
-             
-             if (usuarioSiempreCon) {
-               // Confirmar eliminación de ambos usuarios
-               const result = await Swal.fire({
-                 title: 'Confirmar eliminación de usuarios relacionados',
-                 html: `
-                   <div class="text-left">
-                     <p class="mb-3"><strong>${usuarioAEliminar.nombre}</strong> debe estar siempre con <strong>${usuarioSiempreCon.nombre}</strong>.</p>
-                     <p class="mb-3">Al eliminar a uno, se eliminarán automáticamente ambos del turno.</p>
-                     <div class="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-sm">
-                       <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
-                       <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
-                         weekday: 'long', 
-                         year: 'numeric', 
-                         month: 'long', 
-                         day: 'numeric' 
-                       })}</p>
-                       <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
-                     </div>
-                   </div>
-                 `,
-                 icon: 'warning',
-                 showCancelButton: true,
-                 confirmButtonText: 'Sí, eliminar ambos',
-                 cancelButtonText: 'Cancelar',
-                 confirmButtonColor: '#d33',
-                 cancelButtonColor: '#3085d6'
-               });
+                   // Si se especifica un usuarioId, verificar si tiene "siempreCon"
+          if (usuarioId) {
+            console.log('🔍 Verificando usuarioId:', usuarioId);
+            const usuarioAEliminar = turno.usuarios?.find(u => u.id === usuarioId);
+            console.log('🔍 Usuario a eliminar encontrado:', usuarioAEliminar);
+            console.log('🔍 Campo siempreCon del usuario:', usuarioAEliminar?.siempreCon);
+            console.log('🔍 Tipo de siempreCon:', typeof usuarioAEliminar?.siempreCon);
+            console.log('🔍 ¿Es truthy?', !!usuarioAEliminar?.siempreCon);
+            
+            // Verificar si el usuario tiene "siempreCon" configurado
+            if (usuarioAEliminar?.siempreCon && typeof usuarioAEliminar.siempreCon === 'number' && usuarioAEliminar.siempreCon > 0) {
+              console.log('🔍 Usuario tiene siempreCon válido:', usuarioAEliminar.siempreCon);
+              
+              // Buscar al usuario que siempre debe acompañar (puede estar o no en el turno)
+              // Primero buscar en usuariosDisponibles, luego en turno.usuarios
+              let usuarioSiempreCon = usuariosDisponibles.find(u => u.id === usuarioAEliminar.siempreCon);
+              if (!usuarioSiempreCon) {
+                usuarioSiempreCon = turno.usuarios?.find(u => u.id === usuarioAEliminar.siempreCon);
+              }
+              
+              console.log('🔍 Usuario siempreCon encontrado:', usuarioSiempreCon);
+              
+              if (usuarioSiempreCon) {
+                               // Confirmar eliminación de ambos usuarios
+                const result = await Swal.fire({
+                  title: '⚠️ Usuarios relacionados detectados',
+                  html: `
+                    <div class="text-left">
+                      <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-4">
+                        <p class="text-red-800 dark:text-red-200 font-semibold mb-2">¡Atención!</p>
+                        <p class="mb-3"><strong>${usuarioAEliminar.nombre}</strong> debe estar siempre con <strong>${usuarioSiempreCon.nombre}</strong>.</p>
+                        <p class="mb-3">Al eliminar a uno, se eliminarán <strong>automáticamente ambos usuarios</strong> del turno.</p>
+                      </div>
+                      
+                      <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+                        <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
+                        <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}</p>
+                        <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+                      </div>
+                      
+                      <div class="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                          <strong>¿Estás seguro de que quieres eliminar a ambos usuarios?</strong>
+                        </p>
+                      </div>
+                    </div>
+                  `,
+                  icon: 'warning',
+                  showCancelButton: true,
+                  confirmButtonText: 'Sí, eliminar ambos',
+                  cancelButtonText: 'Cancelar',
+                  confirmButtonColor: '#d33',
+                  cancelButtonColor: '#3085d6'
+                });
                
                if (result.isConfirmed) {
-                 // Eliminar primero al usuario principal
-                 await liberarTurnoMutation.mutateAsync({ turnoId: turno.id, usuarioId });
-                 
-                 // Luego eliminar automáticamente al usuario que siempre debe acompañar
-                 await liberarTurnoMutation.mutateAsync({ turnoId: turno.id, usuarioId: usuarioAEliminar.siempreCon });
-                 
-                 // Mostrar mensaje de éxito
-                 Swal.fire({
-                   icon: 'success',
-                   title: 'Usuarios eliminados del turno',
-                   html: `
-                     <div class="text-left">
-                       <p class="mb-3">Se han eliminado del turno:</p>
-                       <ul class="list-disc list-inside mb-3">
-                         <li><strong>${usuarioAEliminar.nombre}</strong></li>
-                         <li><strong>${usuarioSiempreCon.nombre}</strong> (siempre debe acompañar)</li>
-                       </ul>
-                       <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
-                         <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
-                         <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
-                           weekday: 'long', 
-                           year: 'numeric', 
-                           month: 'long', 
-                           day: 'numeric' 
-                         })}</p>
-                         <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+                 try {
+                   // Eliminar ambos usuarios en una sola operación para evitar problemas de sincronización
+                   await Promise.all([
+                     liberarTurnoMutation.mutateAsync({ turnoId: turno.id, usuarioId }),
+                     liberarTurnoMutation.mutateAsync({ turnoId: turno.id, usuarioId: usuarioAEliminar.siempreCon })
+                   ]);
+                   
+                   // Mostrar mensaje de éxito
+                   Swal.fire({
+                     icon: 'success',
+                     title: 'Usuarios eliminados del turno',
+                     html: `
+                       <div class="text-left">
+                         <p class="mb-3">Se han eliminado del turno:</p>
+                         <ul class="list-disc list-inside mb-3">
+                           <li><strong>${usuarioAEliminar.nombre}</strong></li>
+                           <li><strong>${usuarioSiempreCon.nombre}</strong> (siempre debe acompañar)</li>
+                         </ul>
+                         <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+                           <p><strong>Lugar:</strong> ${turno.lugar?.nombre || 'Sin lugar'}</p>
+                           <p><strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-ES', { 
+                             weekday: 'long', 
+                             year: 'numeric', 
+                             month: 'long', 
+                             day: 'numeric' 
+                           })}</p>
+                           <p><strong>Horario:</strong> ${formatHora(turno.hora)}</p>
+                         </div>
                        </div>
-                     </div>
-                   `,
-                   confirmButtonText: 'Entendido',
-                   confirmButtonColor: '#10b981'
-                 });
+                     `,
+                     confirmButtonText: 'Entendido',
+                     confirmButtonColor: '#10b981'
+                   });
+                 } catch (error) {
+                   console.error('Error eliminando usuarios relacionados:', error);
+                   Swal.fire({
+                     icon: 'error',
+                     title: 'Error al eliminar usuarios',
+                     text: 'Ocurrió un error al eliminar los usuarios relacionados del turno',
+                     confirmButtonText: 'Entendido'
+                   });
+                 }
                }
                return;
              }

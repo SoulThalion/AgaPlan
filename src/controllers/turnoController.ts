@@ -1000,7 +1000,14 @@ export const getTurnos = async (req: AuthenticatedRequest, res: Response) => {
           model: Usuario,
           as: 'usuarios',
           through: { attributes: [] },
-          attributes: ['id', 'nombre', 'email', 'cargo', 'sexo', 'tieneCoche']
+          attributes: ['id', 'nombre', 'email', 'cargo', 'sexo', 'tieneCoche', 'siempreCon', 'nuncaCon'],
+          include: [
+            {
+              model: Usuario,
+              as: 'siempreConUsuario',
+              attributes: ['id', 'nombre']
+            }
+          ]
         },
         {
           model: Exhibidor,
@@ -1011,6 +1018,26 @@ export const getTurnos = async (req: AuthenticatedRequest, res: Response) => {
       ],
       order: [['fecha', 'ASC'], ['hora', 'ASC']]
     });
+
+    console.log('🔍 Backend: Turnos encontrados:', turnos.length);
+    
+    // Log detallado del primer turno para debug
+    if (turnos.length > 0) {
+      const primerTurno = turnos[0];
+      console.log('🔍 Backend: Primer turno ID:', primerTurno.id);
+      console.log('🔍 Backend: Usuarios del primer turno:', primerTurno.usuarios?.length || 0);
+      
+      if (primerTurno.usuarios && primerTurno.usuarios.length > 0) {
+        const primerUsuario = primerTurno.usuarios[0];
+        console.log('🔍 Backend: Primer usuario del primer turno:', {
+          id: primerUsuario.id,
+          nombre: primerUsuario.nombre,
+          siempreCon: primerUsuario.siempreCon,
+          tipoSiempreCon: typeof primerUsuario.siempreCon,
+          todosLosCampos: Object.keys(primerUsuario)
+        });
+      }
+    }
 
     res.json({
       success: true,

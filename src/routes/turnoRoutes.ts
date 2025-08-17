@@ -9,7 +9,8 @@ import {
   liberarTurno,
   asignarUsuarioATurno,
   generarTurnosAutomaticos,
-  createTurnosRecurrentes
+  createTurnosRecurrentes,
+  getTurnos
 } from '../controllers/turnoController';
 import { requireAdmin, requireSuperAdmin } from '../middleware/roleMiddleware';
 import { authMiddleware } from '../middleware/authMiddleware';
@@ -17,7 +18,7 @@ import { authMiddleware } from '../middleware/authMiddleware';
 const router = Router();
 
 // Rutas públicas (solo lectura)
-router.get('/', getAllTurnos);
+router.get('/', getTurnos);
 router.get('/:id', getTurnoById);
 
 // Rutas protegidas para admin y superAdmin

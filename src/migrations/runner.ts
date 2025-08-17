@@ -19,7 +19,7 @@ import createTurnoExhibidoresTable from './016-create-turno-exhibidores-table';
 import * as modifyHoraToRange from './017-modify-hora-to-range';
 import * as createTurnoUsuariosTable from './018-create-turno-usuarios-table';
 import * as makeEmailPasswordOptional from './022-make-email-password-optional';
-const createUserDisponibilidadConfig = require('./021-create-user-disponibilidad-config');
+import * as createUserDisponibilidadConfig from './021-create-user-disponibilidad-config';
 
 const migrations = [
   { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.down },
@@ -103,7 +103,7 @@ export async function runMigrations() {
       }
       
       console.log(`🔄 Ejecutando migración: ${migration.name}`);
-      await migration.up(sequelize.getQueryInterface(), Sequelize);
+      await migration.up(sequelize.getQueryInterface());
       await markMigrationAsExecuted(migration.name);
       console.log(`✅ Migración ${migration.name} ejecutada exitosamente`);
     }
