@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Sidebar from './Sidebar';
 import UserManagement from './UserManagement';
 import PlaceManagement from './PlaceManagement';
-import AvailabilityManagement from './AvailabilityManagement';
+
 import ShiftManagement from './ShiftManagement';
 import DashboardOverview from './DashboardOverview';
 import CargoManagement from './CargoManagement';
@@ -20,8 +20,7 @@ const Dashboard: React.FC = () => {
         return isAdmin ? <UserManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
       case 'lugares':
         return isAdmin ? <PlaceManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
-      case 'disponibilidades':
-        return <AvailabilityManagement />;
+
       case 'turnos':
         return isAdmin ? <ShiftManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
       case 'cargos':
