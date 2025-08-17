@@ -187,6 +187,11 @@ class ApiService {
     return response.data;
   }
 
+  async limpiarTodosLosUsuariosDeTurnos(): Promise<ApiResponse<{ turnosLimpiados: number }>> {
+    const response = await this.api.delete<ApiResponse<{ turnosLimpiados: number }>>('/turnos/limpiar-usuarios');
+    return response.data;
+  }
+
   // Disponibilidades
   async getDisponibilidades(): Promise<ApiResponse<Disponibilidad[]>> {
     const response = await this.api.get<ApiResponse<Disponibilidad[]>>('/disponibilidades');

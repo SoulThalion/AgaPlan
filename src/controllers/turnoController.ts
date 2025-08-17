@@ -1051,3 +1051,42 @@ export const getTurnos = async (req: AuthenticatedRequest, res: Response) => {
     });
   }
 };
+
+// Limpiar todos los usuarios de todos los turnos (admin)
+export const limpiarTodosLosUsuariosDeTurnos = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Verificar que el usuario sea admin
+    if (req.user?.rol !== 'admin' && req.user?.rol !== 'superAdmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Acceso denegado. Solo los administradores pueden realizar esta acción.'
+      });
+    }
+
+    // Eliminar todas las relaciones usuario-turno
+    const resultado = await TurnoUsuario.destroy({
+      where: {},
+      force: true // Eliminación permanente
+    });
+
+    // Actualizar el estado de todos los turnos a 'libre'
+    await Turno.update(
+      { estado: 'libre' },
+      { where: {} }
+    );
+
+    console.log(`🧹 Se limpiaron ${resultado} asignaciones de usuarios de turnos`);
+
+    res.status(200).json({
+      success: true,
+      message: `Se limpiaron exitosamente ${resultado} asignaciones de usuarios de turnos. Todos los turnos ahora están libres.`,
+      data: { turnosLimpiados: resultado }
+    });
+  } catch (error) {
+    console.error('Error limpiando usuarios de turnos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor al limpiar usuarios de turnos'
+    });
+  }
+};

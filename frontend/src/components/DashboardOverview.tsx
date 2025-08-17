@@ -559,6 +559,64 @@ export default function DashboardOverview() {
     }
   };
 
+  // Función para limpiar todos los usuarios de todos los turnos
+  const handleLimpiarTodo = async () => {
+    try {
+      // Confirmar la acción con el usuario
+      const result = await Swal.fire({
+        icon: 'warning',
+        title: '¿Estás seguro?',
+        text: 'Esta acción eliminará TODOS los usuarios asignados a TODOS los turnos. Esta operación no se puede deshacer.',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, limpiar todo',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (result.isConfirmed) {
+        // Mostrar loading
+        Swal.fire({
+          title: 'Limpiando turnos...',
+          text: 'Por favor espera mientras se procesa la solicitud',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        // Llamar a la API para limpiar todos los usuarios
+        const response = await apiService.limpiarTodosLosUsuariosDeTurnos();
+        
+        if (response.success) {
+          // Invalidar queries para actualizar la UI
+          queryClient.invalidateQueries({ queryKey: ['turnos'] });
+          queryClient.invalidateQueries({ queryKey: ['participacionMensualActual'] });
+          
+          // Cerrar el modal de loading y mostrar éxito
+          Swal.fire({
+            icon: 'success',
+            title: '¡Turnos limpiados exitosamente!',
+            text: `Se han eliminado ${response.data?.turnosLimpiados || 0} asignaciones de usuarios. Todos los turnos ahora están libres.`,
+            confirmButtonText: 'Aceptar'
+          });
+        } else {
+          throw new Error(response.message || 'Error desconocido');
+        }
+      }
+    } catch (error: any) {
+      console.error('Error limpiando usuarios de turnos:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Error al limpiar usuarios de turnos';
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al limpiar turnos',
+        text: errorMessage,
+        confirmButtonText: 'Aceptar'
+      });
+    }
+  };
+
   const handleTurnoClick = async (turno: Turno) => {
     setSelectedTurno(turno);
     setShowTurnoModal(true);
@@ -1327,6 +1385,7 @@ export default function DashboardOverview() {
           viewMyTurnos={viewMyTurnos}
           setViewMyTurnos={setViewMyTurnos}
           onGeneratePDF={handleGeneratePDF}
+          onLimpiarTodo={handleLimpiarTodo}
         />
         
                 <div className="p-6">
