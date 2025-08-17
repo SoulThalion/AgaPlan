@@ -1,5 +1,6 @@
 import type { Turno, Usuario } from '../../types';
 import { useState } from 'react';
+import PlaceMapModal from '../PlaceMapModal';
 
 interface TurnoModalProps {
   showTurnoModal: boolean;
@@ -39,6 +40,9 @@ export default function TurnoModal({
   
   // Estado para controlar si los requisitos están desplegados
   const [requisitosDesplegados, setRequisitosDesplegados] = useState(false);
+
+  // Estado para controlar el modal del mapa
+  const [showMapModal, setShowMapModal] = useState(false);
 
   // Función para calcular los requisitos del turno
   const calcularRequisitosTurno = () => {
@@ -143,25 +147,42 @@ export default function TurnoModal({
                   </div>
                   
                   {lugarDesplegado && (
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-600 dark:text-gray-400">Dirección:</p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {selectedTurno.lugar.direccion}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 dark:text-gray-400">Capacidad:</p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {selectedTurno.lugar.capacidad || 'No especificada'}
-                        </p>
-                      </div>
-                      {selectedTurno.lugar.descripcion && (
-                        <div className="col-span-2">
-                          <p className="text-gray-600 dark:text-gray-400">Descripción:</p>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Dirección:</p>
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {selectedTurno.lugar.descripcion}
+                            {selectedTurno.lugar.direccion}
                           </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">Capacidad:</p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {selectedTurno.lugar.capacidad || 'No especificada'}
+                          </p>
+                        </div>
+                        {selectedTurno.lugar.descripcion && (
+                          <div className="col-span-2">
+                            <p className="text-gray-600 dark:text-gray-400">Descripción:</p>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {selectedTurno.lugar.descripcion}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Botón para ver el mapa */}
+                      {selectedTurno.lugar.latitud && selectedTurno.lugar.longitud && (
+                        <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                          <button
+                            onClick={() => setShowMapModal(true)}
+                            className="flex items-center justify-center w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3" />
+                            </svg>
+                            Ver en el Mapa
+                          </button>
                         </div>
                       )}
                     </div>
@@ -524,6 +545,15 @@ export default function TurnoModal({
           </div>
         </div>
       </div>
+
+      {/* Modal del mapa del lugar */}
+      {showMapModal && selectedTurno.lugar && (
+        <PlaceMapModal
+          isOpen={showMapModal}
+          onClose={() => setShowMapModal(false)}
+          lugar={selectedTurno.lugar}
+        />
+      )}
     </div>
   );
 }
