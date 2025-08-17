@@ -1,6 +1,7 @@
 import type { Turno, Usuario } from '../../types';
 import { useState } from 'react';
 import PlaceMapModal from '../PlaceMapModal';
+import ParticipacionMensualDisplay from '../ParticipacionMensualDisplay';
 
 interface TurnoModalProps {
   showTurnoModal: boolean;
@@ -362,6 +363,11 @@ export default function TurnoModal({
                         >
                           {usuario.cargo}
                         </p>
+                                                 <ParticipacionMensualDisplay
+                           userId={usuario.id}
+                           participacionMensual={usuario.participacionMensual}
+                           className="text-blue-600 dark:text-blue-400"
+                         />
                         
                         {/* Botón de remover (solo para admins o para removerte a ti mismo) */}
                         {(_user?.rol === 'admin' || _user?.rol === 'superAdmin' || usuario.id === _user?.id) && (
@@ -474,6 +480,11 @@ export default function TurnoModal({
                                 >
                                   {usuario.cargo}
                                 </p>
+                                                                 <ParticipacionMensualDisplay
+                                   userId={usuario.id}
+                                   participacionMensual={usuario.participacionMensual}
+                                   className="text-green-600 dark:text-green-400"
+                                 />
                               </div>
                             </div>
                             <button

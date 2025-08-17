@@ -14,6 +14,7 @@ import ListView from './dashboard/ListView';
 import ColorLegend from './dashboard/ColorLegend';
 import DebugInfo from './dashboard/DebugInfo';
 import TurnoModal from './dashboard/TurnoModal';
+import { generateTurnosPDF, generateMyTurnosPDF, generateWeekTurnosPDF, type TurnoForPDF } from '../utils/pdfGenerator';
 
 export default function DashboardOverview() {
   const { user: _user } = useAuth();
@@ -78,7 +79,11 @@ export default function DashboardOverview() {
   const ocuparTurnoMutation = useMutation({
     mutationFn: (turnoId: number) => apiService.ocuparTurno(turnoId),
     onSuccess: () => {
+      console.log('✅ Turno ocupado exitosamente, invalidando queries...');
+      // Invalidar la query de turnos para traer datos frescos
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      // Invalidar todas las queries de participación mensual actual para actualizar la información
+      queryClient.invalidateQueries({ queryKey: ['participacionMensualActual'] });
       // Actualizar selectedTurno después de invalidar la query
       setTimeout(() => updateSelectedTurno(), 100);
       Swal.fire({
@@ -111,9 +116,11 @@ export default function DashboardOverview() {
       }
     },
     onSuccess: () => {
-      console.log('✅ Usuario removido exitosamente, invalidando query...');
-      // Invalidar la query para traer datos frescos de la base de datos
+      console.log('✅ Usuario removido exitosamente, invalidando queries...');
+      // Invalidar la query de turnos para traer datos frescos
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      // Invalidar todas las queries de participación mensual actual para actualizar la información
+      queryClient.invalidateQueries({ queryKey: ['participacionMensualActual'] });
       // Actualizar selectedTurno después de invalidar la query
       setTimeout(() => updateSelectedTurno(), 100);
       
@@ -140,9 +147,11 @@ export default function DashboardOverview() {
     mutationFn: ({ turnoId, usuarioId }: { turnoId: number; usuarioId: number }) => 
       apiService.asignarUsuarioATurno(turnoId, usuarioId),
     onSuccess: () => {
-      console.log('✅ Usuario asignado exitosamente, invalidando query...');
-      // Invalidar la query para traer datos frescos de la base de datos
+      console.log('✅ Usuario asignado exitosamente, invalidando queries...');
+      // Invalidar la query de turnos para traer datos frescos
       queryClient.invalidateQueries({ queryKey: ['turnos'] });
+      // Invalidar todas las queries de participación mensual actual para actualizar la información
+      queryClient.invalidateQueries({ queryKey: ['participacionMensualActual'] });
       // Actualizar selectedTurno después de invalidar la query
       setTimeout(() => updateSelectedTurno(), 100);
       
@@ -482,6 +491,74 @@ export default function DashboardOverview() {
     });
   };
 
+  // Función para generar PDF
+  const handleGeneratePDF = () => {
+    try {
+      // Convertir turnos al formato necesario para PDF
+      const turnosForPDF: TurnoForPDF[] = turnos.map(turno => ({
+        id: turno.id,
+        fecha: turno.fecha,
+        hora: turno.hora,
+        lugar: {
+          nombre: turno.lugar?.nombre || 'Sin lugar',
+          direccion: turno.lugar?.direccion || 'Sin dirección',
+          capacidad: turno.lugar?.capacidad
+        },
+        exhibidores: turno.exhibidores?.map(e => ({
+          nombre: e.nombre,
+          descripcion: e.descripcion
+        })) || [],
+        usuarios: turno.usuarios?.map(u => ({
+          id: u.id,
+          nombre: u.nombre,
+          cargo: u.cargo || 'Sin cargo',
+          tieneCoche: u.tieneCoche || false
+        })) || []
+      }));
+
+      // Determinar qué tipo de PDF generar según los filtros activos
+      if (viewMyTurnos) {
+        // Filtrar solo mis turnos
+        const misTurnos = turnosForPDF.filter(turno => 
+          turno.usuarios && turno.usuarios.some(u => u.id === _user?.id)
+        );
+        
+        if (viewAllTurnos) {
+          // Mis turnos de esta semana
+          generateWeekTurnosPDF(misTurnos);
+        } else {
+          // Mis turnos de todo el mes
+          generateMyTurnosPDF(misTurnos, _user?.nombre || 'Usuario');
+        }
+      } else {
+        // Todos los turnos
+        if (viewAllTurnos) {
+          // Turnos de esta semana
+          generateWeekTurnosPDF(turnosForPDF);
+        } else {
+          // Todos los turnos del mes
+          generateTurnosPDF(turnosForPDF);
+        }
+      }
+
+      // Mostrar mensaje de éxito
+      Swal.fire({
+        icon: 'success',
+        title: 'PDF generado exitosamente',
+        text: 'El archivo se ha descargado automáticamente',
+        confirmButtonText: 'Aceptar'
+      });
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al generar PDF',
+        text: 'Ocurrió un error al generar el documento',
+        confirmButtonText: 'Aceptar'
+      });
+    }
+  };
+
   const handleTurnoClick = async (turno: Turno) => {
     setSelectedTurno(turno);
     setShowTurnoModal(true);
@@ -552,6 +629,20 @@ export default function DashboardOverview() {
       const usuarioNuncaCon = turno.usuarios.find(u => u.id === usuario.nuncaCon);
       if (usuarioNuncaCon) {
         return false; // El usuario no está disponible porque no quiere trabajar con alguien que ya está en el turno
+      }
+    }
+    
+    // Verificar participación mensual actual antes de verificar disponibilidad
+    if (usuario.participacionMensual !== null && usuario.participacionMensual !== undefined) {
+      try {
+        const participacionActual = await apiService.getParticipacionMensualActual(usuario.id);
+        if (participacionActual.turnosOcupados >= usuario.participacionMensual) {
+          console.log(`❌ Usuario ${usuario.nombre} ya alcanzó su límite mensual (${participacionActual.turnosOcupados}/${usuario.participacionMensual})`);
+          return false; // El usuario ya alcanzó su límite mensual
+        }
+      } catch (error) {
+        console.error(`Error verificando participación mensual de usuario ${usuario.nombre}:`, error);
+        // En caso de error, continuar con la verificación de disponibilidad
       }
     }
     
@@ -1235,6 +1326,7 @@ export default function DashboardOverview() {
           setViewAllTurnos={setViewAllTurnos}
           viewMyTurnos={viewMyTurnos}
           setViewMyTurnos={setViewMyTurnos}
+          onGeneratePDF={handleGeneratePDF}
         />
         
                 <div className="p-6">

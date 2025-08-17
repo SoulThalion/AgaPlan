@@ -99,10 +99,16 @@ class ApiService {
     return response.data;
   }
 
-  async configurarParticipacionMensual(id: number, participacionMensual: number): Promise<ApiResponse<Usuario>> {
-    const response = await this.api.patch<ApiResponse<Usuario>>(`/usuarios/${id}/participacion-mensual`, {
+  async configurarParticipacionMensual(userId: number, participacionMensual: number | null): Promise<ApiResponse<Usuario>> {
+    const response = await this.api.patch<ApiResponse<Usuario>>(`/usuarios/${userId}/participacion-mensual`, {
       participacionMensual
     });
+    return response.data;
+  }
+
+  // Obtener la participación mensual actual de un usuario
+  async getParticipacionMensualActual(userId: number): Promise<any> {
+    const response = await this.api.get(`/usuarios/${userId}/participacion-mensual-actual`);
     return response.data;
   }
 

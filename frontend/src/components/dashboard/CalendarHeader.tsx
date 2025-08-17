@@ -5,6 +5,7 @@ interface CalendarHeaderProps {
   setViewAllTurnos: (value: boolean) => void;
   viewMyTurnos: boolean;
   setViewMyTurnos: (value: boolean) => void;
+  onGeneratePDF: () => void;
 }
 
 export default function CalendarHeader({
@@ -13,7 +14,8 @@ export default function CalendarHeader({
   viewAllTurnos,
   setViewAllTurnos,
   viewMyTurnos,
-  setViewMyTurnos
+  setViewMyTurnos,
+  onGeneratePDF // Destructure onGeneratePDF
 }: CalendarHeaderProps) {
   return (
     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -111,7 +113,10 @@ export default function CalendarHeader({
               }
             </button>
           </div>
-          
+        </div>
+        
+        {/* Lado derecho: Indicadores y botón PDF */}
+        <div className="flex items-center space-x-4">
           {/* Indicador del estado de filtros */}
           {viewMyTurnos && (
             <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
@@ -121,6 +126,23 @@ export default function CalendarHeader({
               }
             </div>
           )}
+          
+          {/* Botón para generar PDF */}
+          <button
+            onClick={() => {
+              // Llamar a la función que se pasará como prop
+              if (onGeneratePDF) {
+                onGeneratePDF();
+              }
+            }}
+            className="px-4 py-2 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white flex items-center space-x-2 transition-colors duration-200 shadow-lg hover:shadow-xl"
+            title="Generar PDF con todos los turnos visibles"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Generar PDF</span>
+          </button>
         </div>
       </div>
     </div>

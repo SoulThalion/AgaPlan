@@ -5,7 +5,8 @@ import {
   createUsuario,
   updateUsuario,
   deleteUsuario,
-  configurarParticipacionMensual
+  configurarParticipacionMensual,
+  getParticipacionMensualActual
 } from '../controllers/usuarioController';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { requireAdmin, requireSuperAdmin } from '../middleware/roleMiddleware';
@@ -23,5 +24,8 @@ router.delete('/:id', authMiddleware, requireSuperAdmin, deleteUsuario);
 
 // Ruta específica para configurar participación mensual
 router.patch('/:id/participacion-mensual', authMiddleware, configurarParticipacionMensual);
+
+// Ruta para obtener la participación mensual actual de un usuario
+router.get('/:id/participacion-mensual-actual', getParticipacionMensualActual);
 
 export default router;

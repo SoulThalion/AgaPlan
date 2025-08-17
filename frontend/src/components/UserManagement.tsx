@@ -4,6 +4,7 @@ import { apiService } from '../services/api';
 import type { Usuario } from '../types';
 import Swal from 'sweetalert2';
 import DisponibilidadModal from './DisponibilidadModal';
+import ParticipacionMensualDisplay from './ParticipacionMensualDisplay';
 
 const UserManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,7 +18,7 @@ const UserManagement: React.FC = () => {
     sexo: 'M' as 'M' | 'F' | 'O',
     cargo: '',
     rol: 'voluntario' as 'voluntario' | 'admin' | 'superAdmin',
-    participacionMensual: undefined as number | undefined,
+    participacionMensual: undefined as number | null | undefined,
     tieneCoche: false,
     siempreCon: undefined as number | undefined,
     nuncaCon: undefined as number | undefined
@@ -115,7 +116,7 @@ const UserManagement: React.FC = () => {
       sexo: 'M',
       cargo: '',
       rol: 'voluntario',
-      participacionMensual: undefined,
+      participacionMensual: null,
       tieneCoche: false,
       siempreCon: undefined,
       nuncaCon: undefined
@@ -300,9 +301,12 @@ const UserManagement: React.FC = () => {
                           {user.rol}
                         </span>
                       </td>
-                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
-                        {user.participacionMensual ? `${user.participacionMensual}%` : '-'}
-                      </td>
+                                             <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                         <ParticipacionMensualDisplay
+                           userId={user.id}
+                           participacionMensual={user.participacionMensual}
+                         />
+                       </td>
                       <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
                         {user.tieneCoche ? 'Sí' : 'No'}
                       </td>
@@ -394,10 +398,13 @@ const UserManagement: React.FC = () => {
                   <p className="text-neutral-text dark:text-white font-medium">{user.cargo || '-'}</p>
                 </div>
                 <div>
-                  <span className="text-neutral-text/60 dark:text-white/60">Participación:</span>
-                  <p className="text-neutral-text dark:text-white font-medium">
-                    {user.participacionMensual ? `${user.participacionMensual}%` : '-'}
-                  </p>
+                                     <span className="text-neutral-text/60 dark:text-white/60">Participación:</span>
+                   <div className="text-neutral-text dark:text-white font-medium">
+                     <ParticipacionMensualDisplay
+                       userId={user.id}
+                       participacionMensual={user.participacionMensual}
+                     />
+                   </div>
                 </div>
                 <div>
                   <span className="text-neutral-text/60 dark:text-white/60">Tiene Coche:</span>

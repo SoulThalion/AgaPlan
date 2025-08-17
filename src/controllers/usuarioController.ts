@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../types/auth';
 import Usuario from '../models/Usuario';
+import { Op } from 'sequelize';
+import Turno from '../models/Turno';
 
 export const getAllUsuarios = async (req: Request, res: Response) => {
   try {
@@ -382,5 +384,58 @@ export const configurarParticipacionMensual = async (req: AuthenticatedRequest, 
       success: false,
       message: 'Error interno del servidor'
     });
+  }
+};
+
+// Función para obtener la participación mensual actual de un usuario
+export const getParticipacionMensualActual = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Obtener el usuario
+    const usuario = await Usuario.findByPk(id);
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Obtener la fecha actual
+    const fechaActual = new Date();
+    const mesActual = fechaActual.getMonth();
+    const añoActual = fechaActual.getFullYear();
+
+    // Obtener todos los turnos del usuario en el mes actual
+    const turnosDelMes = await Turno.findAll({
+      include: [
+        {
+          model: Usuario,
+          as: 'usuarios',
+          where: { id: id }
+        }
+      ],
+      where: {
+        fecha: {
+          [Op.and]: [
+            { [Op.gte]: new Date(añoActual, mesActual, 1) },
+            { [Op.lt]: new Date(añoActual, mesActual + 1, 1) }
+          ]
+        }
+      }
+    });
+
+    const turnosOcupados = turnosDelMes.length;
+    const limiteMensual = usuario.participacionMensual;
+
+    res.json({
+      usuarioId: id,
+      nombre: usuario.nombre,
+      turnosOcupados,
+      limiteMensual,
+      disponible: limiteMensual === null || limiteMensual === undefined || turnosOcupados < (limiteMensual || 0),
+      porcentaje: limiteMensual ? Math.round((turnosOcupados / limiteMensual) * 100) : null
+    });
+
+  } catch (error) {
+    console.error('Error al obtener participación mensual actual:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
   }
 };

@@ -10,7 +10,7 @@ export interface UsuarioAttributes {
   sexo: 'M' | 'F' | 'O';
   cargo: string;
   rol: 'voluntario' | 'admin' | 'superAdmin';
-  participacionMensual?: number; // Número de veces al mes que quiere participar (opcional)
+  participacionMensual?: number | null; // Número de veces al mes que quiere participar (opcional), null = sin límite
   activo?: boolean; // Si el usuario está activo
   tieneCoche?: boolean; // Si el usuario tiene coche disponible
   siempreCon?: number; // ID del usuario que siempre debe acompañar a este usuario
@@ -31,7 +31,7 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
   public sexo!: 'M' | 'F' | 'O';
   public cargo!: string;
   public rol!: 'voluntario' | 'admin' | 'superAdmin';
-  public participacionMensual?: number;
+  public participacionMensual?: number | null;
   public activo?: boolean;
   public tieneCoche?: boolean;
   public siempreCon?: number;

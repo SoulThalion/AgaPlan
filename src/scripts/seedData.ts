@@ -127,7 +127,9 @@ const seedData = async () => {
         for (const lugar of lugares) {
           // Turnos cada 2 horas de 9:00 a 17:00
           for (let hora = 9; hora < 17; hora += 2) {
-            const horaString = `${hora.toString().padStart(2, '0')}:00`;
+            const horaInicio = `${hora.toString().padStart(2, '0')}:00`;
+            const horaFin = `${(hora + 2).toString().padStart(2, '0')}:00`;
+            const horaString = `${horaInicio}-${horaFin}`;
             
             // Crear turnos para cada exhibidor del lugar
             const numExhibidores = lugar.exhibidores || 1;

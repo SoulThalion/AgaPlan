@@ -6,7 +6,7 @@ export interface Usuario {
   sexo: 'M' | 'F' | 'O';
   cargo: string;
   rol: 'voluntario' | 'admin' | 'superAdmin';
-  participacionMensual?: number;
+  participacionMensual?: number | null; // null = sin límite de participación
   tieneCoche?: boolean; // Si el usuario tiene coche disponible
   siempreCon?: number; // ID del usuario que siempre debe acompañar a este usuario
   nuncaCon?: number; // ID del usuario que nunca debe acompañar a este usuario
