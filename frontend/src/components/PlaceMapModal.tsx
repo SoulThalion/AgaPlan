@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import { LOADER_CONFIG } from '../config/googleMaps';
 import type { Lugar } from '../types';
 
 // Declaración global para Google Maps
@@ -28,11 +29,7 @@ const PlaceMapModal: React.FC<PlaceMapModalProps> = ({ lugar, isOpen, onClose })
   // Inicializar Google Maps
   useEffect(() => {
     if (!loaderRef.current) {
-      loaderRef.current = new Loader({
-        apiKey: 'AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps',
-        version: 'weekly',
-        libraries: [] // Removemos 'places' temporalmente
-      });
+      loaderRef.current = new Loader(LOADER_CONFIG);
     }
   }, []);
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
+import { GOOGLE_MAPS_CONFIG, GOOGLE_MAPS_URLS, LOADER_CONFIG } from '../config/googleMaps';
 
 // Extender la interfaz de Google Maps para incluir nuestra propiedad personalizada
 interface ExtendedGoogleMap extends google.maps.Map {
@@ -32,11 +33,7 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
   // Inicializar Google Maps
   useEffect(() => {
     if (!loaderRef.current) {
-      loaderRef.current = new Loader({
-        apiKey: 'AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps',
-        version: 'weekly',
-        libraries: [] // Unificamos con PlaceMapModal
-      });
+      loaderRef.current = new Loader(LOADER_CONFIG);
     }
   }, []);
 
@@ -186,14 +183,14 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
       // Construir URL con más parámetros para mejor precisión
       const params = new URLSearchParams({
         address: query,
-        key: 'AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps',
-        language: 'es',
-        region: 'es',
-        components: 'country:ES'
+        key: GOOGLE_MAPS_CONFIG.API_KEY,
+        language: GOOGLE_MAPS_CONFIG.LANGUAGE,
+        region: GOOGLE_MAPS_CONFIG.REGION,
+        components: `country:${GOOGLE_MAPS_CONFIG.COUNTRY}`
       });
       
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?${params}`
+        `${GOOGLE_MAPS_URLS.GEOCODING}?${params}`
       );
       
       if (!response.ok) {
@@ -233,16 +230,16 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
       // Construir URL con más parámetros para mejor precisión
       const params = new URLSearchParams({
         address: searchQuery,
-        key: 'AIzaSyCoeRl6qcV3aKmGOdAUXWIpgbyB-s1Zlps',
-        language: 'es',
-        region: 'es',
-        components: 'country:ES'
+        key: GOOGLE_MAPS_CONFIG.API_KEY,
+        language: GOOGLE_MAPS_CONFIG.LANGUAGE,
+        region: GOOGLE_MAPS_CONFIG.REGION,
+        components: `country:${GOOGLE_MAPS_CONFIG.COUNTRY}`
       });
       
       console.log('Buscando con parámetros:', params.toString());
       
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?${params}`
+        `${GOOGLE_MAPS_URLS.GEOCODING}?${params}`
       );
       
       if (!response.ok) {
