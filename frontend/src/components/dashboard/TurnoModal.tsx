@@ -57,6 +57,41 @@ export default function TurnoModal({
     };
   };
 
+  // Función para asignación automática de usuarios
+  const handleAsignacionAutomatica = async (turno: Turno) => {
+    if (!turno.lugar?.capacidad) return;
+    
+    const usuariosAsignados = turno.usuarios || [];
+    const capacidad = turno.lugar.capacidad;
+    const usuariosNecesarios = capacidad - usuariosAsignados.length;
+    
+    if (usuariosNecesarios <= 0) return;
+    
+    // Filtrar usuarios disponibles que no estén ya asignados
+    const usuariosDisponiblesParaAsignar = usuariosDisponibles.filter(
+      usuario => !usuariosAsignados.some(u => u.id === usuario.id)
+    );
+    
+    // Ordenar usuarios por prioridad (participación mensual más baja primero)
+    const usuariosOrdenados = [...usuariosDisponiblesParaAsignar].sort((a, b) => {
+      const participacionA = a.participacionMensual || 0;
+      const participacionB = b.participacionMensual || 0;
+      return participacionA - participacionB;
+    });
+    
+    // Asignar usuarios uno por uno hasta completar el turno
+    for (let i = 0; i < Math.min(usuariosNecesarios, usuariosOrdenados.length); i++) {
+      try {
+        await handleAsignarUsuario(turno, usuariosOrdenados[i].id);
+        // Pequeña pausa para evitar sobrecarga
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error('Error al asignar usuario automáticamente:', error);
+        break;
+      }
+    }
+  };
+
   const requisitos = calcularRequisitosTurno();
 
   return (
@@ -430,6 +465,7 @@ export default function TurnoModal({
                     </svg>
                     Asignar Usuario
                   </h4>
+                  
                   {loadingUsuarios ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
@@ -513,7 +549,21 @@ export default function TurnoModal({
 
         {/* Footer del modal */}
         <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-          {/* Footer vacío - solo para mantener el espaciado */}
+          {/* Botón de asignación automática */}
+          {selectedTurno.lugar?.capacidad && (selectedTurno.usuarios?.length || 0) < selectedTurno.lugar.capacidad && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleAsignacionAutomatica(selectedTurno)}
+                disabled={asignarUsuarioMutation.isPending}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md transition-colors flex items-center"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {asignarUsuarioMutation.isPending ? 'Asignando...' : 'Completar Turno Automáticamente'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
