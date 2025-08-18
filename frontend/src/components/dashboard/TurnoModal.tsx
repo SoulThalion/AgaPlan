@@ -2,6 +2,9 @@ import type { Turno, Usuario } from '../../types';
 import { useState } from 'react';
 import PlaceMapModal from '../PlaceMapModal';
 import ParticipacionMensualDisplay from '../ParticipacionMensualDisplay';
+import { confirmAction, confirmDelete } from '../../config/sweetalert';
+import { useQueryClient } from '@tanstack/react-query';
+import Swal from 'sweetalert2';
 
 interface TurnoModalProps {
   showTurnoModal: boolean;
@@ -35,6 +38,9 @@ export default function TurnoModal({
   formatHora
 }: TurnoModalProps) {
   if (!showTurnoModal || !selectedTurno) return null;
+
+  // Hook para invalidar queries
+  const queryClient = useQueryClient();
 
   // Estado para controlar si la información del lugar está desplegada
   const [lugarDesplegado, setLugarDesplegado] = useState(false);
@@ -79,15 +85,115 @@ export default function TurnoModal({
       return participacionA - participacionB;
     });
     
-    // Asignar usuarios uno por uno hasta completar el turno
-    for (let i = 0; i < Math.min(usuariosNecesarios, usuariosOrdenados.length); i++) {
+    // Limitar a los usuarios necesarios
+    const usuariosAAsignar = usuariosOrdenados.slice(0, usuariosNecesarios);
+    
+    if (usuariosAAsignar.length === 0) return;
+    
+    // Crear mensaje de confirmación
+    const mensaje = `Se van a asignar los siguientes usuarios al turno:\n\n${usuariosAAsignar.map(usuario => 
+      `• ${usuario.nombre} (${usuario.cargo}) - Participación: ${usuario.participacionMensual || 0}`
+    ).join('\n')}\n\n¿Quieres proceder con la asignación automática?`;
+    
+    // Mostrar SweetAlert de confirmación
+    const result = await confirmAction(
+      'Confirmar Asignación Automática',
+      mensaje,
+      'Sí, asignar usuarios'
+    );
+    
+    // Si el usuario confirma, proceder con la asignación
+    if (result.isConfirmed) {
       try {
-        await handleAsignarUsuario(turno, usuariosOrdenados[i].id);
-        // Pequeña pausa para evitar sobrecarga
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Importar la API directamente para evitar confirmaciones individuales
+        const { default: api } = await import('../../services/api');
+        
+        // Asignar usuarios uno por uno hasta completar el turno
+        for (let i = 0; i < usuariosAAsignar.length; i++) {
+          try {
+            await api.asignarUsuarioATurno(turno.id, usuariosAAsignar[i].id);
+            // Pequeña pausa para evitar sobrecarga
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } catch (error) {
+            console.error('Error al asignar usuario automáticamente:', error);
+            throw error; // Re-lanzar el error para manejarlo en el catch exterior
+          }
+        }
+        
+        // Invalidar la caché de turnos para forzar una recarga de datos
+        // Esto es lo mismo que hace handleAsignarUsuario para mantener la reactividad
+        queryClient.invalidateQueries(['turnos']);
+        
+        // Mostrar mensaje de éxito
+        Swal.fire({
+          icon: 'success',
+          title: 'Turno completado exitosamente',
+          text: `Se han asignado ${usuariosAAsignar.length} usuarios al turno`,
+          confirmButtonText: 'Perfecto'
+        });
       } catch (error) {
-        console.error('Error al asignar usuario automáticamente:', error);
-        break;
+        console.error('Error al completar el turno automáticamente:', error);
+        
+        // Mostrar mensaje de error
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al completar el turno',
+          text: 'Ha ocurrido un error al intentar asignar usuarios automáticamente',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    }
+  };
+
+  // Función para vaciar el turno (eliminar todos los usuarios)
+  const handleVaciarTurno = async (turno: Turno) => {
+    const usuariosAsignados = turno.usuarios || [];
+    
+    if (usuariosAsignados.length === 0) return;
+    
+    // Crear mensaje de confirmación
+    const mensaje = `Se van a eliminar los siguientes usuarios del turno:\n\n${usuariosAsignados.map(usuario => 
+      `• ${usuario.nombre} (${usuario.cargo})`
+    ).join('\n')}\n\n¿Estás seguro de que quieres vaciar completamente el turno?`;
+    
+    // Mostrar SweetAlert de confirmación
+    const result = await confirmDelete(
+      'Vaciar Turno',
+      mensaje
+    );
+    
+    // Si el usuario confirma, proceder con la eliminación
+    if (result.isConfirmed) {
+      try {
+        // Importar la API directamente para evitar confirmaciones individuales
+        const { default: api } = await import('../../services/api');
+        
+        // Eliminar todos los usuarios de una vez sin confirmaciones individuales
+        for (const usuario of usuariosAsignados) {
+          await api.liberarTurno(turno.id, usuario.id);
+        }
+        
+        // Invalidar la caché de turnos para forzar una recarga de datos
+        // Esto es lo mismo que hace handleLiberarTurno para mantener la reactividad
+        queryClient.invalidateQueries(['turnos']);
+        
+        // Mostrar mensaje de éxito
+        Swal.fire({
+          icon: 'success',
+          title: 'Turno vaciado exitosamente',
+          text: 'Se han eliminado todos los usuarios del turno',
+          confirmButtonText: 'Perfecto'
+        });
+      } catch (error) {
+        console.error('Error al vaciar el turno:', error);
+        
+        // Mostrar mensaje de error
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al vaciar el turno',
+          text: 'Ha ocurrido un error al intentar vaciar el turno',
+          confirmButtonText: 'Entendido'
+        });
       }
     }
   };
@@ -549,21 +655,40 @@ export default function TurnoModal({
 
         {/* Footer del modal */}
         <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-          {/* Botón de asignación automática */}
-          {selectedTurno.lugar?.capacidad && (selectedTurno.usuarios?.length || 0) < selectedTurno.lugar.capacidad && (
-            <div className="flex justify-end">
-              <button
-                onClick={() => handleAsignacionAutomatica(selectedTurno)}
-                disabled={asignarUsuarioMutation.isPending}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md transition-colors flex items-center"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                {asignarUsuarioMutation.isPending ? 'Asignando...' : 'Completar Turno Automáticamente'}
-              </button>
+          {/* Botones de acción */}
+          <div className="flex justify-between items-center">
+            {/* Lado izquierdo: Botón de vaciar turno (solo si hay usuarios asignados) */}
+            <div className="flex-1">
+              {selectedTurno.usuarios && selectedTurno.usuarios.length > 0 && (
+                <button
+                  onClick={() => handleVaciarTurno(selectedTurno)}
+                  disabled={liberarTurnoMutation.isPending}
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-md transition-colors flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {liberarTurnoMutation.isPending ? 'Vaciando...' : 'Vaciar Turno'}
+                </button>
+              )}
             </div>
-          )}
+            
+            {/* Lado derecho: Botón de asignación automática */}
+            <div className="flex justify-end">
+              {selectedTurno.lugar?.capacidad && (selectedTurno.usuarios?.length || 0) < selectedTurno.lugar.capacidad && (
+                <button
+                  onClick={() => handleAsignacionAutomatica(selectedTurno)}
+                  disabled={asignarUsuarioMutation.isPending}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md transition-colors flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  {asignarUsuarioMutation.isPending ? 'Asignando...' : 'Completar Turno Automáticamente'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
