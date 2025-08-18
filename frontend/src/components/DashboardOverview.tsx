@@ -14,6 +14,7 @@ import ListView from './dashboard/ListView';
 import ColorLegend from './dashboard/ColorLegend';
 import DebugInfo from './dashboard/DebugInfo';
 import TurnoModal from './dashboard/TurnoModal';
+import ThemeToggle from './ThemeToggle';
 import { generateTurnosPDF, generateMyTurnosPDF, generateWeekTurnosPDF, type TurnoForPDF } from '../utils/pdfGenerator';
 
 export default function DashboardOverview() {
@@ -1355,7 +1356,12 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-6" key={turnosKey}>
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 relative">
+        {/* Theme Toggle en la esquina superior derecha */}
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
+        
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           ¡Bienvenido a AgaPlan!
         </h1>
