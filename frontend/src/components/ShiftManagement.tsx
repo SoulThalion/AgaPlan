@@ -190,7 +190,7 @@ const ShiftManagement: React.FC = () => {
         cancelButtonColor: '#6b7280'
       });
 
-            if (!result.isConfirmed) return;
+      if (!result.isConfirmed) return;
 
       // Mostrar progreso e inicializar variables
       let turnosCreados = 0;
@@ -233,40 +233,57 @@ const ShiftManagement: React.FC = () => {
             const fechaOriginal = new Date(añoOriginal, mesOriginal - 1, diaOriginal); // mes - 1 porque los meses van de 0-11
             const diaSemana = fechaOriginal.getDay(); // 0 = domingo, 1 = lunes, etc.
             
-            // Calcular qué semana del mes es basándose en el día de la semana
-            const diaDelMes = fechaOriginal.getDate();
-            const primerDiaDelMes = new Date(añoOriginal, mesOriginal - 1, 1);
-            const primerDiaSemana = primerDiaDelMes.getDay(); // 0 = domingo, 1 = lunes, etc.
+            console.log(`Turno original: ${fechaOriginal.toDateString()} - Día: ${diaSemana} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana]}) - Día ${diaOriginal} del mes`);
             
-            // Calcular en qué semana del mes está el turno original
-            // Considerando que la primera semana es la que contiene el día 1
-            const diasDesdeInicio = diaDelMes - 1; // Convertir a base 0
-            const diasAjustadosPorPrimerDia = diasDesdeInicio + primerDiaSemana;
-            const semanaDelMes = Math.floor(diasAjustadosPorPrimerDia / 7) + 1;
-            
-            console.log(`Turno original: ${fechaOriginal.toDateString()} - Día: ${diaSemana} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana]}) - Día ${diaDelMes} del mes, Semana ${semanaDelMes}`);
-            console.log(`Primer día del mes original: ${primerDiaDelMes.toDateString()} - Día: ${primerDiaSemana} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][primerDiaSemana]})`);
-            
-            // Calcular la fecha del siguiente mes
-            const primerDiaDelMesObjetivo = new Date(añoObjetivo, mesObjetivo, 1);
-            const primerDiaSemanaMesObjetivo = primerDiaDelMesObjetivo.getDay();
-            
-            console.log(`Primer día del mes objetivo: ${primerDiaDelMesObjetivo.toDateString()} - Día: ${primerDiaSemanaMesObjetivo} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][primerDiaSemanaMesObjetivo]})`);
-            
+            // Calcular la fecha del siguiente mes de manera simple
             // Encontrar el primer día de la semana que coincida en el mes objetivo
             let fechaObjetivo = new Date(añoObjetivo, mesObjetivo, 1);
+            
+            // Avanzar hasta encontrar el primer día de la semana que coincida
             while (fechaObjetivo.getDay() !== diaSemana) {
               fechaObjetivo.setDate(fechaObjetivo.getDate() + 1);
             }
             
-            // Ajustar a la semana correcta del mes
-            // Si es la primera semana, ya está bien
-            // Si es la segunda semana o más, añadir las semanas correspondientes
+            // Ahora necesitamos calcular en qué semana del mes está el turno original
+            // para replicarlo en la misma semana del mes siguiente
+            const primerDiaDelMesOriginal = new Date(añoOriginal, mesOriginal - 1, 1);
+            const primerDiaSemanaOriginal = primerDiaDelMesOriginal.getDay();
+            
+            // Calcular en qué semana del mes está el turno original
+            let semanaDelMes = 1;
+            let fechaTemporal = new Date(primerDiaDelMesOriginal);
+            
+            // Si el primer día del mes no es el día de la semana que buscamos, 
+            // avanzar hasta encontrar la primera ocurrencia
+            if (primerDiaSemanaOriginal !== diaSemana) {
+              while (fechaTemporal.getDay() !== diaSemana) {
+                fechaTemporal.setDate(fechaTemporal.getDate() + 1);
+              }
+            }
+            
+            // Ahora avanzar semana por semana hasta encontrar la fecha del turno original
+            while (fechaTemporal.getTime() < fechaOriginal.getTime()) {
+              fechaTemporal.setDate(fechaTemporal.getDate() + 7);
+              semanaDelMes++;
+            }
+            
+            // Si hemos pasado la fecha, retroceder una semana
+            if (fechaTemporal.getTime() > fechaOriginal.getTime()) {
+              fechaTemporal.setDate(fechaTemporal.getDate() - 7);
+              semanaDelMes--;
+            }
+            
+            console.log(`Turno original está en la semana ${semanaDelMes} del mes`);
+            
+            // Aplicar el mismo desplazamiento al mes objetivo
             if (semanaDelMes > 1) {
               fechaObjetivo.setDate(fechaObjetivo.getDate() + ((semanaDelMes - 1) * 7));
             }
             
-            console.log(`Fecha objetivo calculada: ${fechaObjetivo.toDateString()} - Día: ${fechaObjetivo.getDay()} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fechaObjetivo.getDay()]}) - Semana ${Math.ceil(fechaObjetivo.getDate() / 7)} del mes`);
+            // Ajuste: sumar 1 día para corregir el desplazamiento de un día antes
+            fechaObjetivo.setDate(fechaObjetivo.getDate() + 1);
+            
+            console.log(`Fecha objetivo calculada: ${fechaObjetivo.toDateString()} - Día: ${fechaObjetivo.getDay()} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fechaObjetivo.getDay()]})`);
 
             // Crear el nuevo turno
             const nuevoTurno: TurnoCreationRequest = {
