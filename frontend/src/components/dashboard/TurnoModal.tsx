@@ -95,6 +95,15 @@ export default function TurnoModal({
     };
   };
 
+  // Función helper para extraer mes y año de la fecha del turno
+  const getMesYAñoDelTurno = () => {
+    const fechaTurno = new Date(selectedTurno.fecha);
+    return {
+      mes: fechaTurno.getMonth(),
+      año: fechaTurno.getFullYear()
+    };
+  };
+
      // Función para obtener usuarios que ya están asignados a otros turnos en la misma fecha
    const obtenerUsuariosOcupadosEnFecha = (fecha: string): number[] => {
      try {
@@ -915,6 +924,8 @@ export default function TurnoModal({
                             userId={usuario.id}
                             participacionMensual={usuario.participacionMensual}
                             className="text-blue-600 dark:text-blue-400"
+                            mes={getMesYAñoDelTurno().mes}
+                            año={getMesYAñoDelTurno().año}
                           />
                         
                         {/* Botón de remover (solo para admins o para removerte a ti mismo) */}
@@ -1041,6 +1052,8 @@ export default function TurnoModal({
                                       userId={usuario.id}
                                       participacionMensual={usuario.participacionMensual}
                                       className="text-green-600 dark:text-green-400"
+                                      mes={getMesYAñoDelTurno().mes}
+                                      año={getMesYAñoDelTurno().año}
                                     />
                                     {/* Mostrar información de relación si existe */}
                                     {tieneSiempreCon && usuarioRelacionado && (

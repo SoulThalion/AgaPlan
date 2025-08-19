@@ -107,8 +107,13 @@ class ApiService {
   }
 
   // Obtener la participación mensual actual de un usuario
-  async getParticipacionMensualActual(userId: number): Promise<any> {
-    const response = await this.api.get(`/usuarios/${userId}/participacion-mensual-actual`);
+  async getParticipacionMensualActual(userId: number, mes?: number, año?: number): Promise<any> {
+    const params = new URLSearchParams();
+    if (mes !== undefined) params.append('mes', mes.toString());
+    if (año !== undefined) params.append('año', año.toString());
+    
+    const url = `/usuarios/${userId}/participacion-mensual-actual${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await this.api.get(url);
     return response.data;
   }
 

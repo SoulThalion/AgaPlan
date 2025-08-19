@@ -6,15 +6,19 @@ interface ParticipacionMensualDisplayProps {
   participacionMensual?: number | null;
   className?: string;
   showDetails?: boolean;
+  mes?: number;
+  año?: number;
 }
 
 const ParticipacionMensualDisplay: React.FC<ParticipacionMensualDisplayProps> = ({
   userId,
   participacionMensual,
   className = '',
-  showDetails = false
+  showDetails = false,
+  mes,
+  año
 }) => {
-  const { data: participacionActual, isLoading, error } = useParticipacionMensualActual(userId);
+  const { data: participacionActual, isLoading, error } = useParticipacionMensualActual(userId, mes, año);
 
   // Si no hay límite de participación mensual, solo mostrar el contador
   if (participacionMensual === null || participacionMensual === undefined) {

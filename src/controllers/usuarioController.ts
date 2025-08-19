@@ -392,6 +392,7 @@ export const configurarParticipacionMensual = async (req: AuthenticatedRequest, 
 export const getParticipacionMensualActual = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const { mes, año } = req.query;
     
     // Obtener el usuario
     const usuario = await Usuario.findByPk(id);
@@ -399,12 +400,37 @@ export const getParticipacionMensualActual = async (req: Request, res: Response)
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
-    // Obtener la fecha actual
-    const fechaActual = new Date();
-    const mesActual = fechaActual.getMonth();
-    const añoActual = fechaActual.getFullYear();
+    // Determinar el mes y año a consultar
+    let mesAConsultar: number;
+    let añoAConsultar: number;
 
-    // Obtener todos los turnos del usuario en el mes actual
+    if (mes !== undefined && año !== undefined) {
+      // Si se proporcionan parámetros, validarlos y usarlos
+      const mesNum = parseInt(mes as string);
+      const añoNum = parseInt(año as string);
+      
+      if (isNaN(mesNum) || mesNum < 0 || mesNum > 11) {
+        return res.status(400).json({ 
+          message: 'El mes debe ser un número entre 0 y 11 (0=enero, 11=diciembre)' 
+        });
+      }
+      
+      if (isNaN(añoNum) || añoNum < 1900 || añoNum > 2100) {
+        return res.status(400).json({ 
+          message: 'El año debe ser un número válido entre 1900 y 2100' 
+        });
+      }
+      
+      mesAConsultar = mesNum;
+      añoAConsultar = añoNum;
+    } else {
+      // Si no se proporcionan parámetros, usar el mes y año actuales
+      const fechaActual = new Date();
+      mesAConsultar = fechaActual.getMonth();
+      añoAConsultar = fechaActual.getFullYear();
+    }
+
+    // Obtener todos los turnos del usuario en el mes especificado
     const turnosDelMes = await Turno.findAll({
       include: [
         {
@@ -416,8 +442,8 @@ export const getParticipacionMensualActual = async (req: Request, res: Response)
       where: {
         fecha: {
           [Op.and]: [
-            { [Op.gte]: new Date(añoActual, mesActual, 1) },
-            { [Op.lt]: new Date(añoActual, mesActual + 1, 1) }
+            { [Op.gte]: new Date(añoAConsultar, mesAConsultar, 1) },
+            { [Op.lt]: new Date(añoAConsultar, mesAConsultar + 1, 1) }
           ]
         }
       }
@@ -429,6 +455,8 @@ export const getParticipacionMensualActual = async (req: Request, res: Response)
     res.json({
       usuarioId: id,
       nombre: usuario.nombre,
+      mes: mesAConsultar,
+      año: añoAConsultar,
       turnosOcupados,
       limiteMensual,
       disponible: limiteMensual === null || limiteMensual === undefined || turnosOcupados < (limiteMensual || 0),
