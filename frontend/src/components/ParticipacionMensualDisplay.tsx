@@ -16,9 +16,32 @@ const ParticipacionMensualDisplay: React.FC<ParticipacionMensualDisplayProps> = 
 }) => {
   const { data: participacionActual, isLoading, error } = useParticipacionMensualActual(userId);
 
-  // Si no hay límite de participación mensual, no mostrar nada
+  // Si no hay límite de participación mensual, solo mostrar el contador
   if (participacionMensual === null || participacionMensual === undefined) {
-    return null;
+    // Si está cargando, mostrar un placeholder
+    if (isLoading) {
+      return (
+        <div className={`text-xs text-gray-400 ${className}`}>
+          Cargando...
+        </div>
+      );
+    }
+
+    // Si hay error, mostrar solo el contador si está disponible
+    if (error || !participacionActual) {
+      return (
+        <div className={`text-xs font-medium text-gray-600 dark:text-gray-400 ${className}`}>
+          -- turnos asignados
+        </div>
+      );
+    }
+
+    // Mostrar solo el contador para usuarios sin límite
+    return (
+      <div className={`text-xs font-medium text-gray-600 dark:text-gray-400 ${className}`}>
+        {participacionActual.turnosOcupados} turnos asignados
+      </div>
+    );
   }
 
   // Si está cargando, mostrar un placeholder
@@ -30,11 +53,11 @@ const ParticipacionMensualDisplay: React.FC<ParticipacionMensualDisplayProps> = 
     );
   }
 
-  // Si hay error, mostrar solo el límite
+  // Si hay error, mostrar el límite y un contador por defecto
   if (error || !participacionActual) {
     return (
       <div className={`text-xs font-medium ${className}`}>
-        {participacionMensual} turnos/mes
+        0/{participacionMensual} turnos/mes
       </div>
     );
   }
