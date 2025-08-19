@@ -12,6 +12,10 @@ import Swal from 'sweetalert2';
  * Funcionalidades implementadas:
  * - Asignación automática de usuarios considerando relaciones "siempreCon"
  * - Los usuarios con campo "siempreCon" ocupan 2 plazas al ser asignados
+ * - Sistema de priorización optimizado:
+ *   * PRIORIDAD PRINCIPAL: Participación mensual más baja
+ *   * REQUISITOS OBLIGATORIOS: Al menos un usuario masculino y un usuario con coche (si hay disponibles)
+ *   * Los requisitos se cumplen como mínimo necesario, manteniendo la prioridad de participación
  * - La asignación manual también maneja estas relaciones (implementado en DashboardOverview)
  * - Visualización clara de usuarios con relaciones en el panel lateral
  * - Invalidación automática de caché de participación mensual al asignar/quitar usuarios
@@ -19,6 +23,17 @@ import Swal from 'sweetalert2';
  * NOTA: Las funciones handleAsignarUsuario y handleLiberarTurno (pasadas como props)
  * también deberían invalidar la caché de participación mensual para mantener
  * los contadores actualizados en tiempo real.
+ * 
+ * MANEJO DE ERRORES DEL BACKEND:
+ * - Se capturan errores específicos del backend (400, 409) para mostrar mensajes claros
+ * - Se maneja el caso de usuarios ya asignados a otros turnos en la misma fecha
+ * - Se muestra información al usuario sobre por qué algunos usuarios pueden no estar disponibles
+ * 
+ * FILTRADO AUTOMÁTICO DE USUARIOS:
+ * - Se calculan y filtran automáticamente usuarios ocupados en otros turnos del mismo día
+ * - Se evitan peticiones que fallarían en el backend
+ * - Se seleccionan alternativas que cumplan las normas cuando sea posible
+ * - REQUIERE: Prop 'turnosDelDia' con todos los turnos de la fecha para validación
  */
 
 interface TurnoModalProps {
@@ -28,6 +43,7 @@ interface TurnoModalProps {
   _user: Usuario | null;
   loadingUsuarios: boolean;
   usuariosDisponibles: Usuario[];
+  turnosDelDia: Turno[]; // Nuevo: turnos del mismo día para validación
   ocuparTurnoMutation: any;
   liberarTurnoMutation: any;
   asignarUsuarioMutation: any;
@@ -44,6 +60,7 @@ export default function TurnoModal({
   _user,
   loadingUsuarios,
   usuariosDisponibles,
+  turnosDelDia,
   ocuparTurnoMutation,
   liberarTurnoMutation,
   asignarUsuarioMutation,
@@ -78,20 +95,62 @@ export default function TurnoModal({
     };
   };
 
-  // Función para asignación automática de usuarios
-  const handleAsignacionAutomatica = async (turno: Turno) => {
-    if (!turno.lugar?.capacidad) return;
-    
-    const usuariosAsignados = turno.usuarios || [];
-    const capacidad = turno.lugar.capacidad;
-    const usuariosNecesarios = capacidad - usuariosAsignados.length;
-    
-    if (usuariosNecesarios <= 0) return;
-    
-    // Filtrar usuarios disponibles que no estén ya asignados
-    const usuariosDisponiblesParaAsignar = usuariosDisponibles.filter(
-      usuario => !usuariosAsignados.some(u => u.id === usuario.id)
-    );
+     // Función para obtener usuarios que ya están asignados a otros turnos en la misma fecha
+   const obtenerUsuariosOcupadosEnFecha = (fecha: string): number[] => {
+     try {
+       // Validar que turnosDelDia esté disponible
+       if (!turnosDelDia || !Array.isArray(turnosDelDia)) {
+         console.warn('turnosDelDia no está disponible o no es un array, retornando array vacío');
+         return [];
+       }
+       
+       // Usar los turnos del día pasados como prop
+       const turnosFiltrados = turnosDelDia.filter((turno: Turno) => 
+         turno.fecha === fecha && turno.id !== selectedTurno?.id
+       );
+       console.log('Turnos filtrados para la fecha:', fecha, turnosFiltrados);
+       
+       // Extraer todos los IDs de usuarios asignados en esos turnos
+       const usuariosOcupados: number[] = [];
+       turnosFiltrados.forEach((turno: Turno) => {
+         if (turno.usuarios) {
+           turno.usuarios.forEach((usuario: Usuario) => {
+             if (!usuariosOcupados.includes(usuario.id)) {
+               usuariosOcupados.push(usuario.id);
+             }
+           });
+         }
+       });
+       
+       console.log('Usuarios ocupados en fecha:', fecha, usuariosOcupados);
+       return usuariosOcupados;
+     } catch (error) {
+       console.error('Error al obtener usuarios ocupados en fecha:', error);
+       return [];
+     }
+   };
+
+   // Función para asignación automática de usuarios
+   const handleAsignacionAutomatica = async (turno: Turno) => {
+     if (!turno.lugar?.capacidad) return;
+     
+     const usuariosAsignados = turno.usuarios || [];
+     const capacidad = turno.lugar.capacidad;
+     const usuariosNecesarios = capacidad - usuariosAsignados.length;
+     
+     if (usuariosNecesarios <= 0) return;
+     
+           // Obtener usuarios que ya están ocupados en otros turnos del mismo día
+      const usuariosOcupadosEnFecha = obtenerUsuariosOcupadosEnFecha(turno.fecha);
+     
+     // Filtrar usuarios disponibles que:
+     // 1. No estén ya asignados a este turno
+     // 2. No estén ocupados en otros turnos del mismo día
+     const usuariosDisponiblesParaAsignar = usuariosDisponibles.filter(
+       usuario => 
+         !usuariosAsignados.some(u => u.id === usuario.id) &&
+         !usuariosOcupadosEnFecha.includes(usuario.id)
+     );
     
     // Función para obtener usuarios relacionados que deben asignarse juntos
     const obtenerUsuariosRelacionados = (usuario: Usuario): Usuario[] => {
@@ -127,12 +186,19 @@ export default function TurnoModal({
       usuariosConRelaciones.push(...usuariosRelacionados);
     }
     
-    // Ordenar usuarios por prioridad (participación mensual más baja primero)
-    const usuariosOrdenados = [...usuariosConRelaciones].sort((a, b) => {
-      const participacionA = a.participacionMensual || 0;
-      const participacionB = b.participacionMensual || 0;
-      return participacionA - participacionB;
-    });
+    // Verificar requisitos existentes en el turno
+    const yaTieneMasculino = usuariosAsignados.some(u => u.sexo === 'M');
+    const yaTieneCoche = usuariosAsignados.some(u => u.tieneCoche);
+    
+    // Verificar si hay usuarios disponibles con coche
+    const hayUsuariosConCocheDisponibles = usuariosConRelaciones.some(u => u.tieneCoche);
+    
+         // Ordenar usuarios por prioridad principal: participación mensual más baja
+     const usuariosOrdenados = [...usuariosConRelaciones].sort((a, b) => {
+       const participacionA = a.participacionMensual || 0;
+       const participacionB = b.participacionMensual || 0;
+       return participacionA - participacionB; // Orden ascendente (menor participación primero)
+     });
     
     // Limitar a los usuarios necesarios, pero considerar que algunos usuarios pueden ocupar 2 plazas
     let usuariosAAsignar: Usuario[] = [];
@@ -150,19 +216,120 @@ export default function TurnoModal({
       }
     }
     
-    if (usuariosAAsignar.length === 0) return;
+         // Verificar que se cumplan los requisitos después de la asignación
+     if (usuariosAAsignar.length > 0) {
+       // Verificar requisitos actuales después de la asignación
+       let tieneMasculino = usuariosAAsignar.some(u => u.sexo === 'M') || yaTieneMasculino;
+       let tieneCoche = usuariosAAsignar.some(u => u.tieneCoche) || yaTieneCoche;
+       
+       // Si no se cumplen los requisitos, buscar reemplazos manteniendo la prioridad de participación
+       if (!tieneMasculino || (!tieneCoche && hayUsuariosConCocheDisponibles)) {
+         // Crear una lista de usuarios disponibles para reemplazo, ordenados por participación
+         const usuariosDisponiblesParaReemplazo = usuariosConRelaciones
+           .filter(u => !usuariosAAsignar.some(ua => ua.id === u.id))
+           .sort((a, b) => (a.participacionMensual || 0) - (b.participacionMensual || 0));
+         
+         // Intentar reemplazar usuarios uno por uno, empezando por el último asignado
+         for (let i = usuariosAAsignar.length - 1; i >= 0; i--) {
+           const usuarioActual = usuariosAAsignar[i];
+           const plazasQueOcupa = usuarioActual.siempreCon ? 2 : 1;
+           
+           // Buscar un reemplazo que cumpla los requisitos faltantes
+           const reemplazo = usuariosDisponiblesParaReemplazo.find(u => {
+             const plazasReemplazo = u.siempreCon ? 2 : 1;
+             
+             // Debe ocupar el mismo número de plazas
+             if (plazasReemplazo !== plazasQueOcupa) return false;
+             
+             // Debe cumplir al menos uno de los requisitos faltantes
+             if (!tieneMasculino && u.sexo === 'M') return true;
+             if (!tieneCoche && hayUsuariosConCocheDisponibles && u.tieneCoche) return true;
+             
+             return false;
+           });
+           
+           if (reemplazo) {
+             // Aplicar el reemplazo
+             usuariosAAsignar[i] = reemplazo;
+             
+             // Actualizar el estado de los requisitos
+             tieneMasculino = usuariosAAsignar.some(u => u.sexo === 'M') || yaTieneMasculino;
+             tieneCoche = usuariosAAsignar.some(u => u.tieneCoche) || yaTieneCoche;
+             
+             // Remover el reemplazo de la lista de disponibles
+             const indexReemplazo = usuariosDisponiblesParaReemplazo.findIndex(u => u.id === reemplazo.id);
+             if (indexReemplazo !== -1) {
+               usuariosDisponiblesParaReemplazo.splice(indexReemplazo, 1);
+             }
+             
+             // Si ya se cumplen todos los requisitos, salir del bucle
+             if (tieneMasculino && (tieneCoche || !hayUsuariosConCocheDisponibles)) {
+               break;
+             }
+           }
+         }
+       }
+     }
     
-    // Crear mensaje de confirmación con información sobre las relaciones
-    const mensaje = `Se van a asignar los siguientes usuarios al turno:\n\n${usuariosAAsignar.map(usuario => {
-      let info = `• ${usuario.nombre} (${usuario.cargo}) - Participación: ${usuario.participacionMensual || 0}`;
-      if (usuario.siempreCon) {
-        const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
-        if (usuarioRelacionado) {
-          info += `\n  └─ Siempre con: ${usuarioRelacionado.nombre} (${usuarioRelacionado.cargo})`;
-        }
-      }
-      return info;
-    }).join('\n')}\n\nTotal de plazas que ocuparán: ${plazasOcupadas}\n\n¿Quieres proceder con la asignación automática?`;
+         if (usuariosAAsignar.length === 0) {
+       const totalUsuarios = usuariosDisponibles.length;
+       const usuariosOcupadosEnOtrosTurnos = usuariosOcupadosEnFecha.length;
+       const usuariosYaAsignadosEnEsteTurno = usuariosAsignados.length;
+       
+       let mensaje = 'No se encontraron usuarios disponibles para completar el turno.';
+       
+       if (usuariosOcupadosEnOtrosTurnos > 0) {
+         mensaje += `\n\n• ${usuariosOcupadosEnOtrosTurnos} usuarios están ocupados en otros turnos de esta fecha`;
+       }
+       
+       if (usuariosYaAsignadosEnEsteTurno > 0) {
+         mensaje += `\n• ${usuariosYaAsignadosEnEsteTurno} usuarios ya están asignados a este turno`;
+       }
+       
+       mensaje += '\n\nEl sistema ha filtrado automáticamente los usuarios no disponibles para evitar errores.';
+       
+       Swal.fire({
+         icon: 'warning',
+         title: 'No hay usuarios disponibles',
+         text: mensaje,
+         confirmButtonText: 'Entendido'
+       });
+       return;
+     }
+     
+     // Verificar requisitos finales después de la verificación
+     const requisitosFinales = {
+       tieneMasculino: usuariosAAsignar.some(u => u.sexo === 'M') || yaTieneMasculino,
+       tieneCoche: usuariosAAsignar.some(u => u.tieneCoche) || yaTieneCoche,
+       hayUsuariosConCocheDisponibles: hayUsuariosConCocheDisponibles
+     };
+    
+         // Crear mensaje de confirmación con información sobre las relaciones y requisitos
+     const usuariosFiltrados = usuariosDisponibles.length - usuariosDisponiblesParaAsignar.length;
+     
+     let mensaje = `Se van a asignar los siguientes usuarios al turno:\n\n${usuariosAAsignar.map(usuario => {
+       let info = `• ${usuario.nombre} (${usuario.cargo}) - Participación: ${usuario.participacionMensual || 0}`;
+       if (usuario.siempreCon) {
+         const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
+         if (usuarioRelacionado) {
+           info += `\n  └─ Siempre con: ${usuarioRelacionado.nombre} (${usuarioRelacionado.cargo})`;
+         }
+       }
+       return info;
+     }).join('\n')}\n\nTotal de plazas que ocuparán: ${plazasOcupadas}`;
+     
+     // Agregar información sobre usuarios filtrados
+     if (usuariosFiltrados > 0) {
+       mensaje += `\n\n📊 Usuarios filtrados automáticamente: ${usuariosFiltrados}`;
+       if (usuariosOcupadosEnFecha.length > 0) {
+         mensaje += `\n   • ${usuariosOcupadosEnFecha.length} ocupados en otros turnos de esta fecha`;
+       }
+       if (usuariosAsignados.length > 0) {
+         mensaje += `\n   • ${usuariosAsignados.length} ya asignados a este turno`;
+       }
+     }
+     
+     mensaje += `\n\nRequisitos del turno:\n• Usuario masculino: ${requisitosFinales.tieneMasculino ? '✅ Cumplido' : '❌ Pendiente'}\n• Usuario con coche: ${requisitosFinales.tieneCoche ? '✅ Cumplido' : requisitosFinales.hayUsuariosConCocheDisponibles ? '❌ Pendiente' : '⚠️ No hay usuarios con coche disponibles'}\n\n¿Quieres proceder con la asignación automática?`;
     
     // Mostrar SweetAlert de confirmación
     const result = await confirmAction(
@@ -218,24 +385,49 @@ export default function TurnoModal({
            queryClient.invalidateQueries(['participacionMensualActual', userId]);
          });
         
-        // Mostrar mensaje de éxito
+        // Mostrar mensaje de éxito con información de requisitos
         Swal.fire({
           icon: 'success',
           title: 'Turno completado exitosamente',
-          text: `Se han asignado ${usuariosAAsignar.length} usuarios al turno (ocupando ${plazasOcupadas} plazas)`,
+          html: `
+            <div class="text-left">
+              <p class="mb-3">Se han asignado <strong>${usuariosAAsignar.length}</strong> usuarios al turno (ocupando <strong>${plazasOcupadas}</strong> plazas)</p>
+              <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+                <p><strong>Requisitos cumplidos:</strong></p>
+                <ul class="list-disc list-inside mt-2">
+                  <li>Usuario masculino: ${requisitosFinales.tieneMasculino ? '✅ Cumplido' : '❌ Pendiente'}</li>
+                  <li>Usuario con coche: ${requisitosFinales.tieneCoche ? '✅ Cumplido' : requisitosFinales.hayUsuariosConCocheDisponibles ? '❌ Pendiente' : '⚠️ No hay usuarios con coche disponibles'}</li>
+                </ul>
+              </div>
+            </div>
+          `,
           confirmButtonText: 'Perfecto'
         });
-      } catch (error) {
-        console.error('Error al completar el turno automáticamente:', error);
-        
-        // Mostrar mensaje de error
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al completar el turno',
-          text: 'Ha ocurrido un error al intentar asignar usuarios automáticamente',
-          confirmButtonText: 'Entendido'
-        });
-      }
+             } catch (error) {
+         console.error('Error al completar el turno automáticamente:', error);
+         
+         // Manejar errores específicos del backend
+         let mensajeError = 'Ha ocurrido un error al intentar asignar usuarios automáticamente';
+         
+         if (error && typeof error === 'object' && 'response' in error) {
+           const response = (error as any).response;
+           if (response?.data?.message) {
+             mensajeError = response.data.message;
+           } else if (response?.status === 400) {
+             mensajeError = 'Uno o más usuarios ya están asignados a otros turnos en esta fecha';
+           } else if (response?.status === 409) {
+             mensajeError = 'Conflicto: Los usuarios seleccionados no pueden ser asignados a este turno';
+           }
+         }
+         
+         // Mostrar mensaje de error
+         Swal.fire({
+           icon: 'error',
+           title: 'Error al completar el turno',
+           text: mensajeError,
+           confirmButtonText: 'Entendido'
+         });
+       }
     }
   };
 
@@ -593,21 +785,40 @@ export default function TurnoModal({
                         >
                           {usuario.nombre}
                         </p>
-                        <p 
-                          className="text-xs text-blue-700 dark:text-blue-300 truncate" 
-                          ref={(el) => {
-                            if (el) {
-                              el.title = el.scrollWidth > el.clientWidth ? usuario.cargo : '';
-                            }
-                          }}
-                        >
-                          {usuario.cargo}
-                        </p>
-                                                 <ParticipacionMensualDisplay
-                           userId={usuario.id}
-                           participacionMensual={usuario.participacionMensual}
-                           className="text-blue-600 dark:text-blue-400"
-                         />
+                                                 <p 
+                           className="text-xs text-blue-700 dark:text-blue-300 truncate" 
+                           ref={(el) => {
+                             if (el) {
+                               el.title = el.scrollWidth > el.clientWidth ? usuario.cargo : '';
+                             }
+                           }}
+                         >
+                           {usuario.cargo}
+                         </p>
+                         
+                                                   {/* Indicador de coche - Badge en esquina superior izquierda */}
+                          <div className="absolute top-2 left-2">
+                            {usuario.tieneCoche ? (
+                              <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                                <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                </svg>
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-full flex items-center justify-center shadow-sm">
+                                <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                  <path d="M2 2l20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                         
+                         <ParticipacionMensualDisplay
+                            userId={usuario.id}
+                            participacionMensual={usuario.participacionMensual}
+                            className="text-blue-600 dark:text-blue-400"
+                          />
                         
                         {/* Botón de remover (solo para admins o para removerte a ti mismo) */}
                         {(_user?.rol === 'admin' || _user?.rol === 'superAdmin' || usuario.id === _user?.id) && (
@@ -671,92 +882,96 @@ export default function TurnoModal({
                     Asignar Usuario
                   </h4>
                   
-                  {loadingUsuarios ? (
+                                     {loadingUsuarios ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto"></div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Cargando usuarios...</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {usuariosDisponibles
-                        .filter(usuario => !selectedTurno.usuarios?.some(u => u.id === usuario.id))
-                        .map((usuario) => {
-                          // Buscar si este usuario tiene un "siempreCon"
-                          const tieneSiempreCon = usuario.siempreCon;
-                          const usuarioRelacionado = tieneSiempreCon ? usuariosDisponibles.find(u => u.id === usuario.siempreCon) : null;
-                          
-                          return (
-                            <div key={usuario.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-600 rounded-lg min-w-0">
-                              <div className="flex items-center space-x-2 min-w-0 flex-1">
-                                {/* Indicador de coche en lugar del círculo con inicial */}
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                  usuario.tieneCoche 
-                                    ? 'bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-600' 
-                                    : 'bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-500'
-                                }`}>
-                                  {usuario.tieneCoche ? (
-                                    <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                                      <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-                                    </svg>
-                                  ) : (
-                                    <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                      <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-                                      <path d="M2 2l20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p 
-                                    className="text-xs font-medium text-gray-900 dark:text-white truncate" 
-                                    ref={(el) => {
-                                      if (el) {
-                                        el.title = el.scrollWidth > el.clientWidth ? usuario.nombre : '';
-                                      }
-                                    }}
-                                  >
-                                    {usuario.nombre}
-                                  </p>
-                                  <p 
-                                    className="text-xs text-gray-500 dark:text-gray-400 truncate"
-                                    ref={(el) => {
-                                      if (el) {
-                                        el.title = el.scrollWidth > el.clientWidth ? usuario.cargo : '';
-                                      }
-                                    }}
-                                  >
-                                    {usuario.cargo}
-                                  </p>
-                                                                     <ParticipacionMensualDisplay
-                                     userId={usuario.id}
-                                     participacionMensual={usuario.participacionMensual}
-                                     className="text-green-600 dark:text-green-400"
-                                   />
-                                  {/* Mostrar información de relación si existe */}
-                                  {tieneSiempreCon && usuarioRelacionado && (
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 italic">
-                                      Siempre con: {usuarioRelacionado.nombre}
+                    <>
+                      
+                      
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {usuariosDisponibles
+                          .filter(usuario => !selectedTurno.usuarios?.some(u => u.id === usuario.id))
+                          .map((usuario) => {
+                            // Buscar si este usuario tiene un "siempreCon"
+                            const tieneSiempreCon = usuario.siempreCon;
+                            const usuarioRelacionado = tieneSiempreCon ? usuariosDisponibles.find(u => u.id === usuario.siempreCon) : null;
+                            
+                            return (
+                              <div key={usuario.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-600 rounded-lg min-w-0">
+                                <div className="flex items-center space-x-2 min-w-0 flex-1">
+                                  {/* Indicador de coche en lugar del círculo con inicial */}
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                    usuario.tieneCoche 
+                                      ? 'bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-600' 
+                                      : 'bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-500'
+                                  }`}>
+                                    {usuario.tieneCoche ? (
+                                      <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                      </svg>
+                                    ) : (
+                                      <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                        <path d="M2 2l20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p 
+                                      className="text-xs font-medium text-gray-900 dark:text-white truncate" 
+                                      ref={(el) => {
+                                        if (el) {
+                                          el.title = el.scrollWidth > el.clientWidth ? usuario.nombre : '';
+                                        }
+                                      }}
+                                    >
+                                      {usuario.nombre}
                                     </p>
-                                  )}
+                                    <p 
+                                      className="text-xs text-gray-500 dark:text-gray-400 truncate"
+                                      ref={(el) => {
+                                        if (el) {
+                                          el.title = el.scrollWidth > el.clientWidth ? usuario.cargo : '';
+                                        }
+                                      }}
+                                    >
+                                      {usuario.cargo}
+                                    </p>
+                                    <ParticipacionMensualDisplay
+                                      userId={usuario.id}
+                                      participacionMensual={usuario.participacionMensual}
+                                      className="text-green-600 dark:text-green-400"
+                                    />
+                                    {/* Mostrar información de relación si existe */}
+                                    {tieneSiempreCon && usuarioRelacionado && (
+                                      <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                                        Siempre con: {usuarioRelacionado.nombre}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
+                                <button
+                                  onClick={() => {
+                                    handleAsignarUsuario(selectedTurno, usuario.id);
+                                  }}
+                                  disabled={asignarUsuarioMutation.isPending}
+                                  className="px-2 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs rounded-md transition-colors flex-shrink-0 ml-2"
+                                >
+                                  {asignarUsuarioMutation.isPending ? '...' : 'Asignar'}
+                                </button>
                               </div>
-                              <button
-                                onClick={() => {
-                                  handleAsignarUsuario(selectedTurno, usuario.id);
-                                }}
-                                disabled={asignarUsuarioMutation.isPending}
-                                className="px-2 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs rounded-md transition-colors flex-shrink-0 ml-2"
-                              >
-                                {asignarUsuarioMutation.isPending ? '...' : 'Asignar'}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      {usuariosDisponibles.filter(usuario => !selectedTurno.usuarios?.some(u => u.id === usuario.id)).length === 0 && (
-                        <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                          <p className="text-xs">No hay usuarios disponibles</p>
-                        </div>
-                      )}
-                    </div>
+                            );
+                          })}
+                        {usuariosDisponibles.filter(usuario => !selectedTurno.usuarios?.some(u => u.id === usuario.id)).length === 0 && (
+                          <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                            <p className="text-xs">No hay usuarios disponibles</p>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               )}

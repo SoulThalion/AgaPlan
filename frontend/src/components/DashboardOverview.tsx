@@ -305,6 +305,11 @@ export default function DashboardOverview() {
     return getTurnosToShow().filter(turno => turno.fecha === dateString);
   };
 
+  // Función para obtener todos los turnos de una fecha específica (sin filtros)
+  const getTurnosDelDia = (fecha: string) => {
+    return turnos.filter(turno => turno.fecha === fecha);
+  };
+
   const formatHora = (hora: string) => {
     if (hora.includes('-')) {
       const [horaInicio, horaFin] = hora.split('-');
@@ -1475,6 +1480,7 @@ export default function DashboardOverview() {
         _user={_user}
         loadingUsuarios={loadingUsuarios}
         usuariosDisponibles={usuariosDisponibles}
+        turnosDelDia={selectedTurno ? getTurnosDelDia(selectedTurno.fecha) : []}
         ocuparTurnoMutation={ocuparTurnoMutation}
         liberarTurnoMutation={liberarTurnoMutation}
         asignarUsuarioMutation={asignarUsuarioMutation}
