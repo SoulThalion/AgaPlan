@@ -189,6 +189,242 @@ const UserManagement: React.FC = () => {
     });
   };
 
+  // Función para replicar disponibilidades de usuarios
+  const handleReplicarDisponibilidades = async () => {
+    try {
+      // Determinar qué mes usar como base
+      const fechaActual = new Date();
+      const mesActual = fechaActual.getMonth();
+      const añoActual = fechaActual.getFullYear();
+      
+      // Obtener disponibilidades del mes actual o del mes pasado si no hay en el actual
+      let mesBase = mesActual;
+      let añoBase = añoActual;
+      
+      // Intentar obtener disponibilidades del mes actual
+      let disponibilidadesBase: any[] = [];
+      let mesBaseString = `${añoBase}-${(mesBase + 1).toString().padStart(2, '0')}`;
+      
+      // Obtener todas las configuraciones de disponibilidad del mes actual
+      for (const usuario of usuarios?.data || []) {
+        try {
+          const response = await apiService.getUserDisponibilidadConfig(usuario.id, mesBaseString);
+          if (response?.data && response.data.length > 0) {
+            disponibilidadesBase.push(...response.data.map((disp: any) => ({ ...disp, usuarioId: usuario.id })));
+          }
+        } catch (error) {
+          console.log(`No hay disponibilidades para usuario ${usuario.id} en ${mesBaseString}`);
+        }
+      }
+
+      // Si no hay disponibilidades en el mes actual, usar el mes pasado
+      if (disponibilidadesBase.length === 0) {
+        mesBase = mesActual === 0 ? 11 : mesActual - 1;
+        añoBase = mesActual === 0 ? añoActual - 1 : añoActual;
+        mesBaseString = `${añoBase}-${(mesBase + 1).toString().padStart(2, '0')}`;
+        
+        // Obtener disponibilidades del mes pasado
+        for (const usuario of usuarios?.data || []) {
+          try {
+            const response = await apiService.getUserDisponibilidadConfig(usuario.id, mesBaseString);
+            if (response?.data && response.data.length > 0) {
+              disponibilidadesBase.push(...response.data.map((disp: any) => ({ ...disp, usuarioId: usuario.id })));
+            }
+          } catch (error) {
+            console.log(`No hay disponibilidades para usuario ${usuario.id} en ${mesBaseString}`);
+          }
+        }
+      }
+
+      if (disponibilidadesBase.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No hay disponibilidades para replicar',
+          text: 'No se encontraron configuraciones de disponibilidad en el mes actual ni en el mes pasado.',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+
+      // Filtrar disponibilidades (excluir fechas concretas y no disponibles)
+      const disponibilidadesReplicables = disponibilidadesBase.filter(disp => 
+        disp.tipo_disponibilidad !== 'fechaConcreta' && 
+        disp.tipo_disponibilidad !== 'noDisponibleFecha'
+      );
+
+      if (disponibilidadesReplicables.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No hay disponibilidades replicables',
+          text: 'Solo se encontraron configuraciones de fechas concretas que no se pueden replicar.',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+
+      // Calcular el mes objetivo (siguiente mes)
+      const mesObjetivo = mesActual === 11 ? 0 : mesActual + 1;
+      const añoObjetivo = mesActual === 11 ? añoActual + 1 : añoActual;
+      const mesObjetivoString = `${añoObjetivo}-${(mesObjetivo + 1).toString().padStart(2, '0')}`;
+
+      // Mostrar confirmación con detalles
+      const mesBaseNombre = new Date(añoBase, mesBase).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      const mesDestinoNombre = new Date(añoObjetivo, mesObjetivo).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+      const result = await Swal.fire({
+        icon: 'question',
+        title: 'Replicar Disponibilidades de Usuarios',
+        html: `
+          <div class="text-left">
+            <p class="mb-3">Se van a replicar <strong>${disponibilidadesReplicables.length}</strong> configuraciones de disponibilidad del mes de <strong>${mesBaseNombre}</strong> al mes de <strong>${mesDestinoNombre}</strong>.</p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+              <p><strong>Detalles de la replicación:</strong></p>
+              <ul class="list-disc list-inside mt-2">
+                <li>Se replicarán: todas las tardes, todas las mañanas, días de la semana</li>
+                <li><strong>NO se replicarán:</strong> fechas concretas ni fechas no disponibles</li>
+                <li>Se mantendrán los mismos horarios y configuraciones</li>
+                <li>Se ajustarán al mes siguiente</li>
+              </ul>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, replicar disponibilidades',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#6b7280'
+      });
+
+      if (!result.isConfirmed) return;
+
+      // Mostrar progreso
+      let configuracionesCreadas = 0;
+      let configuracionesConError = 0;
+      const errores: string[] = [];
+
+      // Mostrar progreso con promesa que NO se resuelve hasta completar la replicación
+      Swal.fire({
+        title: 'Replicando disponibilidades...',
+        html: `
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Procesando ${disponibilidadesReplicables.length} configuraciones...</p>
+            <div class="mt-3">
+              <div class="bg-gray-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+              </div>
+              <p id="progress-text" class="text-sm mt-2">0 de ${disponibilidadesReplicables.length} configuraciones procesadas</p>
+            </div>
+          </div>
+        `,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+          // Deshabilitar el botón de cerrar
+          Swal.getCloseButton()?.style.setProperty('display', 'none');
+        }
+      });
+
+      // Ejecutar replicación en paralelo con el progreso
+      const replicationPromise = (async () => {
+        // Replicar cada configuración
+        for (let i = 0; i < disponibilidadesReplicables.length; i++) {
+          const disp = disponibilidadesReplicables[i];
+          try {
+            console.log(`Procesando configuración ${i + 1}/${disponibilidadesReplicables.length}: ${disp.tipo_disponibilidad} para usuario ${disp.usuarioId}`);
+            
+            // Crear la nueva configuración para el mes siguiente
+            await apiService.createUserDisponibilidadConfig({
+              usuarioId: disp.usuarioId,
+              mes: mesObjetivoString,
+              tipo_disponibilidad: disp.tipo_disponibilidad,
+              configuracion: disp.configuracion
+            });
+
+            configuracionesCreadas++;
+            
+            // Actualizar progreso en el SweetAlert
+            const progressPercent = Math.round(((i + 1) / disponibilidadesReplicables.length) * 100);
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            if (progressBar) progressBar.style.width = `${progressPercent}%`;
+            if (progressText) progressText.textContent = `${i + 1} de ${disponibilidadesReplicables.length} configuraciones procesadas`;
+            
+            // Pequeña pausa para evitar sobrecarga y permitir que se vea el progreso
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+          } catch (error: any) {
+            console.error(`Error al crear configuración ${disp.tipo_disponibilidad} para usuario ${disp.usuarioId}:`, error);
+            configuracionesConError++;
+            errores.push(`Usuario ${disp.usuarioId} - ${disp.tipo_disponibilidad}: ${error.response?.data?.message || 'Error desconocido'}`);
+            
+            // Actualizar progreso incluso si hay error
+            const progressPercent = Math.round(((i + 1) / disponibilidadesReplicables.length) * 100);
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            if (progressBar) progressBar.style.width = `${progressPercent}%`;
+            if (progressText) progressText.textContent = `${i + 1} de ${disponibilidadesReplicables.length} configuraciones procesadas (${configuracionesConError} errores)`;
+          }
+        }
+      })();
+
+      // Esperar a que termine la replicación y luego cerrar el progreso
+      await replicationPromise;
+      Swal.close();
+
+      // Mostrar resultado
+      if (configuracionesConError === 0) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Disponibilidades replicadas exitosamente',
+          html: `
+            <div class="text-center">
+              <p class="mb-3">Se han replicado <strong>${configuracionesCreadas}</strong> configuraciones de disponibilidad del mes de <strong>${mesBaseNombre}</strong> al mes de <strong>${mesDestinoNombre}</strong>.</p>
+              <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+                <p><strong>Resumen:</strong></p>
+                <ul class="list-disc list-inside mt-2">
+                  <li>✅ Configuraciones creadas: ${configuracionesCreadas}</li>
+                  <li>✅ Todas las tardes replicadas</li>
+                  <li>✅ Todas las mañanas replicadas</li>
+                  <li>✅ Días de la semana replicados</li>
+                  <li>✅ Fechas concretas excluidas (no replicables)</li>
+                </ul>
+              </div>
+            </div>
+          `,
+          confirmButtonText: 'Perfecto'
+        });
+               } else {
+           await Swal.fire({
+             icon: 'warning',
+             title: 'Replicación parcial',
+             html: `
+               <div class="text-center">
+                 <p class="mb-3">Se replicaron <strong>${configuracionesCreadas}</strong> configuraciones, pero <strong>${configuracionesConError}</strong> fallaron.</p>
+                 <div class="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-sm">
+                   <p><strong>Errores encontrados:</strong></p>
+                   <ul class="list-disc list-inside mt-2 text-xs">
+                     ${errores.slice(0, 5).map(e => `<li>${e}</li>`).join('')}
+                     ${errores.length > 5 ? `<li>... y ${errores.length - 5} errores más</li>` : ''}
+                   </ul>
+                 </div>
+               </div>
+             `,
+             confirmButtonText: 'Entendido'
+           });
+         }
+
+    } catch (error) {
+      console.error('Error al replicar disponibilidades:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al replicar disponibilidades',
+        text: 'Ha ocurrido un error inesperado al intentar replicar las disponibilidades.',
+        confirmButtonText: 'Entendido'
+      });
+    }
+  };
+
   const openCreateModal = () => {
     setEditingUser(null);
     resetForm();
@@ -217,12 +453,21 @@ const UserManagement: React.FC = () => {
         <h2 className="text-2xl font-bold font-poppins text-neutral-text dark:text-white">
           Gestión de Usuarios
         </h2>
-        <button
-          onClick={openCreateModal}
-          className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
-        >
-          + Nuevo Usuario
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleReplicarDisponibilidades}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+            title="Replicar disponibilidades del mes actual al siguiente mes"
+          >
+            📅 Replicar Disponibilidades
+          </button>
+          <button
+            onClick={openCreateModal}
+            className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+          >
+            + Nuevo Usuario
+          </button>
+        </div>
       </div>
 
       {/* Vista de escritorio - Tabla */}
