@@ -211,10 +211,18 @@ export default function TurnoModal({
     // Verificar si hay usuarios disponibles con coche
     const hayUsuariosConCocheDisponibles = usuariosConRelaciones.some(u => u.tieneCoche);
     
-         // Ordenar usuarios por prioridad principal: participación mensual más baja
+         // Ordenar usuarios por prioridad principal: participación mensual más baja, y secundaria: prioridad del cargo
      const usuariosOrdenados = [...usuariosConRelaciones].sort((a, b) => {
        const participacionA = a.participacionMensual || 0;
        const participacionB = b.participacionMensual || 0;
+       
+       // Si la participación es igual, ordenar por prioridad del cargo
+       if (participacionA === participacionB) {
+         const prioridadA = a.cargoInfo?.prioridad || 999;
+         const prioridadB = b.cargoInfo?.prioridad || 999;
+         return prioridadA - prioridadB; // Menor número = mayor prioridad
+       }
+       
        return participacionA - participacionB; // Orden ascendente (menor participación primero)
      });
     
@@ -252,10 +260,22 @@ export default function TurnoModal({
        
        // Si no se cumplen los requisitos, buscar reemplazos manteniendo la prioridad de participación
        if (!tieneMasculino || (!tieneCoche && hayUsuariosConCocheDisponibles)) {
-         // Crear una lista de usuarios disponibles para reemplazo, ordenados por participación
+         // Crear una lista de usuarios disponibles para reemplazo, ordenados por participación y prioridad del cargo
          const usuariosDisponiblesParaReemplazo = usuariosConRelaciones
            .filter(u => !usuariosAAsignar.some(ua => ua.id === u.id))
-           .sort((a, b) => (a.participacionMensual || 0) - (b.participacionMensual || 0));
+           .sort((a, b) => {
+             const participacionA = a.participacionMensual || 0;
+             const participacionB = b.participacionMensual || 0;
+             
+             // Si la participación es igual, ordenar por prioridad del cargo
+             if (participacionA === participacionB) {
+               const prioridadA = a.cargoInfo?.prioridad || 999;
+               const prioridadB = b.cargoInfo?.prioridad || 999;
+               return prioridadA - prioridadB; // Menor número = mayor prioridad
+             }
+             
+             return participacionA - participacionB;
+           });
          
          // Intentar reemplazar usuarios uno por uno, empezando por el último asignado
          for (let i = usuariosAAsignar.length - 1; i >= 0; i--) {
@@ -335,17 +355,20 @@ export default function TurnoModal({
      const usuariosFiltrados = usuariosDisponibles.length - usuariosDisponiblesParaAsignar.length;
      
      let mensaje = `Se van a asignar los siguientes usuarios al turno:\n\n${usuariosAAsignar.map(usuario => {
-       let info = `• ${usuario.nombre} (${usuario.cargo}) - Participación: ${usuario.participacionMensual || 0}`;
+       const prioridadCargo = usuario.cargoInfo?.prioridad ? ` - Prioridad: ${usuario.cargoInfo.prioridad}` : '';
+       let info = `• ${usuario.nombre} (${usuario.cargo})${prioridadCargo} - Participación: ${usuario.participacionMensual || 0}`;
        if (usuario.siempreCon) {
          const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
          if (usuarioRelacionado) {
-           info += `\n  └─ Siempre con: ${usuarioRelacionado.nombre} (${usuarioRelacionado.cargo})`;
+           const prioridadRelacionado = usuarioRelacionado.cargoInfo?.prioridad ? ` - Prioridad: ${usuarioRelacionado.cargoInfo.prioridad}` : '';
+           info += `\n  └─ Siempre con: ${usuarioRelacionado.nombre} (${usuarioRelacionado.cargo})${prioridadRelacionado}`;
          }
        }
        if (usuario.nuncaCon) {
          const usuarioExcluido = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.nuncaCon);
          if (usuarioExcluido) {
-           info += `\n  └─ Nunca con: ${usuarioExcluido.nombre} (${usuarioExcluido.cargo}) - Excluido automáticamente`;
+           const prioridadExcluido = usuarioExcluido.cargoInfo?.prioridad ? ` - Prioridad: ${usuarioExcluido.cargoInfo.prioridad}` : '';
+           info += `\n  └─ Nunca con: ${usuarioExcluido.nombre} (${usuarioExcluido.cargo})${prioridadExcluido} - Excluido automáticamente`;
          }
        }
        return info;
@@ -471,9 +494,10 @@ export default function TurnoModal({
     if (usuariosAsignados.length === 0) return;
     
     // Crear mensaje de confirmación
-    const mensaje = `Se van a eliminar los siguientes usuarios del turno:\n\n${usuariosAsignados.map(usuario => 
-      `• ${usuario.nombre} (${usuario.cargo})`
-    ).join('\n')}\n\n¿Estás seguro de que quieres vaciar completamente el turno?`;
+    const mensaje = `Se van a eliminar los siguientes usuarios del turno:\n\n${usuariosAsignados.map(usuario => {
+      const prioridadCargo = usuario.cargoInfo?.prioridad ? ` - Prioridad: ${usuario.cargoInfo.prioridad}` : '';
+      return `• ${usuario.nombre} (${usuario.cargo})${prioridadCargo}`;
+    }).join('\n')}\n\n¿Estás seguro de que quieres vaciar completamente el turno?`;
     
     // Mostrar SweetAlert de confirmación
     const result = await confirmDelete(

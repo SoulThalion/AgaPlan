@@ -19,11 +19,11 @@ const DisponibilidadModal: React.FC<DisponibilidadModalProps> = ({ isOpen, onClo
   const [disponibilidades, setDisponibilidades] = useState<any[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [formData, setFormData] = useState({
-    todasTardes: { horaInicio: '15:00', horaFin: '20:00' },
-    todasMananas: { horaInicio: '08:00', horaFin: '13:00' },
-    diasSemana: { dias: [] as number[], periodo: 'manana', horaInicio: '', horaFin: '' },
-    fechaConcreta: { fecha: '', periodo: 'manana', horaInicio: '', horaFin: '' },
-    noDisponibleFecha: { fecha: '', periodo: 'manana', horaInicio: '', horaFin: '' }
+    todasTardes: { horaInicio: '17:00', horaFin: '20:30' },
+    todasMananas: { horaInicio: '09:00', horaFin: '13:00' },
+    diasSemana: { dias: [] as number[], periodo: 'todoElDia', horaInicio: '', horaFin: '' },
+    fechaConcreta: { fecha: '', periodo: 'todoElDia', horaInicio: '', horaFin: '' },
+    noDisponibleFecha: { fecha: '', periodo: 'todoElDia', horaInicio: '', horaFin: '' }
   });
 
   useEffect(() => {
@@ -207,14 +207,17 @@ const DisponibilidadModal: React.FC<DisponibilidadModalProps> = ({ isOpen, onClo
         return `Todas las tardes ${config.hora_inicio ? `(${config.hora_inicio} - ${config.hora_fin || '20:00'})` : ''}`;
       case 'todasMananas':
         return `Todas las mañanas ${config.hora_inicio ? `(${config.hora_inicio} - ${config.hora_fin || '14:00'})` : ''}`;
-      case 'diasSemana':
-        const diasNombres = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const diasSeleccionados = config.dias ? config.dias.map((d: number) => diasNombres[d]).join(', ') : '';
-        return `Días: ${diasSeleccionados} - ${config.periodo || 'mañana'}`;
-      case 'fechaConcreta':
-        return `Fecha: ${config.fecha} - ${config.periodo_fecha || 'mañana'}`;
-      case 'noDisponibleFecha':
-        return `NO disponible: ${config.fecha} - ${config.periodo_fecha || 'mañana'}`;
+             case 'diasSemana':
+         const diasNombres = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+         const diasSeleccionados = config.dias ? config.dias.map((d: number) => diasNombres[d]).join(', ') : '';
+         const periodoDias = config.periodo === 'todoElDia' ? 'Todo el día' : (config.periodo === 'manana' ? 'Mañana' : 'Tarde');
+         return `Días: ${diasSeleccionados} - ${periodoDias}`;
+       case 'fechaConcreta':
+         const periodoFecha = config.periodo_fecha === 'todoElDia' ? 'Todo el día' : (config.periodo_fecha === 'manana' ? 'Mañana' : 'Tarde');
+         return `Fecha: ${config.fecha} - ${periodoFecha}`;
+       case 'noDisponibleFecha':
+         const periodoNoDisponible = config.periodo_fecha === 'todoElDia' ? 'Todo el día' : (config.periodo_fecha === 'manana' ? 'Mañana' : 'Tarde');
+         return `NO disponible: ${config.fecha} - ${periodoNoDisponible}`;
       default:
         return disp.tipo_disponibilidad;
     }
@@ -443,7 +446,7 @@ const DisponibilidadModal: React.FC<DisponibilidadModalProps> = ({ isOpen, onClo
                         >
                           <option value="manana">Mañana</option>
                           <option value="tarde">Tarde</option>
-                          <option value="personalizado">Personalizado</option>
+                          <option value="todoElDia">Todo el día</option>
                         </select>
                       </div>
                       <div>
@@ -522,7 +525,7 @@ const DisponibilidadModal: React.FC<DisponibilidadModalProps> = ({ isOpen, onClo
                         >
                           <option value="manana">Mañana</option>
                           <option value="tarde">Tarde</option>
-                          <option value="personalizado">Personalizado</option>
+                          <option value="todoElDia">Todo el día</option>
                         </select>
                       </div>
                     </div>
@@ -599,7 +602,7 @@ const DisponibilidadModal: React.FC<DisponibilidadModalProps> = ({ isOpen, onClo
                         >
                           <option value="manana">Mañana</option>
                           <option value="tarde">Tarde</option>
-                          <option value="personalizado">Personalizado</option>
+                          <option value="todoElDia">Todo el día</option>
                         </select>
                       </div>
                     </div>

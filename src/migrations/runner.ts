@@ -20,6 +20,7 @@ import * as modifyHoraToRange from './017-modify-hora-to-range';
 import * as createTurnoUsuariosTable from './018-create-turno-usuarios-table';
 import * as makeEmailPasswordOptional from './022-make-email-password-optional';
 import * as createUserDisponibilidadConfig from './021-create-user-disponibilidad-config';
+import * as addCargoIdToUsuarios from './023-add-cargoId-to-usuarios';
 
 const migrations = [
   { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.down },
@@ -40,6 +41,7 @@ const migrations = [
   { name: '018-create-turno-usuarios-table', up: createTurnoUsuariosTable.up, down: createTurnoUsuariosTable.down },
   { name: '021-create-user-disponibilidad-config', up: createUserDisponibilidadConfig.up, down: createUserDisponibilidadConfig.down },
   { name: '022-make-email-password-optional', up: makeEmailPasswordOptional.up, down: makeEmailPasswordOptional.down },
+  { name: '023-add-cargoId-to-usuarios', up: addCargoIdToUsuarios.up, down: addCargoIdToUsuarios.down },
 ];
 
 // Función para crear la tabla de migraciones si no existe

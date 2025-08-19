@@ -8,7 +8,8 @@ export interface UsuarioAttributes {
   email?: string; // Ahora opcional
   contraseña?: string; // Ahora opcional
   sexo: 'M' | 'F' | 'O';
-  cargo: string;
+  cargo: string; // Mantener para compatibilidad
+  cargoId?: number; // ID de referencia a la tabla cargos
   rol: 'voluntario' | 'admin' | 'superAdmin';
   participacionMensual?: number | null; // Número de veces al mes que quiere participar (opcional), null = sin límite
   activo?: boolean; // Si el usuario está activo
@@ -30,6 +31,8 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
   public contraseña?: string; // Ahora opcional
   public sexo!: 'M' | 'F' | 'O';
   public cargo!: string;
+  public cargoId?: number;
+  public cargoInfo?: any; // Para la relación con Cargo
   public rol!: 'voluntario' | 'admin' | 'superAdmin';
   public participacionMensual?: number | null;
   public activo?: boolean;
@@ -92,6 +95,10 @@ Usuario.init(
         len: [2, 100],
         notEmpty: true,
       },
+    },
+    cargoId: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     },
     rol: {
       type: DataTypes.ENUM('voluntario', 'admin', 'superAdmin'),

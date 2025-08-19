@@ -4,7 +4,9 @@ export interface Usuario {
   email: string;
   contraseña?: string; // Opcional en el frontend para no enviar la contraseña
   sexo: 'M' | 'F' | 'O';
-  cargo: string;
+  cargo: string; // Mantener para compatibilidad
+  cargoId?: number; // ID de referencia a la tabla cargos
+  cargoInfo?: Cargo; // Información completa del cargo incluyendo prioridad
   rol: 'voluntario' | 'admin' | 'superAdmin';
   participacionMensual?: number | null; // null = sin límite de participación
   tieneCoche?: boolean; // Si el usuario tiene coche disponible

@@ -7,7 +7,7 @@ import Turno from '../models/Turno';
 export const getAllUsuarios = async (req: Request, res: Response) => {
   try {
     const usuarios = await Usuario.findAll({
-      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt'],
+      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt'],
       include: [
         {
           model: Usuario,
@@ -19,6 +19,12 @@ export const getAllUsuarios = async (req: Request, res: Response) => {
           model: Usuario,
           as: 'nuncaConUsuario',
           attributes: ['id', 'nombre', 'email'],
+          required: false
+        },
+        {
+          model: require('../models/Cargo').default,
+          as: 'cargoInfo',
+          attributes: ['id', 'nombre', 'descripcion', 'prioridad', 'activo'],
           required: false
         }
       ],
@@ -42,7 +48,7 @@ export const getUsuarioById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const usuario = await Usuario.findByPk(id, {
-      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt', 'updatedAt'],
+      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt', 'updatedAt'],
       include: [
         {
           model: Usuario,
@@ -54,6 +60,12 @@ export const getUsuarioById = async (req: Request, res: Response) => {
           model: Usuario,
           as: 'nuncaConUsuario',
           attributes: ['id', 'nombre', 'email'],
+          required: false
+        },
+        {
+          model: require('../models/Cargo').default,
+          as: 'cargoInfo',
+          attributes: ['id', 'nombre', 'descripcion', 'prioridad', 'activo'],
           required: false
         }
       ]
@@ -81,7 +93,7 @@ export const getUsuarioById = async (req: Request, res: Response) => {
 
 export const createUsuario = async (req: Request, res: Response) => {
   try {
-    const { nombre, email, contraseña, sexo, cargo, rol, participacionMensual, tieneCoche, siempreCon, nuncaCon } = req.body;
+    const { nombre, email, contraseña, sexo, cargo, cargoId, rol, participacionMensual, tieneCoche, siempreCon, nuncaCon } = req.body;
 
     // Validaciones básicas - solo nombre, sexo y cargo son obligatorios
     if (!nombre || !sexo || !cargo) {
@@ -91,13 +103,7 @@ export const createUsuario = async (req: Request, res: Response) => {
       });
     }
 
-    // Validación: si se proporciona email, también debe proporcionarse contraseña
-    if (email && !contraseña) {
-      return res.status(400).json({
-        success: false,
-        message: 'Si proporcionas un email, también debes proporcionar una contraseña'
-      });
-    }
+
 
     // Validación: si se proporciona contraseña, también debe proporcionarse email
     if (contraseña && !email) {
@@ -133,6 +139,7 @@ export const createUsuario = async (req: Request, res: Response) => {
       contraseña: contraseña || null, // null si no se proporciona
       sexo,
       cargo,
+      cargoId: cargoId || undefined,
       rol: rol || 'voluntario',
       participacionMensual: participacionMensual || undefined,
       tieneCoche: tieneCoche || false,
@@ -197,7 +204,7 @@ export const updateUsuario = async (req: AuthenticatedRequest, res: Response) =>
 
     // Si es voluntario, solo puede actualizar ciertos campos de su propio perfil
     if (currentUser.rol === 'voluntario' && currentUser.id === parseInt(id)) {
-      const allowedFields = ['nombre', 'cargo', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon'];
+      const allowedFields = ['nombre', 'cargo', 'cargoId', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon'];
       const filteredData: any = {};
       
       allowedFields.forEach(field => {
@@ -214,13 +221,7 @@ export const updateUsuario = async (req: AuthenticatedRequest, res: Response) =>
       delete updateData.contraseña;
     }
 
-    // Validaciones para email y contraseña
-    if (updateData.email && !updateData.contraseña) {
-      return res.status(400).json({
-        success: false,
-        message: 'Si proporcionas un email, también debes proporcionar una contraseña'
-      });
-    }
+
 
     if (updateData.contraseña && !updateData.email) {
       return res.status(400).json({
