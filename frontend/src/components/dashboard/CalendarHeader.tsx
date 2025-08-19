@@ -7,6 +7,7 @@ interface CalendarHeaderProps {
   setViewMyTurnos: (value: boolean) => void;
   onGeneratePDF: () => void;
   onLimpiarTodo: () => void;
+  onAsignacionAutomaticaTodos: () => void;
 }
 
 export default function CalendarHeader({
@@ -17,7 +18,8 @@ export default function CalendarHeader({
   viewMyTurnos,
   setViewMyTurnos,
   onGeneratePDF,
-  onLimpiarTodo
+  onLimpiarTodo,
+  onAsignacionAutomaticaTodos
 }: CalendarHeaderProps) {
   return (
     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -128,6 +130,18 @@ export default function CalendarHeader({
               }
             </div>
           )}
+          
+          {/* Botón para asignación automática de todos los turnos */}
+          <button
+            onClick={onAsignacionAutomaticaTodos}
+            className="px-4 py-2 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2 transition-colors duration-200 shadow-lg hover:shadow-xl"
+            title="Asignar automáticamente usuarios a todos los turnos incompletos"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>Asignación Automática</span>
+          </button>
           
           {/* Botón para limpiar todos los usuarios de turnos */}
           <button

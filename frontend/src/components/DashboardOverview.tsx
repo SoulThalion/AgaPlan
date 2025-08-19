@@ -623,6 +623,539 @@ export default function DashboardOverview() {
     }
   };
 
+  // Función para asignación automática de todos los turnos
+  const handleAsignacionAutomaticaTodos = async () => {
+    // Verificar permisos
+    if (_user?.rol !== 'admin' && _user?.rol !== 'superAdmin') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Acceso denegado',
+        text: 'Solo los administradores pueden realizar asignaciones automáticas',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    try {
+      // Obtener todos los turnos
+      const turnosResponse = await apiService.getTurnos();
+      if (!turnosResponse.success || !turnosResponse.data) {
+        throw new Error('No se pudieron obtener los turnos');
+      }
+
+      // Obtener todos los usuarios
+      const usuariosResponse = await apiService.getUsuarios();
+      if (!usuariosResponse.success || !usuariosResponse.data) {
+        throw new Error('No se pudieron obtener los usuarios');
+      }
+
+      const turnos = turnosResponse.data;
+      const usuarios = usuariosResponse.data;
+
+      console.log('🔍 Total de turnos obtenidos:', turnos.length);
+      console.log('🔍 Total de usuarios obtenidos:', usuarios.length);
+
+      // Filtrar turnos que necesitan usuarios (tienen capacidad y no están completos)
+      const turnosIncompletos = turnos.filter(turno => {
+        const lugar = lugares.find(l => l.id === turno.lugarId);
+        if (!lugar || !lugar.capacidad) {
+          console.log(`⚠️ Turno ${turno.id}: Sin lugar o sin capacidad definida`);
+          return false;
+        }
+        
+        const usuariosAsignados = turno.usuarios?.length || 0;
+        const necesitaUsuarios = usuariosAsignados < lugar.capacidad;
+        
+        if (necesitaUsuarios) {
+          console.log(`📋 Turno ${turno.id}: ${usuariosAsignados}/${lugar.capacidad} usuarios - Necesita: ${lugar.capacidad - usuariosAsignados}`);
+        }
+        
+        return necesitaUsuarios;
+      });
+
+      console.log('🔍 Turnos incompletos encontrados:', turnosIncompletos.length);
+
+      if (turnosIncompletos.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: 'No hay turnos para completar',
+          text: 'Todos los turnos ya están completos o no tienen capacidad definida',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+
+      // Confirmar la acción
+      const result = await Swal.fire({
+        icon: 'question',
+        title: 'Asignación Automática de Todos los Turnos',
+        html: `
+          <div class="text-left">
+            <p class="mb-3">Se van a procesar <strong>${turnosIncompletos.length}</strong> turnos incompletos.</p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+              <p><strong>El sistema:</strong></p>
+              <ul class="list-disc list-inside mt-2">
+                <li>Considerará las relaciones "siempreCon" y "nuncaCon"</li>
+                <li>Priorizará usuarios con menor participación mensual</li>
+                <li>Respetará las prioridades de cargo</li>
+                <li>Intentará cumplir los requisitos de cada turno</li>
+              </ul>
+            </div>
+            <p class="mt-3 text-sm text-gray-600">¿Quieres proceder con la asignación automática?</p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, asignar automáticamente',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (result.isConfirmed) {
+        // Mostrar modal de progreso
+        let progressModal: any;
+        Swal.fire({
+          title: 'Asignación Automática en Progreso',
+          html: `
+            <div class="text-center">
+              <div class="mb-4">
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                  <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+              </div>
+              <p class="text-sm text-gray-600">Procesando turno 1 de ${turnosIncompletos.length}</p>
+              <p class="text-xs text-gray-500 mt-2">Por favor espera, esto puede tomar varios minutos...</p>
+            </div>
+          `,
+          allowOutsideClick: false,
+          showConfirmButton: false,
+          didOpen: () => {
+            progressModal = Swal.getPopup();
+          }
+        });
+
+        // Procesar turnos uno por uno
+        let turnosCompletados = 0;
+        let turnosConErrores = 0;
+        let totalUsuariosAsignados = 0;
+        let turnosNoCompletados = [];
+        let usuariosOcupadosPorFecha = new Map<string, Set<number>>();
+        
+        // CRÍTICO: Obtener conteo actual de turnos de cada usuario para priorización correcta
+        console.log('📊 Obteniendo participación mensual actual de todos los usuarios...');
+        const conteoTurnosActual = new Map<number, number>();
+        
+        try {
+          // Obtener participación mensual actual de todos los usuarios
+          const promesasParticipacion = usuarios.map(u => 
+            apiService.getParticipacionMensualActual(u.id)
+          );
+          const resultadosParticipacion = await Promise.all(promesasParticipacion);
+          
+          resultadosParticipacion.forEach((resultado, index) => {
+            if (resultado.success && resultado.data) {
+              const usuario = usuarios[index];
+              const turnosOcupados = resultado.data.turnosOcupados || 0;
+              conteoTurnosActual.set(usuario.id, turnosOcupados);
+              console.log(`📈 Usuario ${usuario.nombre}: ${turnosOcupados} turnos ocupados actualmente`);
+            }
+          });
+        } catch (error) {
+          console.error('❌ Error obteniendo participación mensual inicial:', error);
+          // Si falla, inicializar con 0 para todos
+          usuarios.forEach(u => conteoTurnosActual.set(u.id, 0));
+        }
+
+        for (let i = 0; i < turnosIncompletos.length; i++) {
+          const turno = turnosIncompletos[i];
+          
+          try {
+            console.log(`🔄 Procesando turno ${turno.id} (${i + 1}/${turnosIncompletos.length})`);
+            
+            // Actualizar progreso
+            const progreso = ((i + 1) / turnosIncompletos.length) * 100;
+            const progressBar = progressModal?.querySelector('.bg-blue-600');
+            const progressText = progressModal?.querySelector('.text-sm');
+            
+            if (progressBar) progressBar.style.width = `${progreso}%`;
+            if (progressText) progressText.textContent = `Procesando turno ${i + 1} de ${turnosIncompletos.length}`;
+
+            // Obtener lugar del turno
+            const lugar = lugares.find(l => l.id === turno.lugarId);
+            if (!lugar || !lugar.capacidad) {
+              console.log(`⚠️ Turno ${turno.id}: Saltando - sin lugar o capacidad`);
+              continue;
+            }
+
+            // Calcular usuarios necesarios
+            const usuariosAsignados = turno.usuarios?.length || 0;
+            const usuariosNecesarios = lugar.capacidad - usuariosAsignados;
+            
+            console.log(`📊 Turno ${turno.id}: ${usuariosAsignados}/${lugar.capacidad} - Necesita: ${usuariosNecesarios}`);
+            
+            if (usuariosNecesarios <= 0) {
+              console.log(`✅ Turno ${turno.id}: Ya está completo, saltando`);
+              continue;
+            }
+
+            // Obtener usuarios ocupados en otros turnos del mismo día
+            const fechaTurno = turno.fecha;
+            const turnosDelDia = turnos.filter(t => t.fecha === fechaTurno && t.id !== turno.id);
+            const usuariosOcupadosEnFecha: number[] = [];
+            
+            // Agregar usuarios de turnos existentes del mismo día
+            turnosDelDia.forEach(t => {
+              if (t.usuarios) {
+                t.usuarios.forEach(u => {
+                  if (!usuariosOcupadosEnFecha.includes(u.id)) {
+                    usuariosOcupadosEnFecha.push(u.id);
+                  }
+                });
+              }
+            });
+            
+            // Agregar usuarios ya asignados en esta sesión para este día específico
+            if (usuariosOcupadosPorFecha.has(fechaTurno)) {
+              usuariosOcupadosPorFecha.get(fechaTurno)!.forEach(usuarioId => {
+                if (!usuariosOcupadosEnFecha.includes(usuarioId)) {
+                  usuariosOcupadosEnFecha.push(usuarioId);
+                }
+              });
+            }
+
+            console.log(`🔍 Turno ${turno.id}: ${usuariosOcupadosEnFecha.length} usuarios ocupados en otros turnos del mismo día`);
+
+            // Obtener usuarios disponibles para este turno específico (REPLICAR EXACTAMENTE TurnoModal)
+            console.log(`🔍 Turno ${turno.id}: Obteniendo usuarios disponibles...`);
+            const usuariosDisponibles = await filtrarUsuariosPorDisponibilidad(usuarios, turno);
+            console.log(`📋 Turno ${turno.id}: ${usuariosDisponibles.length} usuarios tienen disponibilidad para este turno`);
+            
+            // Filtrar usuarios disponibles que no estén ocupados en otros turnos del mismo día
+            const usuariosDisponiblesParaAsignar = usuariosDisponibles.filter(
+              usuario => 
+                !turno.usuarios?.some(u => u.id === usuario.id) &&
+                !usuariosOcupadosEnFecha.includes(usuario.id)
+            );
+
+            console.log(`👥 Turno ${turno.id}: ${usuariosDisponiblesParaAsignar.length} usuarios disponibles para asignar`);
+
+            if (usuariosDisponiblesParaAsignar.length === 0) {
+              console.log(`⚠️ Turno ${turno.id}: No hay usuarios disponibles, saltando`);
+              turnosNoCompletados.push({
+                id: turno.id,
+                motivo: 'No hay usuarios disponibles'
+              });
+              continue;
+            }
+
+            // REPLICAR EXACTAMENTE la lógica de TurnoModal para obtener usuarios relacionados
+            const obtenerUsuariosRelacionados = (usuario: Usuario): Usuario[] => {
+              const usuariosRelacionados: Usuario[] = [];
+              
+              if (usuario.siempreCon) {
+                const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
+                if (usuarioRelacionado && !turno.usuarios?.some(u => u.id === usuarioRelacionado.id)) {
+                  usuariosRelacionados.push(usuarioRelacionado);
+                }
+              }
+              
+              const esSiempreConDeOtro = usuariosDisponiblesParaAsignar.some(u => u.siempreCon === usuario.id);
+              if (esSiempreConDeOtro) {
+                return usuariosRelacionados;
+              }
+              
+              return [usuario, ...usuariosRelacionados];
+            };
+
+            const obtenerUsuariosExcluidos = (usuario: Usuario): number[] => {
+              const usuariosExcluidos: number[] = [];
+              
+              if (usuario.nuncaCon) {
+                usuariosExcluidos.push(usuario.nuncaCon);
+              }
+              
+              const esNuncaConDeOtro = usuariosDisponiblesParaAsignar.find(u => u.nuncaCon === usuario.id);
+              if (esNuncaConDeOtro) {
+                usuariosExcluidos.push(esNuncaConDeOtro.id);
+              }
+              
+              return usuariosExcluidos;
+            };
+
+            // Crear lista de usuarios considerando relaciones (REPLICAR EXACTAMENTE TurnoModal)
+            const usuariosConRelaciones: Usuario[] = [];
+            const usuariosProcesados = new Set<number>();
+            
+            for (const usuario of usuariosDisponiblesParaAsignar) {
+              if (usuariosProcesados.has(usuario.id)) continue;
+              
+              const usuariosRelacionados = obtenerUsuariosRelacionados(usuario);
+              usuariosRelacionados.forEach(u => usuariosProcesados.add(u.id));
+              usuariosConRelaciones.push(...usuariosRelacionados);
+            }
+
+            console.log(`🔗 Turno ${turno.id}: ${usuariosConRelaciones.length} usuarios con relaciones procesados`);
+
+            // Log de estado actual de conteo de turnos (top 10 con menos turnos)
+            const estadoConteo = Array.from(conteoTurnosActual.entries())
+              .sort((a, b) => a[1] - b[1])
+              .slice(0, 10)
+              .map(([id, conteo]) => {
+                const usuario = usuarios.find(u => u.id === id);
+                return `${usuario?.nombre}: ${conteo}`;
+              })
+              .join(', ');
+            console.log(`📊 Turno ${turno.id}: Estado de conteo (top 10 menor): ${estadoConteo}`);
+
+            // Verificar requisitos existentes en el turno
+            const yaTieneMasculino = turno.usuarios?.some(u => u.sexo === 'M') || false;
+            const yaTieneCoche = turno.usuarios?.some(u => u.tieneCoche) || false;
+            
+            // Verificar si hay usuarios disponibles con coche
+            const hayUsuariosConCocheDisponibles = usuariosConRelaciones.some(u => u.tieneCoche);
+
+            // Ordenar usuarios por prioridad usando conteo REAL de turnos ocupados
+            const usuariosOrdenados = [...usuariosConRelaciones].sort((a, b) => {
+              // USAR CONTEO REAL de turnos ocupados, no el límite máximo
+              const turnosOcupadosA = conteoTurnosActual.get(a.id) || 0;
+              const turnosOcupadosB = conteoTurnosActual.get(b.id) || 0;
+              
+              console.log(`🔍 Comparando: ${a.nombre} (${turnosOcupadosA} turnos) vs ${b.nombre} (${turnosOcupadosB} turnos)`);
+              
+              if (turnosOcupadosA === turnosOcupadosB) {
+                const prioridadA = a.cargoInfo?.prioridad || 999;
+                const prioridadB = b.cargoInfo?.prioridad || 999;
+                
+                if (prioridadA === prioridadB) {
+                  const hashA = (a.id * 9301 + 49297) % 233280;
+                  const hashB = (b.id * 9301 + 49297) % 233280;
+                  return hashA - hashB;
+                }
+                
+                return prioridadA - prioridadB;
+              }
+              
+              // Priorizar usuarios con MENOS turnos ocupados
+              return turnosOcupadosA - turnosOcupadosB;
+            });
+
+            // Asignar usuarios hasta completar el turno (REPLICAR EXACTAMENTE TurnoModal)
+            let usuariosAAsignar: Usuario[] = [];
+            let plazasOcupadas = 0;
+            let usuariosExcluidosAcumulados = new Set<number>();
+            
+            for (const usuario of usuariosOrdenados) {
+              if (plazasOcupadas >= usuariosNecesarios) break;
+              
+              if (usuariosExcluidosAcumulados.has(usuario.id)) continue;
+              
+              const plazasQueOcupa = usuario.siempreCon ? 2 : 1;
+              
+              if (plazasOcupadas + plazasQueOcupa <= usuariosNecesarios) {
+                const exclusionesDelUsuario = obtenerUsuariosExcluidos(usuario);
+                exclusionesDelUsuario.forEach(id => usuariosExcluidosAcumulados.add(id));
+                
+                usuariosAAsignar.push(usuario);
+                plazasOcupadas += plazasQueOcupa;
+              }
+            }
+
+            // Verificar que se cumplan los requisitos después de la asignación
+            console.log(`🔍 Turno ${turno.id}: Verificando requisitos...`);
+            
+            let tieneMasculino = usuariosAAsignar.some(u => u.sexo === 'M') || yaTieneMasculino;
+            let tieneCoche = usuariosAAsignar.some(u => u.tieneCoche) || yaTieneCoche;
+            
+            // Si no se cumplen los requisitos, buscar reemplazos manteniendo la prioridad de participación
+            if (!tieneMasculino || (!tieneCoche && hayUsuariosConCocheDisponibles)) {
+              console.log(`⚠️ Turno ${turno.id}: Requisitos no cumplidos - Masculino: ${tieneMasculino}, Coche: ${tieneCoche}`);
+              
+              // Buscar usuarios de reemplazo que cumplan los requisitos faltantes
+              const usuariosDisponiblesParaReemplazo = usuariosConRelaciones.filter(u => 
+                !usuariosAAsignar.some(ua => ua.id === u.id) &&
+                !usuariosExcluidosAcumulados.has(u.id)
+              );
+              
+              // Intentar reemplazar usuarios para cumplir requisitos
+              for (let i = 0; i < usuariosAAsignar.length && (!tieneMasculino || (!tieneCoche && hayUsuariosConCocheDisponibles)); i++) {
+                const usuarioActual = usuariosAAsignar[i];
+                
+                // Buscar un reemplazo que cumpla los requisitos faltantes
+                const reemplazo = usuariosDisponiblesParaReemplazo.find(u => {
+                  // Debe cumplir al menos uno de los requisitos faltantes
+                  if (!tieneMasculino && u.sexo === 'M') return true;
+                  if (!tieneCoche && hayUsuariosConCocheDisponibles && u.tieneCoche) return true;
+                  return false;
+                });
+                
+                if (reemplazo) {
+                  console.log(`🔄 Turno ${turno.id}: Reemplazando usuario ${usuarioActual.nombre} por ${reemplazo.nombre} para cumplir requisitos`);
+                  
+                  // Remover usuario actual y agregar reemplazo
+                  usuariosAAsignar[i] = reemplazo;
+                  usuariosDisponiblesParaReemplazo.splice(usuariosDisponiblesParaReemplazo.indexOf(reemplazo), 1);
+                  
+                  // Actualizar el estado de los requisitos
+                  tieneMasculino = usuariosAAsignar.some(u => u.sexo === 'M') || yaTieneMasculino;
+                  tieneCoche = usuariosAAsignar.some(u => u.tieneCoche) || yaTieneCoche;
+                  
+                  // Si ya se cumplen todos los requisitos, salir del bucle
+                  if (tieneMasculino && (tieneCoche || !hayUsuariosConCocheDisponibles)) {
+                    break;
+                  }
+                }
+              }
+            }
+            
+            console.log(`✅ Turno ${turno.id}: Requisitos finales - Masculino: ${tieneMasculino}, Coche: ${tieneCoche}`);
+            console.log(`📝 Turno ${turno.id}: ${usuariosAAsignar.length} usuarios seleccionados para asignar (${plazasOcupadas} plazas)`);
+
+            if (usuariosAAsignar.length === 0) {
+              console.log(`⚠️ Turno ${turno.id}: No se pudieron seleccionar usuarios, saltando`);
+              turnosNoCompletados.push({
+                id: turno.id,
+                motivo: 'No se pudieron seleccionar usuarios válidos'
+              });
+              continue;
+            }
+
+            // Asignar usuarios al turno (REPLICAR EXACTAMENTE TurnoModal)
+            let usuariosAsignadosExitosamente = 0;
+            for (const usuario of usuariosAAsignar) {
+              try {
+                console.log(`➕ Asignando usuario ${usuario.id} (${usuario.nombre}) al turno ${turno.id}`);
+                await apiService.asignarUsuarioATurno(turno.id, usuario.id);
+                totalUsuariosAsignados++;
+                usuariosAsignadosExitosamente++;
+                
+                // Agregar usuario al Set de usuarios ocupados para esta fecha específica
+                if (!usuariosOcupadosPorFecha.has(fechaTurno)) {
+                  usuariosOcupadosPorFecha.set(fechaTurno, new Set<number>());
+                }
+                usuariosOcupadosPorFecha.get(fechaTurno)!.add(usuario.id);
+                
+                // CRÍTICO: Actualizar conteo de turnos del usuario
+                const conteoActual = conteoTurnosActual.get(usuario.id) || 0;
+                conteoTurnosActual.set(usuario.id, conteoActual + 1);
+                console.log(`📈 Usuario ${usuario.nombre}: Conteo actualizado de ${conteoActual} a ${conteoActual + 1} turnos`);
+                
+                // Si tiene un "siempreCon", asignar también al usuario relacionado
+                if (usuario.siempreCon) {
+                  const usuarioRelacionado = usuarios.find(u => u.id === usuario.siempreCon);
+                  if (usuarioRelacionado) {
+                    console.log(`➕ Asignando usuario relacionado ${usuarioRelacionado.id} (${usuarioRelacionado.nombre}) al turno ${turno.id}`);
+                    await apiService.asignarUsuarioATurno(turno.id, usuarioRelacionado.id);
+                    totalUsuariosAsignados++;
+                    usuariosAsignadosExitosamente++;
+                    
+                    // Agregar usuario relacionado al Set de usuarios ocupados para esta fecha específica
+                    usuariosOcupadosPorFecha.get(fechaTurno)!.add(usuarioRelacionado.id);
+                    
+                    // CRÍTICO: Actualizar conteo de turnos del usuario relacionado
+                    const conteoRelacionado = conteoTurnosActual.get(usuarioRelacionado.id) || 0;
+                    conteoTurnosActual.set(usuarioRelacionado.id, conteoRelacionado + 1);
+                    console.log(`📈 Usuario relacionado ${usuarioRelacionado.nombre}: Conteo actualizado de ${conteoRelacionado} a ${conteoRelacionado + 1} turnos`);
+                  }
+                }
+                
+                // Pequeña pausa para evitar sobrecarga
+                await new Promise(resolve => setTimeout(resolve, 100));
+              } catch (error) {
+                console.error(`❌ Error asignando usuario ${usuario.id} al turno ${turno.id}:`, error);
+                // Continuar con el siguiente usuario
+              }
+            }
+            
+            console.log(`📊 Turno ${turno.id}: Después de asignaciones, usuarios ocupados en fecha ${fechaTurno}: ${usuariosOcupadosPorFecha.get(fechaTurno)?.size || 0}`);
+
+            // Verificar si el turno se completó realmente
+            if (usuariosAsignadosExitosamente > 0) {
+              console.log(`✅ Turno ${turno.id}: ${usuariosAsignadosExitosamente} usuarios asignados exitosamente`);
+              turnosCompletados++;
+            } else {
+              console.log(`⚠️ Turno ${turno.id}: No se pudo asignar ningún usuario`);
+              turnosNoCompletados.push({
+                id: turno.id,
+                motivo: 'Error en la asignación de usuarios'
+              });
+            }
+            
+          } catch (error: any) {
+            console.error(`❌ Error procesando turno ${turno.id}:`, error);
+            turnosConErrores++;
+            turnosNoCompletados.push({
+              id: turno.id,
+              motivo: `Error: ${error?.message || 'Error desconocido'}`
+            });
+          }
+        }
+
+        console.log('📊 Resumen del procesamiento:');
+        console.log(`   - Turnos procesados: ${turnosIncompletos.length}`);
+        console.log(`   - Turnos completados: ${turnosCompletados}`);
+        console.log(`   - Turnos con errores: ${turnosConErrores}`);
+        console.log(`   - Total usuarios asignados: ${totalUsuariosAsignados}`);
+        console.log(`   - Turnos no completados:`, turnosNoCompletados);
+
+        // Cerrar modal de progreso
+        Swal.close();
+
+        // Invalidar queries para actualizar la UI
+        queryClient.invalidateQueries({ queryKey: ['turnos'] });
+        queryClient.invalidateQueries({ queryKey: ['participacionMensualActual'] });
+
+        // Mostrar resumen final
+        let resumenHTML = `
+          <div class="text-left">
+            <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg mb-4">
+              <h3 class="font-semibold text-green-800 dark:text-green-200 mb-2">Resumen de la Operación:</h3>
+              <ul class="text-sm text-green-700 dark:text-green-300 space-y-1">
+                <li>✅ <strong>Turnos procesados:</strong> ${turnosIncompletos.length}</li>
+                <li>✅ <strong>Turnos completados exitosamente:</strong> ${turnosCompletados}</li>
+                <li>⚠️ <strong>Turnos con errores:</strong> ${turnosConErrores}</li>
+                <li>👥 <strong>Total de usuarios asignados:</strong> ${totalUsuariosAsignados}</li>
+              </ul>
+            </div>
+        `;
+
+        // Agregar información sobre turnos no completados si los hay
+        if (turnosNoCompletados.length > 0) {
+          resumenHTML += `
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg mb-4">
+              <h3 class="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Turnos No Completados (${turnosNoCompletados.length}):</h3>
+              <div class="text-sm text-yellow-700 dark:text-yellow-300 max-h-32 overflow-y-auto">
+                ${turnosNoCompletados.map(t => `<div>• Turno ${t.id}: ${t.motivo}</div>`).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        resumenHTML += `
+          <p class="text-sm text-gray-600">
+            La información de participación mensual se ha actualizado automáticamente para todos los usuarios afectados.
+          </p>
+        </div>
+        `;
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Asignación Automática Completada',
+          html: resumenHTML,
+          confirmButtonText: 'Perfecto'
+        });
+
+      }
+    } catch (error: any) {
+      console.error('Error en asignación automática:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Error desconocido en la asignación automática';
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Error en Asignación Automática',
+        text: errorMessage,
+        confirmButtonText: 'Entendido'
+      });
+    }
+  };
+
   const handleTurnoClick = async (turno: Turno) => {
     setSelectedTurno(turno);
     setShowTurnoModal(true);
@@ -1405,6 +1938,7 @@ export default function DashboardOverview() {
           setViewMyTurnos={setViewMyTurnos}
           onGeneratePDF={handleGeneratePDF}
           onLimpiarTodo={handleLimpiarTodo}
+          onAsignacionAutomaticaTodos={handleAsignacionAutomaticaTodos}
         />
         
                 <div className="p-6">
