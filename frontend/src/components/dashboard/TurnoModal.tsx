@@ -212,6 +212,7 @@ export default function TurnoModal({
     const hayUsuariosConCocheDisponibles = usuariosConRelaciones.some(u => u.tieneCoche);
     
          // Ordenar usuarios por prioridad principal: participación mensual más baja, y secundaria: prioridad del cargo
+     // Sistema de desempate: 1) Participación mensual, 2) Prioridad del cargo, 3) Hash determinístico del ID
      const usuariosOrdenados = [...usuariosConRelaciones].sort((a, b) => {
        const participacionA = a.participacionMensual || 0;
        const participacionB = b.participacionMensual || 0;
@@ -220,6 +221,17 @@ export default function TurnoModal({
        if (participacionA === participacionB) {
          const prioridadA = a.cargoInfo?.prioridad || 999;
          const prioridadB = b.cargoInfo?.prioridad || 999;
+         
+         // Si también empatan en prioridad del cargo, desempatar de forma determinística
+         if (prioridadA === prioridadB) {
+           // Usar una función hash simple basada en los IDs para desempatar
+           // Esto asegura que el orden sea consistente y predecible
+           // Fórmula: (ID * 9301 + 49297) % 233280 (números primos para mejor distribución)
+           const hashA = (a.id * 9301 + 49297) % 233280;
+           const hashB = (b.id * 9301 + 49297) % 233280;
+           return hashA - hashB;
+         }
+         
          return prioridadA - prioridadB; // Menor número = mayor prioridad
        }
        
@@ -261,6 +273,7 @@ export default function TurnoModal({
        // Si no se cumplen los requisitos, buscar reemplazos manteniendo la prioridad de participación
        if (!tieneMasculino || (!tieneCoche && hayUsuariosConCocheDisponibles)) {
          // Crear una lista de usuarios disponibles para reemplazo, ordenados por participación y prioridad del cargo
+         // Sistema de desempate: 1) Participación mensual, 2) Prioridad del cargo, 3) Hash determinístico del ID
          const usuariosDisponiblesParaReemplazo = usuariosConRelaciones
            .filter(u => !usuariosAAsignar.some(ua => ua.id === u.id))
            .sort((a, b) => {
@@ -271,6 +284,17 @@ export default function TurnoModal({
              if (participacionA === participacionB) {
                const prioridadA = a.cargoInfo?.prioridad || 999;
                const prioridadB = b.cargoInfo?.prioridad || 999;
+               
+               // Si también empatan en prioridad del cargo, desempatar de forma determinística
+               if (prioridadA === prioridadB) {
+                 // Usar una función hash simple basada en los IDs para desempatar
+                 // Esto asegura que el orden sea consistente y predecible
+                 // Fórmula: (ID * 9301 + 49297) % 233280 (números primos para mejor distribución)
+                 const hashA = (a.id * 9301 + 49297) % 233280;
+                 const hashB = (b.id * 9301 + 49297) % 233280;
+                 return hashA - hashB;
+               }
+               
                return prioridadA - prioridadB; // Menor número = mayor prioridad
              }
              
@@ -385,7 +409,12 @@ export default function TurnoModal({
        }
      }
      
-     mensaje += `\n\nRequisitos del turno:\n• Usuario masculino: ${requisitosFinales.tieneMasculino ? '✅ Cumplido' : '❌ Pendiente'}\n• Usuario con coche: ${requisitosFinales.tieneCoche ? '✅ Cumplido' : requisitosFinales.hayUsuariosConCocheDisponibles ? '❌ Pendiente' : '⚠️ No hay usuarios con coche disponibles'}\n\n¿Quieres proceder con la asignación automática?`;
+     mensaje += `\n\nRequisitos del turno:\n• Usuario masculino: ${requisitosFinales.tieneMasculino ? '✅ Cumplido' : '❌ Pendiente'}\n• Usuario con coche: ${requisitosFinales.tieneCoche ? '✅ Cumplido' : requisitosFinales.hayUsuariosConCocheDisponibles ? '❌ Pendiente' : '⚠️ No hay usuarios con coche disponibles'}`;
+     
+     // Agregar información sobre el sistema de desempate
+     mensaje += `\n\n📋 Sistema de priorización:\n• 1º Prioridad: Participación mensual más baja\n• 2º Prioridad: Prioridad del cargo (menor número = mayor prioridad)\n• 3º Desempate: Aleatorio determinístico basado en ID del usuario`;
+     
+     mensaje += `\n\n¿Quieres proceder con la asignación automática?`;
     
     // Mostrar SweetAlert de confirmación
     const result = await confirmAction(
