@@ -109,6 +109,263 @@ const ShiftManagement: React.FC = () => {
     }
   });
 
+  // Función para replicar turnos del mes actual al siguiente mes
+  const handleReplicarMes = async () => {
+    if (!turnos?.data || turnos.data.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No hay turnos para replicar',
+        text: 'No hay turnos configurados en el sistema para poder replicar.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    try {
+      // Determinar qué mes usar como base
+      const fechaActual = new Date();
+      const mesActual = fechaActual.getMonth();
+      const añoActual = fechaActual.getFullYear();
+      
+      // Obtener turnos del mes actual o del mes pasado si no hay turnos en el actual
+      let turnosBase = turnos.data.filter(turno => {
+        const [añoTurno, mesTurno] = turno.fecha.split('-').map(Number);
+        return mesTurno - 1 === mesActual && añoTurno === añoActual; // mes - 1 porque los meses van de 0-11
+      });
+
+      // Si no hay turnos en el mes actual, usar el mes pasado
+      if (turnosBase.length === 0) {
+        const mesPasado = mesActual === 0 ? 11 : mesActual - 1;
+        const añoPasado = mesActual === 0 ? añoActual - 1 : añoActual;
+        
+        turnosBase = turnos.data.filter(turno => {
+          const [añoTurno, mesTurno] = turno.fecha.split('-').map(Number);
+          return mesTurno - 1 === mesPasado && añoTurno === añoPasado; // mes - 1 porque los meses van de 0-11
+        });
+      }
+
+      if (turnosBase.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No hay turnos para replicar',
+          text: 'No se encontraron turnos en el mes actual ni en el mes pasado para poder replicar.',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+
+      // Calcular el mes objetivo (siguiente mes)
+      const mesObjetivo = mesActual === 11 ? 0 : mesActual + 1;
+      const añoObjetivo = mesActual === 11 ? añoActual + 1 : añoActual;
+
+      // Mostrar confirmación con detalles
+      const mesBase = turnosBase[0] ? (() => {
+        const [añoBase, mesBase] = turnosBase[0].fecha.split('-').map(Number);
+        return new Date(añoBase, mesBase - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      })() : '';
+      const mesDestino = new Date(añoObjetivo, mesObjetivo).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+      const result = await Swal.fire({
+        icon: 'question',
+        title: 'Replicar Turnos del Mes',
+        html: `
+          <div class="text-left">
+            <p class="mb-3">Se van a replicar <strong>${turnosBase.length}</strong> turnos del mes de <strong>${mesBase}</strong> al mes de <strong>${mesDestino}</strong>.</p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+              <p><strong>Detalles de la replicación:</strong></p>
+              <ul class="list-disc list-inside mt-2">
+                <li>Se mantendrán los mismos días de la semana</li>
+                <li>Se mantendrán los mismos horarios y lugares</li>
+                <li>Se mantendrán los mismos exhibidores</li>
+                <li><strong>Los usuarios asignados se dejarán vacíos</strong></li>
+                <li>Se ajustarán las fechas al mes siguiente</li>
+              </ul>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, replicar turnos',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#6b7280'
+      });
+
+            if (!result.isConfirmed) return;
+
+      // Mostrar progreso e inicializar variables
+      let turnosCreados = 0;
+      let turnosConError = 0;
+      const errores: string[] = [];
+
+      // Mostrar progreso con promesa que NO se resuelve hasta completar la replicación
+      Swal.fire({
+        title: 'Replicando turnos...',
+        html: `
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Procesando ${turnosBase.length} turnos...</p>
+            <div class="mt-3">
+              <div class="bg-gray-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+              </div>
+              <p id="progress-text" class="text-sm mt-2">0 de ${turnosBase.length} turnos procesados</p>
+            </div>
+          </div>
+        `,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+          // Deshabilitar el botón de cerrar
+          Swal.getCloseButton()?.style.setProperty('display', 'none');
+        }
+      });
+
+      // Ejecutar replicación en paralelo con el progreso
+      const replicationPromise = (async () => {
+        // Replicar cada turno
+        for (let i = 0; i < turnosBase.length; i++) {
+          const turno = turnosBase[i];
+          try {
+            console.log(`Procesando turno ${i + 1}/${turnosBase.length}: ${turno.id}`);
+            
+            // Parsear la fecha correctamente para evitar problemas de zona horaria
+            const [añoOriginal, mesOriginal, diaOriginal] = turno.fecha.split('-').map(Number);
+            const fechaOriginal = new Date(añoOriginal, mesOriginal - 1, diaOriginal); // mes - 1 porque los meses van de 0-11
+            const diaSemana = fechaOriginal.getDay(); // 0 = domingo, 1 = lunes, etc.
+            
+            // Calcular qué semana del mes es basándose en el día de la semana
+            const diaDelMes = fechaOriginal.getDate();
+            const primerDiaDelMes = new Date(añoOriginal, mesOriginal - 1, 1);
+            const primerDiaSemana = primerDiaDelMes.getDay(); // 0 = domingo, 1 = lunes, etc.
+            
+            // Calcular en qué semana del mes está el turno original
+            // Considerando que la primera semana es la que contiene el día 1
+            const diasDesdeInicio = diaDelMes - 1; // Convertir a base 0
+            const diasAjustadosPorPrimerDia = diasDesdeInicio + primerDiaSemana;
+            const semanaDelMes = Math.floor(diasAjustadosPorPrimerDia / 7) + 1;
+            
+            console.log(`Turno original: ${fechaOriginal.toDateString()} - Día: ${diaSemana} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana]}) - Día ${diaDelMes} del mes, Semana ${semanaDelMes}`);
+            console.log(`Primer día del mes original: ${primerDiaDelMes.toDateString()} - Día: ${primerDiaSemana} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][primerDiaSemana]})`);
+            
+            // Calcular la fecha del siguiente mes
+            const primerDiaDelMesObjetivo = new Date(añoObjetivo, mesObjetivo, 1);
+            const primerDiaSemanaMesObjetivo = primerDiaDelMesObjetivo.getDay();
+            
+            console.log(`Primer día del mes objetivo: ${primerDiaDelMesObjetivo.toDateString()} - Día: ${primerDiaSemanaMesObjetivo} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][primerDiaSemanaMesObjetivo]})`);
+            
+            // Encontrar el primer día de la semana que coincida en el mes objetivo
+            let fechaObjetivo = new Date(añoObjetivo, mesObjetivo, 1);
+            while (fechaObjetivo.getDay() !== diaSemana) {
+              fechaObjetivo.setDate(fechaObjetivo.getDate() + 1);
+            }
+            
+            // Ajustar a la semana correcta del mes
+            // Si es la primera semana, ya está bien
+            // Si es la segunda semana o más, añadir las semanas correspondientes
+            if (semanaDelMes > 1) {
+              fechaObjetivo.setDate(fechaObjetivo.getDate() + ((semanaDelMes - 1) * 7));
+            }
+            
+            console.log(`Fecha objetivo calculada: ${fechaObjetivo.toDateString()} - Día: ${fechaObjetivo.getDay()} (${['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fechaObjetivo.getDay()]}) - Semana ${Math.ceil(fechaObjetivo.getDate() / 7)} del mes`);
+
+            // Crear el nuevo turno
+            const nuevoTurno: TurnoCreationRequest = {
+              fecha: fechaObjetivo.toISOString().split('T')[0],
+              hora: turno.hora,
+              lugarId: turno.lugarId,
+              exhibidorIds: turno.exhibidores ? turno.exhibidores.map(e => e.id) : [],
+              usuarioIds: [] // Sin usuarios asignados
+            };
+
+            console.log(`Creando turno para fecha: ${nuevoTurno.fecha}`);
+            const response = await apiService.createTurno(nuevoTurno);
+            console.log(`Turno creado exitosamente:`, response);
+            turnosCreados++;
+            
+            // Actualizar progreso en el SweetAlert
+            const progressPercent = Math.round(((i + 1) / turnosBase.length) * 100);
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            if (progressBar) progressBar.style.width = `${progressPercent}%`;
+            if (progressText) progressText.textContent = `${i + 1} de ${turnosBase.length} turnos procesados`;
+            
+            // Pequeña pausa para evitar sobrecarga y permitir que se vea el progreso
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+          } catch (error: any) {
+            console.error(`Error al crear turno ${turno.id}:`, error);
+            turnosConError++;
+            errores.push(`Turno ${turno.id}: ${error.response?.data?.message || 'Error desconocido'}`);
+            
+            // Actualizar progreso incluso si hay error
+            const progressPercent = Math.round(((i + 1) / turnosBase.length) * 100);
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            if (progressBar) progressBar.style.width = `${progressPercent}%`;
+            if (progressText) progressText.textContent = `${i + 1} de ${turnosBase.length} turnos procesados (${turnosConError} errores)`;
+          }
+        }
+      })();
+
+      // Esperar a que termine la replicación y luego cerrar el progreso
+      await replicationPromise;
+      Swal.close();
+
+      // Mostrar resultado
+      if (turnosConError === 0) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Turnos replicados exitosamente',
+          html: `
+            <div class="text-center">
+              <p class="mb-3">Se han replicado <strong>${turnosCreados}</strong> turnos del mes de <strong>${mesBase}</strong> al mes de <strong>${mesDestino}</strong>.</p>
+              <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+                <p><strong>Resumen:</strong></p>
+                <ul class="list-disc list-inside mt-2">
+                  <li>✅ Turnos creados: ${turnosCreados}</li>
+                  <li>✅ Usuarios dejados vacíos</li>
+                  <li>✅ Días de la semana mantenidos</li>
+                  <li>✅ Horarios y lugares preservados</li>
+                </ul>
+              </div>
+            </div>
+          `,
+          confirmButtonText: 'Perfecto'
+        });
+      } else {
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Replicación parcial',
+          html: `
+            <div class="text-center">
+              <p class="mb-3">Se replicaron <strong>${turnosCreados}</strong> turnos, pero <strong>${turnosConError}</strong> fallaron.</p>
+              <div class="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-sm">
+                <p><strong>Errores encontrados:</strong></p>
+                <ul class="list-disc list-inside mt-2 text-xs">
+                  ${errores.slice(0, 5).map(e => `<li>${e}</li>`).join('')}
+                  ${errores.length > 5 ? `<li>... y ${errores.length - 5} errores más</li>` : ''}
+                </ul>
+              </div>
+            </div>
+          `,
+          confirmButtonText: 'Entendido'
+        });
+      }
+
+      // Invalidar queries para refrescar la lista
+      queryClient.invalidateQueries({ queryKey: ['turnos'] });
+
+    } catch (error) {
+      console.error('Error al replicar turnos:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al replicar turnos',
+        text: 'Ha ocurrido un error inesperado al intentar replicar los turnos.',
+        confirmButtonText: 'Entendido'
+      });
+    }
+  };
+
   const updateShiftMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: TurnoCreationRequest }) =>
       apiService.updateTurno(id, data),
@@ -531,6 +788,13 @@ const ShiftManagement: React.FC = () => {
               {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : 'Eliminar Todos'}
             </button>
           )}
+          <button
+            onClick={handleReplicarMes}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+            title="Replicar turnos del mes actual al siguiente mes"
+          >
+            📅 Replicar Mes
+          </button>
           <button
             onClick={openCreateModal}
             className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
