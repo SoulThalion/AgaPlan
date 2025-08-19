@@ -576,15 +576,18 @@ export default function DashboardOverview() {
   // Función para limpiar todos los usuarios de todos los turnos
   const handleLimpiarTodo = async () => {
     try {
+      // Obtener el mes y año del calendario actualmente seleccionado
+      const { mes, año } = getMesYAñoDelCalendario();
+      
       // Confirmar la acción con el usuario
       const result = await Swal.fire({
         icon: 'warning',
         title: '¿Estás seguro?',
-        text: 'Esta acción eliminará TODOS los usuarios asignados a TODOS los turnos. Esta operación no se puede deshacer.',
+        text: `Esta acción eliminará TODOS los usuarios asignados a los turnos del mes ${mes + 1}/${año}. Esta operación no se puede deshacer.`,
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, limpiar todo',
+        confirmButtonText: 'Sí, limpiar turnos del mes',
         cancelButtonText: 'Cancelar'
       });
 
@@ -599,8 +602,8 @@ export default function DashboardOverview() {
           }
         });
 
-        // Llamar a la API para limpiar todos los usuarios
-        const response = await apiService.limpiarTodosLosUsuariosDeTurnos();
+        // Llamar a la API para limpiar usuarios del mes y año especificados
+        const response = await apiService.limpiarTodosLosUsuariosDeTurnos(mes, año);
         
         if (response.success) {
           // Invalidar queries para actualizar la UI
@@ -611,7 +614,7 @@ export default function DashboardOverview() {
           Swal.fire({
             icon: 'success',
             title: '¡Turnos limpiados exitosamente!',
-            text: `Se han eliminado ${response.data?.turnosLimpiados || 0} asignaciones de usuarios. Todos los turnos ahora están libres.`,
+            text: `Se han eliminado ${response.data?.turnosLimpiados || 0} asignaciones de usuarios del mes ${mes + 1}/${año}. Todos los turnos del mes ahora están libres.`,
             confirmButtonText: 'Aceptar'
           });
         } else {

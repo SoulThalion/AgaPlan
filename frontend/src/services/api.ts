@@ -192,8 +192,13 @@ class ApiService {
     return response.data;
   }
 
-  async limpiarTodosLosUsuariosDeTurnos(): Promise<ApiResponse<{ turnosLimpiados: number }>> {
-    const response = await this.api.delete<ApiResponse<{ turnosLimpiados: number }>>('/turnos/limpiar-usuarios');
+  async limpiarTodosLosUsuariosDeTurnos(mes?: number, año?: number): Promise<ApiResponse<{ turnosLimpiados: number }>> {
+    const params = new URLSearchParams();
+    if (mes !== undefined) params.append('mes', mes.toString());
+    if (año !== undefined) params.append('año', año.toString());
+    
+    const url = `/turnos/limpiar-usuarios${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await this.api.delete<ApiResponse<{ turnosLimpiados: number }>>(url);
     return response.data;
   }
 

@@ -1063,23 +1063,79 @@ export const limpiarTodosLosUsuariosDeTurnos = async (req: AuthenticatedRequest,
       });
     }
 
-    // Eliminar todas las relaciones usuario-turno
+    // Obtener parámetros de mes y año desde query params
+    const { mes, año } = req.query;
+    
+    if (!mes || !año) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requieren los parámetros mes y año'
+      });
+    }
+
+    const mesNum = parseInt(mes as string);
+    const añoNum = parseInt(año as string);
+
+    if (isNaN(mesNum) || isNaN(añoNum)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Los parámetros mes y año deben ser números válidos'
+      });
+    }
+
+    // Construir fecha de inicio y fin del mes
+    const fechaInicio = new Date(añoNum, mesNum, 1);
+    const fechaFin = new Date(añoNum, mesNum + 1, 0); // Último día del mes
+
+    console.log(`🧹 Limpiando usuarios de turnos del mes ${mesNum + 1}/${añoNum} (${fechaInicio.toISOString()} - ${fechaFin.toISOString()})`);
+
+    // Obtener los IDs de los turnos del mes y año especificados
+    const turnosDelMes = await Turno.findAll({
+      where: {
+        fecha: {
+          [Op.between]: [fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]]
+        }
+      },
+      attributes: ['id']
+    });
+
+    const turnoIds = turnosDelMes.map(turno => turno.id);
+
+    if (turnoIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: `No hay turnos en el mes ${mesNum + 1}/${añoNum} para limpiar.`,
+        data: { turnosLimpiados: 0 }
+      });
+    }
+
+    // Eliminar las relaciones usuario-turno solo para los turnos del mes especificado
     const resultado = await TurnoUsuario.destroy({
-      where: {},
+      where: {
+        turnoId: {
+          [Op.in]: turnoIds
+        }
+      },
       force: true // Eliminación permanente
     });
 
-    // Actualizar el estado de todos los turnos a 'libre'
+    // Actualizar el estado de los turnos del mes especificado a 'libre'
     await Turno.update(
       { estado: 'libre' },
-      { where: {} }
+      { 
+        where: {
+          id: {
+            [Op.in]: turnoIds
+          }
+        }
+      }
     );
 
-    console.log(`🧹 Se limpiaron ${resultado} asignaciones de usuarios de turnos`);
+    console.log(`🧹 Se limpiaron ${resultado} asignaciones de usuarios de turnos del mes ${mesNum + 1}/${añoNum}`);
 
     res.status(200).json({
       success: true,
-      message: `Se limpiaron exitosamente ${resultado} asignaciones de usuarios de turnos. Todos los turnos ahora están libres.`,
+      message: `Se limpiaron exitosamente ${resultado} asignaciones de usuarios de turnos del mes ${mesNum + 1}/${añoNum}. Todos los turnos del mes ahora están libres.`,
       data: { turnosLimpiados: resultado }
     });
   } catch (error) {
