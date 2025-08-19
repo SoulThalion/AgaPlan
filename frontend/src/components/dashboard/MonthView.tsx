@@ -12,6 +12,7 @@ interface MonthViewProps {
   handleTurnoClick: (turno: Turno) => void;
   toggleDayExpansion: (dateString: string) => void;
   getEventColor: (lugarId: number) => string;
+  onTurnoDrop?: (turnoId: number, newDate: Date) => void;
 }
 
 export default function MonthView({
@@ -21,8 +22,35 @@ export default function MonthView({
   getTurnosForDate,
   handleTurnoClick,
   toggleDayExpansion,
-  getEventColor
+  getEventColor,
+  onTurnoDrop
 }: MonthViewProps) {
+  // Función para manejar el inicio del drag
+  const handleDragStart = (e: React.DragEvent, turno: Turno) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(turno));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  // Función para manejar el drop
+  const handleDrop = (e: React.DragEvent, targetDate: Date) => {
+    e.preventDefault();
+    
+    try {
+      const turnoData = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (onTurnoDrop && turnoData.id) {
+        onTurnoDrop(turnoData.id, targetDate);
+      }
+    } catch (error) {
+      console.error('Error parsing turno data:', error);
+    }
+  };
+
+  // Función para permitir el drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       {/* Encabezados de días */}
@@ -56,6 +84,8 @@ export default function MonthView({
                   ? 'bg-blue-50 dark:bg-blue-900/20' 
                   : ''
               }`}
+              onDrop={(e) => handleDrop(e, day.date)}
+              onDragOver={handleDragOver}
             >
               {/* Número del día */}
               <div className={`p-2 text-sm font-medium ${
@@ -83,10 +113,12 @@ export default function MonthView({
                       {turnosToShow.map((turno) => (
                         <div
                           key={turno.id}
+                          draggable={true}
+                          onDragStart={(e) => handleDragStart(e, turno)}
                           onClick={() => handleTurnoClick(turno)}
                           className="text-xs p-1 rounded text-white font-medium truncate cursor-pointer hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md"
                           style={{ backgroundColor: getEventColor(turno.lugarId) }}
-                          title={`Haz clic para ver detalles del turno en ${turno.lugar?.nombre || 'Sin lugar'}`}
+                          title={`Arrastra para mover o haz clic para ver detalles del turno en ${turno.lugar?.nombre || 'Sin lugar'}`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="truncate flex-1">
@@ -97,37 +129,30 @@ export default function MonthView({
                                 </span>
                               )}
                             </span>
-                                                            <div className="ml-1 flex-shrink-0">
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                                    {turno.lugar?.capacidad ? `${turno.usuarios?.length || 0}/${turno.lugar.capacidad}` : (turno.usuarios?.length || 0)}
-                                  </span>
-                                </div>
+                            <div className="ml-1 flex-shrink-0">
+                              <svg className="w-3 h-3 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                              </svg>
+                            </div>
                           </div>
                         </div>
                       ))}
                       
-                      {/* Mostrar "X más" si hay más de 3 turnos y no está expandido */}
-                      {turnosDelDia.length > 3 && !isExpanded && (
-                        <div 
-                          className="text-xs text-gray-500 dark:text-gray-400 text-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
-                          onClick={() => {
-                            console.log('Click en +X más para fecha:', dateString);
-                            console.log('isExpanded:', isExpanded);
-                            toggleDayExpansion(dateString);
-                          }}
-                        >
+                      {/* Mostrar contador si hay más turnos */}
+                      {turnosDelDia.length > 3 && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 text-center py-1">
                           +{turnosDelDia.length - 3} más
                         </div>
                       )}
                       
-                      {/* Mostrar botón para contraer si está expandido */}
-                      {turnosDelDia.length > 3 && isExpanded && (
-                        <div 
-                          className="text-xs text-blue-600 dark:text-blue-400 text-center cursor-pointer hover:text-blue-800 dark:hover:text-blue-300"
+                      {/* Botón para expandir/contraer */}
+                      {turnosDelDia.length > 3 && (
+                        <button
                           onClick={() => toggleDayExpansion(dateString)}
+                          className="w-full text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors py-1"
                         >
-                          Mostrar menos
-                        </div>
+                          {isExpanded ? 'Ver menos' : 'Ver más'}
+                        </button>
                       )}
                     </>
                   );

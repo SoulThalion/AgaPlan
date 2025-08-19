@@ -1905,6 +1905,117 @@ export default function DashboardOverview() {
        }
      };
 
+  // Función para manejar el drop de un turno (drag and drop)
+  const handleTurnoDrop = async (turnoId: number, newDate: Date) => {
+    try {
+      // Buscar el turno original
+      const turnoOriginal = turnos.find(t => t.id === turnoId);
+      if (!turnoOriginal) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo encontrar el turno',
+          confirmButtonText: 'Aceptar'
+        });
+        return;
+      }
+
+      // Validar que el turno no esté ocupado
+      if (turnoOriginal.estado === 'ocupado') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Turno ocupado',
+          text: 'No se puede mover un turno que ya tiene usuarios asignados',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+
+                           // Validar que la nueva fecha no sea en el pasado
+       const hoy = new Date();
+       hoy.setHours(0, 0, 0, 0);
+       if (newDate < hoy) {
+         Swal.fire({
+           icon: 'warning',
+           title: 'Fecha inválida',
+           text: 'No se pueden mover turnos a fechas pasadas',
+           confirmButtonText: 'Entendido'
+         });
+         return;
+       }
+
+       // Mostrar confirmación
+       const result = await Swal.fire({
+         icon: 'question',
+         title: '¿Mover turno?',
+         text: `¿Estás seguro de que quieres mover el turno de ${turnoOriginal.lugar?.nombre || 'Sin lugar'} del ${new Date(turnoOriginal.fecha).toLocaleDateString('es-ES')} al ${newDate.toLocaleDateString('es-ES')}?`,
+         html: `
+           <div class="text-left">
+             <p><strong>Lugar:</strong> ${turnoOriginal.lugar?.nombre || 'Sin lugar'}</p>
+             <p><strong>Hora:</strong> ${turnoOriginal.hora}</p>
+             <p><strong>Fecha actual:</strong> ${new Date(turnoOriginal.fecha).toLocaleDateString('es-ES')}</p>
+             <p><strong>Nueva fecha:</strong> ${newDate.toLocaleDateString('es-ES')}</p>
+           </div>
+         `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, mover',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3B82F6',
+        cancelButtonColor: '#6B7280'
+      });
+
+               if (result.isConfirmed) {
+           // Mostrar loading
+           Swal.fire({
+             title: 'Moviendo turno...',
+             text: 'Por favor espera mientras se actualiza la fecha',
+             allowOutsideClick: false,
+             didOpen: () => {
+               Swal.showLoading();
+             }
+           });
+
+           // Crear la fecha para el backend sumando 1 día para corregir el desplazamiento
+           const fechaParaBackend = new Date(newDate);
+           fechaParaBackend.setDate(fechaParaBackend.getDate() + 1);
+           const newDateString = fechaParaBackend.toISOString().split('T')[0];
+
+           // Actualizar el turno con la nueva fecha
+           const response = await apiService.updateTurno(turnoId, {
+             fecha: newDateString,
+             hora: turnoOriginal.hora,
+             lugarId: turnoOriginal.lugarId,
+             exhibidorIds: turnoOriginal.exhibidores ? turnoOriginal.exhibidores.map(e => e.id) : [],
+             usuarioIds: turnoOriginal.usuarios ? turnoOriginal.usuarios.map(u => u.id) : []
+           });
+
+           if (response.success) {
+             // Invalidar queries para actualizar la UI
+             queryClient.invalidateQueries({ queryKey: ['turnos'] });
+            
+             Swal.fire({
+               icon: 'success',
+               title: '¡Turno movido!',
+               text: `El turno se ha movido exitosamente al ${fechaParaBackend.toLocaleDateString('es-ES')}`,
+               confirmButtonText: 'Aceptar'
+             });
+           } else {
+             throw new Error(response.message || 'Error al mover el turno');
+           }
+         }
+    } catch (error: any) {
+      console.error('Error moviendo turno:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Error al mover el turno';
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: errorMessage,
+        confirmButtonText: 'Aceptar'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1976,15 +2087,16 @@ export default function DashboardOverview() {
 
           {/* Vista del Mes */}
           {currentView === 'month' && (
-            <MonthView
-              calendarDays={calendarDays}
-              weekDayNames={weekDayNames}
-              expandedDays={expandedDays}
-              getTurnosForDate={getTurnosForDate}
-              handleTurnoClick={handleTurnoClick}
-              toggleDayExpansion={toggleDayExpansion}
-              getEventColor={getEventColor}
-            />
+                          <MonthView
+                calendarDays={calendarDays}
+                weekDayNames={weekDayNames}
+                expandedDays={expandedDays}
+                getTurnosForDate={getTurnosForDate}
+                handleTurnoClick={handleTurnoClick}
+                toggleDayExpansion={toggleDayExpansion}
+                getEventColor={getEventColor}
+                onTurnoDrop={handleTurnoDrop}
+              />
           )}
 
           {/* Vista de la Semana */}
@@ -1995,6 +2107,7 @@ export default function DashboardOverview() {
               getTurnosForDate={getTurnosForDate}
               handleTurnoClick={handleTurnoClick}
               getEventColor={getEventColor}
+              onTurnoDrop={handleTurnoDrop}
             />
           )}
 
@@ -2006,6 +2119,7 @@ export default function DashboardOverview() {
               handleTurnoClick={handleTurnoClick}
               getEventColor={getEventColor}
               formatDay={formatDay}
+              onTurnoDrop={handleTurnoDrop}
             />
           )}
 
