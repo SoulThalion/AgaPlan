@@ -1,10 +1,11 @@
-import type { Turno, Usuario } from '../../types';
+import type { Turno, Usuario, Lugar, Exhibidor } from '../../types';
 import { useState } from 'react';
 import PlaceMapModal from '../PlaceMapModal';
 import ParticipacionMensualDisplay from '../ParticipacionMensualDisplay';
 import { confirmAction, confirmDelete } from '../../config/sweetalert';
 import { useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
+import { apiService } from '../../services/api';
 
 /**
  * Componente modal para gestionar turnos
@@ -83,6 +84,22 @@ export default function TurnoModal({
   // Estado para controlar el modal del mapa
   const [showMapModal, setShowMapModal] = useState(false);
 
+  // Estado para el modo de edición
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    fecha: '',
+    horaInicio: '',
+    horaFin: '',
+    lugarId: 0
+  });
+
+  // Estado para los datos necesarios para la edición
+  const [lugares, setLugares] = useState<Lugar[]>([]);
+  // @ts-ignore
+  const [exhibidores, setExhibidores] = useState<Exhibidor[]>([]);
+  // @ts-ignore
+  const [selectedLugar, setSelectedLugar] = useState<Lugar | null>(null);
+
   // Función para calcular los requisitos del turno
   const calcularRequisitosTurno = () => {
     const usuarios = selectedTurno.usuarios || [];
@@ -102,6 +119,122 @@ export default function TurnoModal({
       mes: fechaTurno.getMonth(),
       año: fechaTurno.getFullYear()
     };
+  };
+
+  // Función para cargar lugares y exhibidores
+  const cargarDatosParaEdicion = async () => {
+    try {
+      const [lugaresResponse, exhibidoresResponse] = await Promise.all([
+        apiService.getLugares(),
+        apiService.getExhibidores()
+      ]);
+
+      if (lugaresResponse.success && lugaresResponse.data) {
+        setLugares(lugaresResponse.data);
+      }
+
+      if (exhibidoresResponse.success && exhibidoresResponse.data) {
+        setExhibidores(exhibidoresResponse.data);
+      }
+    } catch (error) {
+      console.error('Error cargando datos para edición:', error);
+    }
+  };
+
+  // Función para iniciar la edición
+  const handleIniciarEdicion = () => {
+    // Separar el rango de horas
+    const [horaInicio, horaFin] = selectedTurno.hora.includes('-') 
+      ? selectedTurno.hora.split('-') 
+      : [selectedTurno.hora, selectedTurno.hora];
+    
+    setEditFormData({
+      fecha: selectedTurno.fecha,
+      horaInicio: horaInicio,
+      horaFin: horaFin,
+      lugarId: selectedTurno.lugarId
+    });
+
+    // Cargar datos necesarios
+    cargarDatosParaEdicion();
+    
+    // Establecer el lugar seleccionado
+    if (selectedTurno.lugar) {
+      setSelectedLugar(selectedTurno.lugar);
+    }
+    
+    setIsEditing(true);
+  };
+
+  // Función para cancelar la edición
+  const handleCancelarEdicion = () => {
+    setIsEditing(false);
+    setEditFormData({
+      fecha: '',
+      horaInicio: '',
+      horaFin: '',
+      lugarId: 0
+    });
+    setSelectedLugar(null);
+  };
+
+  // Función para guardar los cambios
+  const handleGuardarCambios = async () => {
+    try {
+      // Validar que la hora de fin sea mayor que la de inicio
+      if (editFormData.horaFin <= editFormData.horaInicio) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'La hora de fin debe ser mayor que la hora de inicio'
+        });
+        return;
+      }
+
+      // Crear el rango de horas
+      const horaRango = `${editFormData.horaInicio}-${editFormData.horaFin}`;
+
+      // Preparar los datos para la actualización
+      const datosActualizacion = {
+        fecha: editFormData.fecha,
+        hora: horaRango,
+        lugarId: editFormData.lugarId,
+        exhibidorIds: selectedTurno.exhibidores ? selectedTurno.exhibidores.map(e => e.id) : [],
+        usuarioIds: selectedTurno.usuarios ? selectedTurno.usuarios.map(u => u.id) : [],
+        estado: selectedTurno.estado as 'libre' | 'ocupado'
+      };
+
+      // Llamar a la API para actualizar el turno
+      const response = await apiService.updateTurno(selectedTurno.id, datosActualizacion);
+
+      if (response.success) {
+        // Invalidar queries para actualizar la UI
+        queryClient.invalidateQueries({ queryKey: ['turnos'] });
+        
+        // Mostrar mensaje de éxito
+        Swal.fire({
+          icon: 'success',
+          title: 'Turno actualizado',
+          text: 'El turno se ha actualizado exitosamente',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
+        // Salir del modo de edición
+        setIsEditing(false);
+      } else {
+        throw new Error(response.message || 'Error al actualizar el turno');
+      }
+    } catch (error: any) {
+      console.error('Error al actualizar turno:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Error al actualizar el turno';
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: errorMessage
+      });
+    }
   };
 
      // Función para obtener usuarios que ya están asignados a otros turnos en la misma fecha
@@ -597,54 +730,172 @@ export default function TurnoModal({
       >
         {/* Header del modal */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Detalles del Turno #{selectedTurno.id}
-              </h3>
-                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                 <div>
-                   <p className="text-gray-600 dark:text-gray-400">Fecha:</p>
-                   <p className="font-medium text-gray-900 dark:text-white">
-                     {new Date(selectedTurno.fecha).toLocaleDateString('es-ES', { 
-                       weekday: 'long', 
-                       year: 'numeric', 
-                       month: 'long', 
-                       day: 'numeric' 
-                     })}
-                   </p>
-                 </div>
-                 <div>
-                   <p className="text-gray-600 dark:text-gray-400">Horario:</p>
-                   <p className="font-medium text-gray-900 dark:text-white">
-                     {formatHora(selectedTurno.hora)}
-                   </p>
-                 </div>
-                 <div>
-                   <p className="text-gray-600 dark:text-gray-400">Lugar:</p>
-                   <p className="font-medium text-gray-900 dark:text-white">
-                     {selectedTurno.lugar?.nombre || 'Sin lugar'}
-                   </p>
-                 </div>
-                 <div>
-                   <p className="text-gray-600 dark:text-gray-400">Exhibidores:</p>
-                   <p className="font-medium text-gray-900 dark:text-white">
-                     {selectedTurno.exhibidores && selectedTurno.exhibidores.length > 0 
-                       ? selectedTurno.exhibidores.map(e => e.nombre).join(', ')
-                       : 'Sin exhibidores'
-                     }
-                   </p>
-                 </div>
-               </div>
+          {/* Título y botones de la esquina superior */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Detalles del Turno #{selectedTurno.id}
+              {isEditing && (
+                <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Editando
+                </span>
+              )}
+            </h3>
+            <div className="flex items-center space-x-2">
+              {/* Botones de edición flotantes */}
+              {(_user?.rol === 'admin' || _user?.rol === 'superAdmin') && (
+                <>
+                  {!isEditing ? (
+                    <button
+                      onClick={handleIniciarEdicion}
+                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                      title="Editar turno"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleCancelarEdicion}
+                        className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-md transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleGuardarCambios}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md transition-colors flex items-center"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Guardar
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+              {/* Botón cerrar */}
+              <button
+                onClick={() => setShowTurnoModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={() => setShowTurnoModal(false)}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+          </div>
+
+          {/* Información del turno */}
+          <div>
+            {!isEditing ? (
+              // Vista normal (solo lectura)
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600 dark:text-gray-400">Fecha:</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {new Date(selectedTurno.fecha).toLocaleDateString('es-ES', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600 dark:text-gray-400">Horario:</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {formatHora(selectedTurno.hora)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600 dark:text-gray-400">Lugar:</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {selectedTurno.lugar?.nombre || 'Sin lugar'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600 dark:text-gray-400">Exhibidores:</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {selectedTurno.exhibidores && selectedTurno.exhibidores.length > 0 
+                      ? selectedTurno.exhibidores.map(e => e.nombre).join(', ')
+                      : 'Sin exhibidores'
+                    }
+                  </p>
+                </div>
+              </div>
+            ) : (
+              // Vista de edición
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Fecha
+                      </label>
+                      <input
+                        type="date"
+                        value={editFormData.fecha}
+                        onChange={(e) => setEditFormData({...editFormData, fecha: e.target.value})}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Hora Inicio
+                      </label>
+                      <input
+                        type="time"
+                        value={editFormData.horaInicio}
+                        onChange={(e) => setEditFormData({...editFormData, horaInicio: e.target.value})}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Hora Fin
+                      </label>
+                      <input
+                        type="time"
+                        value={editFormData.horaFin}
+                        onChange={(e) => setEditFormData({...editFormData, horaFin: e.target.value})}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Lugar
+                      </label>
+                      <select
+                        value={editFormData.lugarId || ''}
+                        onChange={(e) => {
+                          const lugarId = Number(e.target.value);
+                          setEditFormData({...editFormData, lugarId});
+                          const lugar = lugares.find(l => l.id === lugarId);
+                          setSelectedLugar(lugar || null);
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        required
+                      >
+                        <option value="">Seleccionar...</option>
+                        {lugares.map((lugar: Lugar) => (
+                          <option key={lugar.id} value={lugar.id}>
+                            {lugar.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
