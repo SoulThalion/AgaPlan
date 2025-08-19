@@ -645,20 +645,27 @@ export default function DashboardOverview() {
     }
 
     try {
-      // Obtener todos los turnos
-      const turnosResponse = await apiService.getTurnos();
-      if (!turnosResponse.success || !turnosResponse.data) {
-        throw new Error('No se pudieron obtener los turnos');
-      }
+             // Obtener todos los turnos
+       const turnosResponse = await apiService.getTurnos();
+       if (!turnosResponse.success || !turnosResponse.data) {
+         throw new Error('No se pudieron obtener los turnos');
+       }
 
-      // Obtener todos los usuarios
-      const usuariosResponse = await apiService.getUsuarios();
-      if (!usuariosResponse.success || !usuariosResponse.data) {
-        throw new Error('No se pudieron obtener los usuarios');
-      }
+       // Obtener todos los usuarios
+       const usuariosResponse = await apiService.getUsuarios();
+       if (!usuariosResponse.success || !usuariosResponse.data) {
+         throw new Error('No se pudieron obtener los usuarios');
+       }
 
-      const turnos = turnosResponse.data;
-      const usuarios = usuariosResponse.data;
+       // Filtrar turnos solo del mes que se está viendo en el calendario
+       const { mes, año } = getMesYAñoDelCalendario();
+       const turnosDelMes = turnosResponse.data.filter(turno => {
+         const fechaTurno = new Date(turno.fecha);
+         return fechaTurno.getMonth() === mes && fechaTurno.getFullYear() === año;
+       });
+
+       const turnos = turnosDelMes;
+       const usuarios = usuariosResponse.data;
 
       console.log('🔍 Total de turnos obtenidos:', turnos.length);
       console.log('🔍 Total de usuarios obtenidos:', usuarios.length);
@@ -693,35 +700,35 @@ export default function DashboardOverview() {
         return;
       }
 
-      // Confirmar la acción
-      const result = await Swal.fire({
-        icon: 'question',
-        title: 'Asignación Automática de Todos los Turnos',
-        html: `
-          <div class="text-left">
-            <p class="mb-3">Se van a procesar <strong>${turnosIncompletos.length}</strong> turnos incompletos.</p>
-            <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
-              <p><strong>El sistema:</strong></p>
-              <ul class="list-disc list-inside mt-2">
-                <li>Considerará las relaciones "siempreCon" y "nuncaCon"</li>
-                <li>Priorizará usuarios con menor participación mensual</li>
-                <li>Respetará las prioridades de cargo</li>
-                <li>Intentará cumplir los requisitos de cada turno</li>
-              </ul>
-            </div>
-            <p class="mt-3 text-sm text-gray-600">¿Quieres proceder con la asignación automática?</p>
-          </div>
-        `,
+             // Confirmar la acción
+       const result = await Swal.fire({
+         icon: 'question',
+         title: 'Asignación Automática de Turnos del Mes',
+         html: `
+           <div class="text-left">
+             <p class="mb-3">Se van a procesar <strong>${turnosIncompletos.length}</strong> turnos incompletos del mes de <strong>${formatMonthYear(currentDate)}</strong>.</p>
+             <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+               <p><strong>El sistema:</strong></p>
+               <ul class="list-disc list-inside mt-2">
+                 <li>Considerará las relaciones "siempreCon" y "nuncaCon"</li>
+                 <li>Priorizará usuarios con menor participación mensual</li>
+                 <li>Respetará las prioridades de cargo</li>
+                 <li>Intentará cumplir los requisitos de cada turno</li>
+               </ul>
+             </div>
+             <p class="mt-3 text-sm text-gray-600">¿Quieres proceder con la asignación automática?</p>
+           </div>
+         `,
         showCancelButton: true,
         confirmButtonText: 'Sí, asignar automáticamente',
         cancelButtonText: 'Cancelar'
       });
 
       if (result.isConfirmed) {
-        // Mostrar modal de progreso
-        let progressModal: any;
-        Swal.fire({
-          title: 'Asignación Automática en Progreso',
+                 // Mostrar modal de progreso
+         let progressModal: any;
+         Swal.fire({
+           title: `Asignación Automática del Mes de ${formatMonthYear(currentDate)}`,
           html: `
             <div class="text-center">
               <div class="mb-4">
@@ -1144,9 +1151,9 @@ export default function DashboardOverview() {
         </div>
         `;
 
-        Swal.fire({
-          icon: 'success',
-          title: 'Asignación Automática Completada',
+                 Swal.fire({
+           icon: 'success',
+           title: `Asignación Automática del Mes de ${formatMonthYear(currentDate)} Completada`,
           html: resumenHTML,
           confirmButtonText: 'Perfecto'
         });
