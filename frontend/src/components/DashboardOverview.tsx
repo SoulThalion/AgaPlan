@@ -76,6 +76,14 @@ export default function DashboardOverview() {
     }
   }, [selectedTurno, turnos]);
 
+  // Función helper para extraer mes y año del calendario actual
+  const getMesYAñoDelCalendario = () => {
+    return {
+      mes: currentDate.getMonth(),
+      año: currentDate.getFullYear()
+    };
+  };
+
   // Mutaciones para ocupar y liberar turnos
   const ocuparTurnoMutation = useMutation({
     mutationFn: (turnoId: number) => apiService.ocuparTurno(turnoId),
@@ -745,8 +753,9 @@ export default function DashboardOverview() {
         
         try {
           // Obtener participación mensual actual de todos los usuarios
+          const { mes, año } = getMesYAñoDelCalendario();
           const promesasParticipacion = usuarios.map(u => 
-            apiService.getParticipacionMensualActual(u.id)
+            apiService.getParticipacionMensualActual(u.id, mes, año)
           );
           const resultadosParticipacion = await Promise.all(promesasParticipacion);
           
@@ -1232,7 +1241,8 @@ export default function DashboardOverview() {
     // Verificar participación mensual actual antes de verificar disponibilidad
     if (usuario.participacionMensual !== null && usuario.participacionMensual !== undefined) {
       try {
-        const participacionActual = await apiService.getParticipacionMensualActual(usuario.id);
+        const { mes, año } = getMesYAñoDelCalendario();
+        const participacionActual = await apiService.getParticipacionMensualActual(usuario.id, mes, año);
         if (participacionActual.turnosOcupados >= usuario.participacionMensual) {
           console.log(`❌ Usuario ${usuario.nombre} ya alcanzó su límite mensual (${participacionActual.turnosOcupados}/${usuario.participacionMensual})`);
           return false; // El usuario ya alcanzó su límite mensual
