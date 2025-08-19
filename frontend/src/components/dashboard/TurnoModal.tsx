@@ -593,31 +593,40 @@ export default function TurnoModal({
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 Detalles del Turno #{selectedTurno.id}
               </h3>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400">Fecha:</p>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {new Date(selectedTurno.fecha).toLocaleDateString('es-ES', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400">Horario:</p>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {formatHora(selectedTurno.hora)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400">Lugar:</p>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {selectedTurno.lugar?.nombre || 'Sin lugar'}
-                  </p>
-                </div>
-              </div>
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                 <div>
+                   <p className="text-gray-600 dark:text-gray-400">Fecha:</p>
+                   <p className="font-medium text-gray-900 dark:text-white">
+                     {new Date(selectedTurno.fecha).toLocaleDateString('es-ES', { 
+                       weekday: 'long', 
+                       year: 'numeric', 
+                       month: 'long', 
+                       day: 'numeric' 
+                     })}
+                   </p>
+                 </div>
+                 <div>
+                   <p className="text-gray-600 dark:text-gray-400">Horario:</p>
+                   <p className="font-medium text-gray-900 dark:text-white">
+                     {formatHora(selectedTurno.hora)}
+                   </p>
+                 </div>
+                 <div>
+                   <p className="text-gray-600 dark:text-gray-400">Lugar:</p>
+                   <p className="font-medium text-gray-900 dark:text-white">
+                     {selectedTurno.lugar?.nombre || 'Sin lugar'}
+                   </p>
+                 </div>
+                 <div>
+                   <p className="text-gray-600 dark:text-gray-400">Exhibidores:</p>
+                   <p className="font-medium text-gray-900 dark:text-white">
+                     {selectedTurno.exhibidores && selectedTurno.exhibidores.length > 0 
+                       ? selectedTurno.exhibidores.map(e => e.nombre).join(', ')
+                       : 'Sin exhibidores'
+                     }
+                   </p>
+                 </div>
+               </div>
             </div>
             <button
               onClick={() => setShowTurnoModal(false)}
@@ -708,6 +717,8 @@ export default function TurnoModal({
                   )}
                 </div>
               )}
+
+
 
               {/* Requisitos del Turno */}
               <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
