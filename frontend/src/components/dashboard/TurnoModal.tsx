@@ -173,6 +173,24 @@ export default function TurnoModal({
       
       return [usuario, ...usuariosRelacionados];
     };
+
+    // Función para obtener usuarios que NO pueden estar juntos (nuncaCon)
+    const obtenerUsuariosExcluidos = (usuario: Usuario): number[] => {
+      const usuariosExcluidos: number[] = [];
+      
+      // Si el usuario tiene un "nuncaCon", excluir ese usuario
+      if (usuario.nuncaCon) {
+        usuariosExcluidos.push(usuario.nuncaCon);
+      }
+      
+      // Si el usuario es el "nuncaCon" de otro usuario, excluir ese otro usuario
+      const esNuncaConDeOtro = usuariosDisponiblesParaAsignar.find(u => u.nuncaCon === usuario.id);
+      if (esNuncaConDeOtro) {
+        usuariosExcluidos.push(esNuncaConDeOtro.id);
+      }
+      
+      return usuariosExcluidos;
+    };
     
     // Crear lista de usuarios considerando las relaciones "siempreCon"
     const usuariosConRelaciones: Usuario[] = [];
@@ -203,14 +221,24 @@ export default function TurnoModal({
     // Limitar a los usuarios necesarios, pero considerar que algunos usuarios pueden ocupar 2 plazas
     let usuariosAAsignar: Usuario[] = [];
     let plazasOcupadas = 0;
+    let usuariosExcluidosAcumulados = new Set<number>();
     
     for (const usuario of usuariosOrdenados) {
       if (plazasOcupadas >= usuariosNecesarios) break;
+      
+      // Verificar si este usuario está excluido por relaciones "nuncaCon"
+      if (usuariosExcluidosAcumulados.has(usuario.id)) {
+        continue; // Saltar este usuario si está excluido
+      }
       
       // Si este usuario tiene un "siempreCon", ocupará 2 plazas
       const plazasQueOcupa = usuario.siempreCon ? 2 : 1;
       
       if (plazasOcupadas + plazasQueOcupa <= usuariosNecesarios) {
+        // Agregar el usuario y sus exclusiones "nuncaCon" a la lista de excluidos
+        const exclusionesDelUsuario = obtenerUsuariosExcluidos(usuario);
+        exclusionesDelUsuario.forEach(id => usuariosExcluidosAcumulados.add(id));
+        
         usuariosAAsignar.push(usuario);
         plazasOcupadas += plazasQueOcupa;
       }
@@ -272,7 +300,6 @@ export default function TurnoModal({
      }
     
          if (usuariosAAsignar.length === 0) {
-       const totalUsuarios = usuariosDisponibles.length;
        const usuariosOcupadosEnOtrosTurnos = usuariosOcupadosEnFecha.length;
        const usuariosYaAsignadosEnEsteTurno = usuariosAsignados.length;
        
@@ -313,6 +340,12 @@ export default function TurnoModal({
          const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
          if (usuarioRelacionado) {
            info += `\n  └─ Siempre con: ${usuarioRelacionado.nombre} (${usuarioRelacionado.cargo})`;
+         }
+       }
+       if (usuario.nuncaCon) {
+         const usuarioExcluido = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.nuncaCon);
+         if (usuarioExcluido) {
+           info += `\n  └─ Nunca con: ${usuarioExcluido.nombre} (${usuarioExcluido.cargo}) - Excluido automáticamente`;
          }
        }
        return info;
