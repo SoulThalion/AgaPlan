@@ -232,28 +232,34 @@ export default function DashboardOverview() {
       );
     }
 
-    // Si "Ver Todos" está activado, mostrar todos los turnos (o solo los filtrados por "Mis Turnos")
+    // Si "Ver Todos" está activado, mostrar todos los turnos del mes del calendario (o solo los filtrados por "Mis Turnos")
     if (viewAllTurnos) {
-      return turnosFiltrados;
+      // Filtrar por el mes del calendario actual
+      const { mes, año } = getMesYAñoDelCalendario();
+      return turnosFiltrados.filter(turno => {
+        const turnoDate = new Date(turno.fecha);
+        return turnoDate.getMonth() === mes && turnoDate.getFullYear() === año;
+      });
     }
 
-    // Mostrar solo turnos de la semana actual (aplicando también el filtro de "Mis Turnos" si está activado)
-    const now = new Date();
-    const startOfCurrentWeek = new Date(now);
-    startOfCurrentWeek.setDate(now.getDate() - now.getDay() + 1);
-    const endOfCurrentWeek = new Date(startOfCurrentWeek);
-    endOfCurrentWeek.setDate(startOfCurrentWeek.getDate() + 6);
+    // Mostrar solo turnos de la semana actual del mes del calendario (aplicando también el filtro de "Mis Turnos" si está activado)
+    const { mes, año } = getMesYAñoDelCalendario();
+    const startOfWeek = new Date(año, mes, 1);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
 
     return turnosFiltrados.filter(turno => {
       const turnoDate = new Date(turno.fecha);
-      return turnoDate >= startOfCurrentWeek && turnoDate <= endOfCurrentWeek;
+      return turnoDate >= startOfWeek && turnoDate <= endOfWeek && 
+             turnoDate.getMonth() === mes && turnoDate.getFullYear() === año;
     });
   };
 
   const getTurnosDelMes = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const { mes, año } = getMesYAñoDelCalendario();
+    const startOfMonth = new Date(año, mes, 1);
+    const endOfMonth = new Date(año, mes + 1, 0);
 
     return turnos.filter(turno => {
       const turnoDate = new Date(turno.fecha);
@@ -508,8 +514,14 @@ export default function DashboardOverview() {
   // Función para generar PDF
   const handleGeneratePDF = () => {
     try {
+      // Obtener el mes y año del calendario actualmente seleccionado
+      const { mes, año } = getMesYAñoDelCalendario();
+      
+      // Obtener solo los turnos del mes del calendario que se está visualizando
+      const turnosDelMes = getTurnosToShow();
+      
       // Convertir turnos al formato necesario para PDF
-      const turnosForPDF: TurnoForPDF[] = turnos.map(turno => ({
+      const turnosForPDF: TurnoForPDF[] = turnosDelMes.map(turno => ({
         id: turno.id,
         fecha: turno.fecha,
         hora: turno.hora,
@@ -530,6 +542,9 @@ export default function DashboardOverview() {
         })) || []
       }));
 
+      // Activar debug para identificar problemas con caracteres (opcional)
+      const debugMode = false; // Cambiar a true para activar logs de depuración
+
       // Determinar qué tipo de PDF generar según los filtros activos
       if (viewMyTurnos) {
         // Filtrar solo mis turnos
@@ -539,19 +554,19 @@ export default function DashboardOverview() {
         
         if (viewAllTurnos) {
           // Mis turnos de esta semana
-          generateWeekTurnosPDF(misTurnos);
+          generateWeekTurnosPDF(misTurnos, mes, año, debugMode);
         } else {
           // Mis turnos de todo el mes
-          generateMyTurnosPDF(misTurnos, _user?.nombre || 'Usuario');
+          generateMyTurnosPDF(misTurnos, _user?.nombre || 'Usuario', mes, año, debugMode);
         }
       } else {
         // Todos los turnos
         if (viewAllTurnos) {
           // Turnos de esta semana
-          generateWeekTurnosPDF(turnosForPDF);
+          generateWeekTurnosPDF(turnosForPDF, mes, año, debugMode);
         } else {
           // Todos los turnos del mes
-          generateTurnosPDF(turnosForPDF);
+          generateTurnosPDF(turnosForPDF, undefined, mes, año, debugMode);
         }
       }
 
