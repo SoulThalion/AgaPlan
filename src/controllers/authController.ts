@@ -9,17 +9,39 @@ const JWT_EXPIRES_IN = '7d';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { nombre, email, contraseña, sexo, cargo }: RegisterRequest = req.body;
+    console.log('📝 Datos recibidos en registro:', JSON.stringify(req.body, null, 2));
+    
+    // Extraer datos sin tipado estricto para debug
+    const { nombre, email, contraseña, sexo, cargo } = req.body;
+    
+    // Manejar el problema de encoding del campo contraseña
+    const password = contraseña || req.body.password || req.body.contrasena;
+    
+    console.log('📝 Valores extraídos:');
+    console.log('  - nombre:', nombre);
+    console.log('  - email:', email);
+    console.log('  - contraseña original:', contraseña ? '[HIDDEN]' : 'undefined');
+    console.log('  - contraseña corregida:', password ? '[HIDDEN]' : 'undefined');
+    console.log('  - sexo:', sexo);
+    console.log('  - cargo:', cargo);
 
     // Validaciones básicas
-    if (!nombre || !email || !contraseña || !sexo || !cargo) {
+    if (!nombre || !email || !password || !sexo) {
       return res.status(400).json({
         success: false,
-        message: 'Todos los campos son requeridos'
+        message: 'Nombre, email, contraseña y sexo son requeridos'
       });
     }
 
-    if (contraseña.length < 6) {
+    // Validar que cargo no sea undefined (puede ser string vacío)
+    if (cargo === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'El campo cargo es requerido'
+      });
+    }
+
+    if (password.length < 6) {
       return res.status(400).json({
         success: false,
         message: 'La contraseña debe tener al menos 6 caracteres'
@@ -48,7 +70,7 @@ export const register = async (req: Request, res: Response) => {
     const newUser = await Usuario.create({
       nombre,
       email,
-      contraseña, // No hacer hash aquí, el modelo lo hace automáticamente
+      contraseña: password, // Usar la variable corregida
       sexo,
       cargo,
       rol

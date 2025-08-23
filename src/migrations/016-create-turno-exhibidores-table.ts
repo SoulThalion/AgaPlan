@@ -50,25 +50,25 @@ export = {
 
       console.log('✅ Tabla turno_exhibidores creada');
 
-                    // Migrar datos existentes si los hay
-              console.log('🔄 Migrando datos existentes...');
-              const [turnos] = await queryInterface.sequelize.query(
-                'SELECT id, exhibidorId FROM turnos WHERE exhibidorId IS NOT NULL'
-              ) as any[];
+      // Migrar datos existentes si los hay
+      console.log('🔄 Migrando datos existentes...');
+      const [turnos] = await queryInterface.sequelize.query(
+        'SELECT id, exhibidorId FROM turnos WHERE exhibidorId IS NOT NULL'
+      ) as any[];
 
-              if (turnos.length > 0) {
-                console.log(`📋 Migrando ${turnos.length} turnos existentes...`);
-
-                for (const turno of turnos) {
-                  if (turno.exhibidorId) {
-                    await queryInterface.sequelize.query(
-                      'INSERT INTO turno_exhibidores (turnoId, exhibidorId, createdAt, updatedAt) VALUES (?, ?, NOW(), NOW())',
-                      {
-                        replacements: [turno.id, turno.exhibidorId]
-                      }
-                    );
-                  }
-                }
+      if (turnos.length > 0) {
+        console.log(`📋 Migrando ${turnos.length} turnos existentes...`);
+        
+        for (const turno of turnos) {
+          if (turno.exhibidorId) {
+            await queryInterface.sequelize.query(
+              'INSERT INTO turno_exhibidores (turnoId, exhibidorId, createdAt, updatedAt) VALUES (?, ?, NOW(), NOW())',
+              {
+                replacements: [turno.id, turno.exhibidorId]
+              }
+            );
+          }
+        }
         
         console.log('✅ Datos migrados correctamente');
       } else {
@@ -82,7 +82,12 @@ export = {
 
       // Actualizar el índice único
       console.log('🔄 Actualizando índices...');
-      await queryInterface.removeIndex('turnos', 'turnos_fecha_hora_lugarId_exhibidorId_unique');
+      try {
+        await queryInterface.removeIndex('turnos', 'turnos_fecha_hora_lugarId_exhibidorId_unique');
+      } catch (error) {
+        console.log('ℹ️ Índice original no encontrado, continuando...');
+      }
+      
       await queryInterface.addIndex('turnos', ['fecha', 'hora', 'lugarId'], {
         unique: true,
         name: 'turnos_fecha_hora_lugarId_unique'
@@ -112,25 +117,30 @@ export = {
       });
 
       // Restaurar índice único original
-      await queryInterface.removeIndex('turnos', 'turnos_fecha_hora_lugarId_unique');
+      try {
+        await queryInterface.removeIndex('turnos', 'turnos_fecha_hora_lugarId_unique');
+      } catch (error) {
+        console.log('ℹ️ Índice nuevo no encontrado, continuando...');
+      }
+      
       await queryInterface.addIndex('turnos', ['fecha', 'hora', 'lugarId', 'exhibidorId'], {
         unique: true,
         name: 'turnos_fecha_hora_lugarId_exhibidorId_unique'
       });
 
-                    // Migrar datos de vuelta
-              const [turnoExhibidores] = await queryInterface.sequelize.query(
-                'SELECT turnoId, exhibidorId FROM turno_exhibidores'
-              ) as any[];
+      // Migrar datos de vuelta
+      const [turnoExhibidores] = await queryInterface.sequelize.query(
+        'SELECT turnoId, exhibidorId FROM turno_exhibidores'
+      ) as any[];
 
-              for (const te of turnoExhibidores) {
-                await queryInterface.sequelize.query(
-                  'UPDATE turnos SET exhibidorId = ? WHERE id = ?',
-                  {
-                    replacements: [te.exhibidorId, te.turnoId]
-                  }
-                );
-              }
+      for (const te of turnoExhibidores) {
+        await queryInterface.sequelize.query(
+          'UPDATE turnos SET exhibidorId = ? WHERE id = ?',
+          {
+            replacements: [te.exhibidorId, te.turnoId]
+          }
+        );
+      }
 
       // Eliminar la tabla turno_exhibidores
       await queryInterface.dropTable('turno_exhibidores');

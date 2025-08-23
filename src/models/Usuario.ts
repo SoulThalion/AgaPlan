@@ -92,8 +92,8 @@ Usuario.init(
       type: DataTypes.STRING(100),
       allowNull: false,
       validate: {
-        len: [2, 100],
-        notEmpty: true,
+        len: [0, 100], // Permitir longitud 0 (string vacío)
+        // notEmpty: false removido - no usar esta validación para permitir strings vacíos
       },
     },
     cargoId: {
