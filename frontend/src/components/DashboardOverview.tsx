@@ -663,27 +663,27 @@ export default function DashboardOverview() {
     }
 
     try {
-             // Obtener todos los turnos
-       const turnosResponse = await apiService.getTurnos();
-       if (!turnosResponse.success || !turnosResponse.data) {
-         throw new Error('No se pudieron obtener los turnos');
-       }
+      // Obtener todos los turnos
+      const turnosResponse = await apiService.getTurnos();
+      if (!turnosResponse.success || !turnosResponse.data) {
+        throw new Error('No se pudieron obtener los turnos');
+      }
 
-       // Obtener todos los usuarios
-       const usuariosResponse = await apiService.getUsuarios();
-       if (!usuariosResponse.success || !usuariosResponse.data) {
-         throw new Error('No se pudieron obtener los usuarios');
-       }
+      // Obtener todos los usuarios
+      const usuariosResponse = await apiService.getUsuarios();
+      if (!usuariosResponse.success || !usuariosResponse.data) {
+        throw new Error('No se pudieron obtener los usuarios');
+      }
 
-       // Filtrar turnos solo del mes que se está viendo en el calendario
-       const { mes, año } = getMesYAñoDelCalendario();
-       const turnosDelMes = turnosResponse.data.filter(turno => {
-         const fechaTurno = new Date(turno.fecha);
-         return fechaTurno.getMonth() === mes && fechaTurno.getFullYear() === año;
-       });
+      // Filtrar turnos solo del mes que se está viendo en el calendario
+      const { mes, año } = getMesYAñoDelCalendario();
+      const turnosDelMes = turnosResponse.data.filter(turno => {
+        const fechaTurno = new Date(turno.fecha);
+        return fechaTurno.getMonth() === mes && fechaTurno.getFullYear() === año;
+      });
 
-       const turnos = turnosDelMes;
-       const usuarios = usuariosResponse.data;
+      const turnos = turnosDelMes;
+      const usuarios = usuariosResponse.data;
 
       console.log('🔍 Total de turnos obtenidos:', turnos.length);
       console.log('🔍 Total de usuarios obtenidos:', usuarios.length);
@@ -718,35 +718,208 @@ export default function DashboardOverview() {
         return;
       }
 
-             // Confirmar la acción
-       const result = await Swal.fire({
-         icon: 'question',
-         title: 'Asignación Automática de Turnos del Mes',
-         html: `
-           <div class="text-left">
-             <p class="mb-3">Se van a procesar <strong>${turnosIncompletos.length}</strong> turnos incompletos del mes de <strong>${formatMonthYear(currentDate)}</strong>.</p>
-             <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
-               <p><strong>El sistema:</strong></p>
-               <ul class="list-disc list-inside mt-2">
-                 <li>Considerará las relaciones "siempreCon" y "nuncaCon"</li>
-                 <li>Priorizará usuarios con menor participación mensual</li>
-                 <li>Respetará las prioridades de cargo</li>
-                 <li>Intentará cumplir los requisitos de cada turno</li>
-               </ul>
-             </div>
-             <p class="mt-3 text-sm text-gray-600">¿Quieres proceder con la asignación automática?</p>
-           </div>
-         `,
+      // Mostrar modal para seleccionar días a excluir
+      const diasSemana = [
+        { id: 0, nombre: 'Domingo', checked: false },
+        { id: 1, nombre: 'Lunes', checked: false },
+        { id: 2, nombre: 'Martes', checked: false },
+        { id: 3, nombre: 'Miércoles', checked: false },
+        { id: 4, nombre: 'Jueves', checked: false },
+        { id: 5, nombre: 'Viernes', checked: false },
+        { id: 6, nombre: 'Sábado', checked: false }
+      ];
+
+      // Obtener días específicos del mes para excluir
+      const diasDelMes: Array<{
+        dia: number;
+        fecha: Date;
+        nombre: string;
+        checked: boolean;
+      }> = [];
+      const primerDia = new Date(año, mes, 1);
+      const ultimoDia = new Date(año, mes + 1, 0);
+      
+      for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+        const fecha = new Date(año, mes, dia);
+        diasDelMes.push({
+          dia: dia,
+          fecha: fecha,
+          nombre: fecha.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }),
+          checked: false
+        });
+      }
+
+      const { value: exclusiones } = await Swal.fire({
+        icon: 'question',
+        title: 'Configurar Exclusión de Días',
+        html: `
+          <div class="text-left">
+            <p class="mb-4 text-sm text-gray-600">Selecciona los días que quieres excluir de la asignación automática:</p>
+            
+            <div class="mb-6">
+              <h4 class="font-semibold mb-3 text-blue-600">Excluir Días de la Semana:</h4>
+              <div class="grid grid-cols-2 gap-2">
+                ${diasSemana.map(dia => `
+                  <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="dia-semana-${dia.id}" class="exclusion-dia-semana" ${dia.checked ? 'checked' : ''}>
+                    <span class="text-sm">${dia.nombre}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="mb-4">
+              <h4 class="font-semibold mb-3 text-orange-600">Excluir Días Específicos del Mes:</h4>
+              <div class="max-h-32 overflow-y-auto border rounded p-2">
+                ${diasDelMes.map(dia => `
+                  <label class="flex items-center space-x-2 cursor-pointer mb-1">
+                    <input type="checkbox" id="dia-mes-${dia.dia}" class="exclusion-dia-mes" ${dia.checked ? 'checked' : ''}>
+                    <span class="text-sm">${dia.nombre}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+            
+            <p class="text-xs text-gray-500 mt-3">
+              💡 <strong>Nota:</strong> Los turnos de los días seleccionados serán ignorados durante la asignación automática.
+            </p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Continuar con Asignación',
+        cancelButtonText: 'Cancelar',
+        width: '600px',
+        didOpen: () => {
+          // Agregar event listeners para los checkboxes
+          const checkboxesDiasSemana = document.querySelectorAll('.exclusion-dia-semana');
+          const checkboxesDiasMes = document.querySelectorAll('.exclusion-dia-mes');
+          
+          checkboxesDiasSemana.forEach((checkbox, index) => {
+            checkbox.addEventListener('change', (e) => {
+              diasSemana[index].checked = (e.target as HTMLInputElement).checked;
+            });
+          });
+          
+          checkboxesDiasMes.forEach((checkbox, index) => {
+            checkbox.addEventListener('change', (e) => {
+              diasDelMes[index].checked = (e.target as HTMLInputElement).checked;
+            });
+          });
+        }
+      });
+
+      if (!exclusiones) {
+        return; // Usuario canceló
+      }
+
+      // Obtener días excluidos
+      const diasSemanaExcluidos = diasSemana.filter(dia => dia.checked).map(dia => dia.id);
+      const diasMesExcluidos = diasDelMes.filter(dia => dia.checked).map(dia => dia.dia);
+
+      console.log('🚫 Días de la semana excluidos:', diasSemanaExcluidos);
+      console.log('🚫 Días del mes excluidos:', diasMesExcluidos);
+
+      // Filtrar turnos excluyendo los días seleccionados
+      const turnosParaAsignar = turnosIncompletos.filter(turno => {
+        const fechaTurno = new Date(turno.fecha);
+        const diaSemana = fechaTurno.getDay();
+        const diaMes = fechaTurno.getDate();
+        
+        // Excluir si está en la lista de días de la semana excluidos
+        if (diasSemanaExcluidos.includes(diaSemana)) {
+          console.log(`🚫 Turno ${turno.id}: Excluido por día de la semana (${fechaTurno.toLocaleDateString('es-ES', { weekday: 'long' })})`);
+          return false;
+        }
+        
+        // Excluir si está en la lista de días del mes excluidos
+        if (diasMesExcluidos.includes(diaMes)) {
+          console.log(`🚫 Turno ${turno.id}: Excluido por día específico del mes (${fechaTurno.getDate()})`);
+          return false;
+        }
+        
+        return true;
+      });
+
+      console.log(`🔍 Turnos para asignar después de exclusiones: ${turnosParaAsignar.length} de ${turnosIncompletos.length}`);
+
+      if (turnosParaAsignar.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: 'No hay turnos para asignar',
+          text: 'Todos los turnos incompletos están en días excluidos',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+
+      // Mostrar resumen de exclusiones
+      const resumenExclusiones = await Swal.fire({
+        icon: 'info',
+        title: 'Resumen de Exclusiones',
+        html: `
+          <div class="text-left">
+            <p class="mb-3">Se procesarán <strong>${turnosParaAsignar.length}</strong> turnos de <strong>${turnosIncompletos.length}</strong> disponibles.</p>
+            
+            ${diasSemanaExcluidos.length > 0 ? `
+              <div class="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg mb-3">
+                <p class="font-semibold text-yellow-800 dark:text-yellow-200">Días de la semana excluidos:</p>
+                <p class="text-sm text-yellow-700 dark:text-yellow-300">
+                  ${diasSemanaExcluidos.map(id => diasSemana.find(d => d.id === id)?.nombre).join(', ')}
+                </p>
+              </div>
+            ` : ''}
+            
+            ${diasMesExcluidos.length > 0 ? `
+              <div class="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg mb-3">
+                <p class="font-semibold text-orange-800 dark:text-orange-200">Días específicos del mes excluidos:</p>
+                <p class="text-sm text-orange-700 dark:text-orange-300">
+                  ${diasMesExcluidos.map(dia => dia).join(', ')} de ${formatMonthYear(currentDate)}
+                </p>
+              </div>
+            ` : ''}
+            
+            <p class="text-sm text-gray-600">¿Quieres proceder con la asignación automática?</p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, asignar automáticamente',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (!resumenExclusiones.isConfirmed) {
+        return;
+      }
+
+      // Confirmar la acción final
+      const result = await Swal.fire({
+        icon: 'question',
+        title: 'Asignación Automática de Turnos del Mes',
+        html: `
+          <div class="text-left">
+            <p class="mb-3">Se van a procesar <strong>${turnosParaAsignar.length}</strong> turnos incompletos del mes de <strong>${formatMonthYear(currentDate)}</strong>.</p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-sm">
+              <p><strong>El sistema:</strong></p>
+              <ul class="list-disc list-inside mt-2">
+                <li>Considerará las relaciones "siempreCon" y "nuncaCon"</li>
+                <li>Priorizará usuarios con menor participación mensual</li>
+                <li>Respetará las prioridades de cargo</li>
+                <li>Intentará cumplir los requisitos de cada turno</li>
+                <li>🚫 <strong>Excluirá los días seleccionados</strong></li>
+              </ul>
+            </div>
+            <p class="mt-3 text-sm text-gray-600">¿Quieres proceder con la asignación automática?</p>
+          </div>
+        `,
         showCancelButton: true,
         confirmButtonText: 'Sí, asignar automáticamente',
         cancelButtonText: 'Cancelar'
       });
 
       if (result.isConfirmed) {
-                 // Mostrar modal de progreso
-         let progressModal: any;
-         Swal.fire({
-           title: `Asignación Automática del Mes de ${formatMonthYear(currentDate)}`,
+        // Mostrar modal de progreso
+        let progressModal: any;
+        Swal.fire({
+          title: `Asignación Automática del Mes de ${formatMonthYear(currentDate)}`,
           html: `
             <div class="text-center">
               <div class="mb-4">
@@ -754,7 +927,7 @@ export default function DashboardOverview() {
                   <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                 </div>
               </div>
-              <p class="text-sm text-gray-600">Procesando turno 1 de ${turnosIncompletos.length}</p>
+              <p class="text-sm text-gray-600">Procesando turno 1 de ${turnosParaAsignar.length}</p>
               <p class="text-xs text-gray-500 mt-2">Por favor espera, esto puede tomar varios minutos...</p>
             </div>
           `,
@@ -765,7 +938,7 @@ export default function DashboardOverview() {
           }
         });
 
-        // Procesar turnos uno por uno
+        // Procesar turnos uno por uno (usar turnosParaAsignar en lugar de turnosIncompletos)
         let turnosCompletados = 0;
         let turnosConErrores = 0;
         let totalUsuariosAsignados = 0;
@@ -798,19 +971,19 @@ export default function DashboardOverview() {
           usuarios.forEach(u => conteoTurnosActual.set(u.id, 0));
         }
 
-        for (let i = 0; i < turnosIncompletos.length; i++) {
-          const turno = turnosIncompletos[i];
+        for (let i = 0; i < turnosParaAsignar.length; i++) {
+          const turno = turnosParaAsignar[i];
           
           try {
-            console.log(`🔄 Procesando turno ${turno.id} (${i + 1}/${turnosIncompletos.length})`);
+            console.log(`🔄 Procesando turno ${turno.id} (${i + 1}/${turnosParaAsignar.length})`);
             
             // Actualizar progreso
-            const progreso = ((i + 1) / turnosIncompletos.length) * 100;
+            const progreso = ((i + 1) / turnosParaAsignar.length) * 100;
             const progressBar = progressModal?.querySelector('.bg-blue-600');
             const progressText = progressModal?.querySelector('.text-sm');
             
             if (progressBar) progressBar.style.width = `${progreso}%`;
-            if (progressText) progressText.textContent = `Procesando turno ${i + 1} de ${turnosIncompletos.length}`;
+            if (progressText) progressText.textContent = `Procesando turno ${i + 1} de ${turnosParaAsignar.length}`;
 
             // Obtener lugar del turno
             const lugar = lugares.find(l => l.id === turno.lugarId);
@@ -1142,7 +1315,7 @@ export default function DashboardOverview() {
             <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg mb-4">
               <h3 class="font-semibold text-green-800 dark:text-green-200 mb-2">Resumen de la Operación:</h3>
               <ul class="text-sm text-green-700 dark:text-green-300 space-y-1">
-                <li>✅ <strong>Turnos procesados:</strong> ${turnosIncompletos.length}</li>
+                <li>✅ <strong>Turnos procesados:</strong> ${turnosParaAsignar.length}</li>
                 <li>✅ <strong>Turnos completados exitosamente:</strong> ${turnosCompletados}</li>
                 <li>⚠️ <strong>Turnos con errores:</strong> ${turnosConErrores}</li>
                 <li>👥 <strong>Total de usuarios asignados:</strong> ${totalUsuariosAsignados}</li>
