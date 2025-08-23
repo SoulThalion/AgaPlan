@@ -7,7 +7,7 @@ export interface Usuario {
   cargo: string; // Mantener para compatibilidad
   cargoId?: number; // ID de referencia a la tabla cargos
   cargoInfo?: Cargo; // Información completa del cargo incluyendo prioridad
-  rol: 'voluntario' | 'admin' | 'superAdmin';
+  rol: 'voluntario' | 'admin' | 'superAdmin' | 'grupo';
   participacionMensual?: number | null; // null = sin límite de participación
   tieneCoche?: boolean; // Si el usuario tiene coche disponible
   siempreCon?: number; // ID del usuario que siempre debe acompañar a este usuario
@@ -58,7 +58,7 @@ export interface Turno {
   lugarId: number;
   fecha: string;
   hora: string; // Formato HH:MM-HH:MM (rango de horas)
-  estado: 'libre' | 'ocupado';
+  estado: 'libre' | 'ocupado' | 'completo';
   createdAt: string;
   updatedAt: string;
   lugar?: Lugar;
@@ -102,7 +102,7 @@ export interface TurnoCreationRequest {
   lugarId: number;
   exhibidorIds: number[];
   usuarioIds?: number[]; // Cambiado de usuarioId a usuarioIds (array)
-  estado?: 'libre' | 'ocupado';
+  estado?: 'libre' | 'ocupado' | 'completo';
 }
 
 export interface TurnoRecurrenteRequest {
@@ -111,7 +111,7 @@ export interface TurnoRecurrenteRequest {
   lugarId: number;
   exhibidorIds: number[];
   usuarioIds?: number[]; // Cambiado de usuarioId a usuarioIds (array)
-  estado?: 'libre' | 'ocupado';
+  estado?: 'libre' | 'ocupado' | 'completo';
   esRecurrente: boolean;
   semanas: number; // Número de semanas para repetir
 }

@@ -10,7 +10,7 @@ export interface UsuarioAttributes {
   sexo: 'M' | 'F' | 'O';
   cargo: string; // Mantener para compatibilidad
   cargoId?: number; // ID de referencia a la tabla cargos
-  rol: 'voluntario' | 'admin' | 'superAdmin';
+  rol: 'voluntario' | 'admin' | 'superAdmin' | 'grupo';
   participacionMensual?: number | null; // Número de veces al mes que quiere participar (opcional), null = sin límite
   activo?: boolean; // Si el usuario está activo
   tieneCoche?: boolean; // Si el usuario tiene coche disponible
@@ -33,7 +33,7 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
   public cargo!: string;
   public cargoId?: number;
   public cargoInfo?: any; // Para la relación con Cargo
-  public rol!: 'voluntario' | 'admin' | 'superAdmin';
+  public rol!: 'voluntario' | 'admin' | 'superAdmin' | 'grupo';
   public participacionMensual?: number | null;
   public activo?: boolean;
   public tieneCoche?: boolean;
@@ -101,11 +101,11 @@ Usuario.init(
       allowNull: true
     },
     rol: {
-      type: DataTypes.ENUM('voluntario', 'admin', 'superAdmin'),
+      type: DataTypes.ENUM('voluntario', 'admin', 'superAdmin', 'grupo'),
       allowNull: false,
       defaultValue: 'voluntario',
       validate: {
-        isIn: [['voluntario', 'admin', 'superAdmin']],
+        isIn: [['voluntario', 'admin', 'superAdmin', 'grupo']],
       },
     },
     participacionMensual: {

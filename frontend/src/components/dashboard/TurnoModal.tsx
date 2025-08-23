@@ -100,10 +100,25 @@ export default function TurnoModal({
   // @ts-ignore
   const [selectedLugar, setSelectedLugar] = useState<Lugar | null>(null);
 
+  // Función para verificar si hay usuario con cargo "Grupo"
+  const tieneUsuarioGrupo = () => {
+    const usuarios = selectedTurno.usuarios || [];
+    return usuarios.some(u => u && (u.rol === 'grupo' || u.cargo === 'Grupo'));
+  };
+
   // Función para calcular los requisitos del turno
   const calcularRequisitosTurno = () => {
     const usuarios = selectedTurno.usuarios || [];
     const capacidad = selectedTurno.lugar?.capacidad || 0;
+    
+    // Si hay un usuario con cargo "Grupo", todos los requisitos están cumplidos
+    if (tieneUsuarioGrupo()) {
+      return {
+        completo: true,
+        tieneCoche: true,
+        tieneMasculino: true
+      };
+    }
     
     return {
       completo: capacidad > 0 ? usuarios.length >= capacidad : usuarios.length > 0,
@@ -1121,108 +1136,279 @@ export default function TurnoModal({
                   Ocupación del Turno ({selectedTurno.usuarios?.length || 0}/{selectedTurno.lugar?.capacidad || '∞'})
                 </h4>
                 
+                {/* Indicador especial para rol "grupo" */}
+                {selectedTurno.usuarios && selectedTurno.usuarios.some(u => u.rol === 'grupo') && (
+                  <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-2 border-purple-300 dark:border-purple-600 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.11 3.89 23 5 23H19C20.11 23 21 22.11 21 21V9ZM19 21H5V3H13V9H19V21Z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-purple-800 dark:text-purple-200">
+                          🎯 Turno Completado por Rol "Grupo"
+                        </p>
+                        <p className="text-sm text-purple-700 dark:text-purple-300">
+                          Este turno fue completado automáticamente por un usuario con rol "grupo". 
+                          Se crearon usuarios temporales para cumplir todos los requisitos.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Grid de usuarios y puestos vacíos */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {/* Usuarios ya asignados */}
-                  {selectedTurno.usuarios && selectedTurno.usuarios.map((usuario) => (
-                    <div key={usuario.id} className="relative group">
-                      <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-2 border-blue-300 dark:border-blue-600 rounded-lg text-center hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                          <span className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                            {usuario.nombre.charAt(0).toUpperCase()}
-                          </span>
+                  {/* Si hay un usuario con cargo "Grupo", mostrar solo el rectángulo del grupo */}
+                  {tieneUsuarioGrupo() ? (
+                    // Rectángulo único del grupo ocupando todo el turno
+                    <div className="col-span-full">
+                      <div className="p-6 bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-800/30 dark:to-purple-700/30 border-2 border-purple-400 dark:border-purple-500 rounded-lg text-center">
+                        <div className="flex items-center justify-center space-x-4 mb-4">
+                          <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center">
+                            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.11 3.89 23 5 23H19C20.11 23 21 22.11 21 21V9ZM19 21H5V3H13V9H19V21Z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold text-purple-800 dark:text-purple-200">
+                              🎯 Grupo Asignado
+                            </h3>
+                            <p className="text-lg text-purple-700 dark:text-purple-300">
+                              Este turno está completamente ocupado por un grupo
+                            </p>
+                          </div>
                         </div>
-                        <p 
-                          className="font-medium text-blue-900 dark:text-blue-100 text-sm truncate" 
-                          ref={(el) => {
-                            if (el) {
-                              el.title = el.scrollWidth > el.clientWidth ? usuario.nombre : '';
-                            }
-                          }}
-                        >
-                          {usuario.nombre}
-                        </p>
-                                                 <p 
-                           className="text-xs text-blue-700 dark:text-blue-300 truncate" 
-                           ref={(el) => {
-                             if (el) {
-                               el.title = el.scrollWidth > el.clientWidth ? usuario.cargo : '';
-                             }
-                           }}
-                         >
-                           {usuario.cargo}
-                         </p>
-                         
-                                                   {/* Indicador de coche - Badge en esquina superior izquierda */}
-                          <div className="absolute top-2 left-2">
-                            {usuario.tieneCoche ? (
-                              <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600 rounded-full flex items-center justify-center shadow-sm">
-                                <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-                                </svg>
+                        
+                        {/* Información del grupo */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="bg-purple-50 dark:bg-purple-800/20 p-3 rounded-lg">
+                            <span className="font-semibold text-purple-800 dark:text-purple-200">Capacidad:</span>
+                            <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{selectedTurno.lugar?.capacidad || 0} plazas</p>
+                          </div>
+                          <div className="bg-purple-50 dark:bg-purple-800/20 p-3 rounded-lg">
+                            <span className="font-semibold text-purple-800 dark:text-purple-200">Estado:</span>
+                            <p className="text-lg font-bold text-green-600 dark:text-green-400">Completo</p>
+                          </div>
+                          <div className="bg-purple-50 dark:bg-purple-800/20 p-3 rounded-lg">
+                            <span className="font-semibold text-purple-800 dark:text-purple-200">Requisitos:</span>
+                            <p className="text-lg font-bold text-green-600 dark:text-green-400">Cumplidos</p>
+                          </div>
+                        </div>
+                        
+                        {/* Usuario grupo destacado */}
+                        {selectedTurno.usuarios?.filter(u => u.cargo === 'Grupo').map((usuario) => (
+                          <div key={usuario.id} className="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-purple-300 dark:border-purple-600">
+                            <div className="flex items-center justify-center space-x-3">
+                              <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
+                                <span className="text-xl font-bold text-white">
+                                  {usuario.nombre.charAt(0).toUpperCase()}
+                                </span>
                               </div>
-                            ) : (
-                              <div className="w-5 h-5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-full flex items-center justify-center shadow-sm">
-                                <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-                                  <path d="M2 2l20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
+                              <div className="text-center">
+                                <p className="font-semibold text-purple-900 dark:text-purple-100 text-lg">
+                                  {usuario.nombre}
+                                </p>
+                                <p className="text-purple-700 dark:text-purple-300">
+                                  {usuario.cargo}
+                                </p>
+                                <div className="flex items-center justify-center space-x-2 mt-2">
+                                  <span className="px-2 py-1 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200 text-xs rounded-full">
+                                    🎯 Rol Grupo
+                                  </span>
+                                  {usuario.tieneCoche && (
+                                    <span className="px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 text-xs rounded-full">
+                                      🚗 Con Coche
+                                    </span>
+                                  )}
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    usuario.sexo === 'M' 
+                                      ? 'bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                                      : usuario.sexo === 'F'
+                                      ? 'bg-pink-100 dark:bg-pink-800 text-pink-800 dark:text-pink-200'
+                                      : 'bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
+                                  }`}>
+                                    {usuario.sexo === 'M' ? '👨 Masculino' : usuario.sexo === 'F' ? '👩 Femenino' : '👤 Otro'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Botón de remover (solo para admins o para removerte a ti mismo) */}
+                            {(_user?.rol === 'admin' || _user?.rol === 'superAdmin' || usuario.id === _user?.id) && (
+                              <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-600">
+                                <button
+                                  onClick={() => handleLiberarTurno(selectedTurno, usuario.id)}
+                                  disabled={liberarTurnoMutation.isPending}
+                                  className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-md transition-colors flex items-center justify-center"
+                                  title={usuario.id === _user?.id ? "Removerte a ti mismo" : "Remover grupo del turno"}
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  {liberarTurnoMutation.isPending ? 'Removiendo...' : 'Remover Grupo del Turno'}
+                                </button>
                               </div>
                             )}
                           </div>
-                         
-                         <ParticipacionMensualDisplay
-                            userId={usuario.id}
-                            participacionMensual={usuario.participacionMensual}
-                            className="text-blue-600 dark:text-blue-400"
-                            mes={getMesYAñoDelTurno().mes}
-                            año={getMesYAñoDelTurno().año}
-                          />
-                        
-                        {/* Botón de remover (solo para admins o para removerte a ti mismo) */}
-                        {(_user?.rol === 'admin' || _user?.rol === 'superAdmin' || usuario.id === _user?.id) && (
-                          <button
-                            onClick={() => handleLiberarTurno(selectedTurno, usuario.id)}
-                            disabled={liberarTurnoMutation.isPending}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
-                            title={usuario.id === _user?.id ? "Removerte a ti mismo" : "Remover usuario"}
-                          >
-                            ×
-                          </button>
-                        )}
+                        ))}
                       </div>
                     </div>
-                  ))}
-                  
-                  {/* Puestos vacíos */}
-                  {selectedTurno.lugar?.capacidad && Array.from({ length: Math.max(0, selectedTurno.lugar.capacidad - (selectedTurno.usuarios?.length || 0)) }, (_, index) => (
-                    <div key={`vacante-${index}`} className="group">
-                      <button
-                        onClick={() => handleClickPuestoVacio(selectedTurno)}
-                        disabled={ocuparTurnoMutation.isPending}
-                        className="w-full p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:border-green-400 dark:hover:border-green-500 hover:from-green-50 hover:to-green-100 dark:hover:from-green-900/20 dark:hover:to-green-800/20 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 hover:shadow-lg"
-                        title="Haz clic para ocupar este puesto"
-                      >
-                        <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:from-green-200 group-hover:to-green-300 dark:group-hover:from-green-800 dark:group-hover:to-green-700 transition-all duration-300">
-                          <svg className="w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
+                  ) : (
+                    // Vista normal: usuarios individuales y puestos vacíos
+                    <>
+                      {/* Usuarios ya asignados */}
+                      {selectedTurno.usuarios && selectedTurno.usuarios.map((usuario) => (
+                        <div key={usuario.id} className="relative group">
+                          <div className={`p-3 border-2 rounded-lg text-center hover:shadow-lg transition-all duration-300 transform hover:scale-105 ${
+                            // Estilo especial para usuarios con cargo "Grupo"
+                            usuario.cargo === 'Grupo' 
+                              ? 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-300 dark:border-purple-600'
+                              : 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-300 dark:border-blue-600'
+                          }`}>
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${
+                              usuario.cargo === 'Grupo'
+                                ? 'bg-gradient-to-br from-purple-200 to-purple-300 dark:from-purple-700 dark:to-purple-600'
+                              : 'bg-gradient-to-br from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600'
+                            }`}>
+                              <span className={`text-lg font-bold ${
+                                usuario.cargo === 'Grupo'
+                                  ? 'text-purple-700 dark:text-purple-300'
+                                : 'text-blue-700 dark:text-blue-300'
+                              }`}>
+                                {usuario.nombre.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            
+                            {/* Badge especial para cargo "Grupo" */}
+                            {usuario.cargo === 'Grupo' && (
+                              <div className="absolute -top-2 -left-2 w-6 h-6 bg-purple-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg">
+                                🎯
+                              </div>
+                            )}
+                            
+                            <p 
+                              className={`font-medium text-sm truncate ${
+                                usuario.cargo === 'Grupo'
+                                  ? 'text-purple-900 dark:text-purple-100'
+                                : 'text-blue-900 dark:text-blue-100'
+                              }`}
+                              ref={(el) => {
+                                if (el) {
+                                  el.title = el.scrollWidth > el.clientWidth ? usuario.nombre : '';
+                                }
+                              }}
+                            >
+                              {usuario.nombre}
+                            </p>
+                            
+                            <p 
+                              className={`text-xs truncate ${
+                                usuario.cargo === 'Grupo'
+                                  ? 'text-purple-700 dark:text-purple-300'
+                                : 'text-blue-700 dark:text-blue-300'
+                              }`}
+                              ref={(el) => {
+                                if (el) {
+                                  el.title = el.scrollWidth > el.clientWidth ? usuario.cargo : '';
+                                }
+                              }}
+                            >
+                              {usuario.cargo}
+                            </p>
+                            
+                            {/* Indicador de coche - Badge en esquina superior derecha */}
+                            <div className="absolute top-2 right-2">
+                              {usuario.tieneCoche ? (
+                                <div className="w-5 h-5 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-600 rounded-full flex items-center justify-center shadow-sm">
+                                  <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                  </svg>
+                                </div>
+                              ) : (
+                                <div className="w-5 h-5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-500 rounded-full flex items-center justify-center shadow-sm">
+                                  <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                    <path d="M2 2l20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Indicador de sexo - Badge en esquina inferior izquierda */}
+                            <div className="absolute bottom-2 left-2">
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm ${
+                                usuario.sexo === 'M' 
+                                  ? 'bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-600'
+                                  : usuario.sexo === 'F'
+                                  ? 'bg-pink-100 dark:bg-pink-900 border border-pink-300 dark:border-pink-600'
+                                  : 'bg-purple-100 dark:bg-purple-900 border border-purple-300 dark:border-purple-600'
+                              }`}>
+                                <span className={`text-xs font-bold ${
+                                  usuario.sexo === 'M' 
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : usuario.sexo === 'F'
+                                    ? 'text-pink-600 dark:text-pink-400'
+                                    : 'text-purple-600 dark:text-purple-400'
+                                }`}>
+                                  {usuario.sexo}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <ParticipacionMensualDisplay
+                              userId={usuario.id}
+                              participacionMensual={usuario.participacionMensual}
+                              className={`${
+                                usuario.cargo === 'Grupo'
+                                  ? 'text-purple-600 dark:text-purple-400'
+                                : 'text-blue-600 dark:text-blue-400'
+                              }`}
+                              mes={getMesYAñoDelTurno().mes}
+                              año={getMesYAñoDelTurno().año}
+                            />
+                            
+                            {/* Botón de remover (solo para admins o para removerte a ti mismo) */}
+                            {(_user?.rol === 'admin' || _user?.rol === 'superAdmin' || usuario.id === _user?.id) && (
+                              <button
+                                onClick={() => handleLiberarTurno(selectedTurno, usuario.id)}
+                                disabled={liberarTurnoMutation.isPending}
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+                                title={usuario.id === _user?.id ? "Removerte a ti mismo" : "Remover usuario"}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-green-700 dark:group-hover:text-green-300 transition-all duration-300">
-                          Puesto Libre
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 group-hover:text-green-500 dark:group-hover:text-green-400 transition-all duration-300 mt-1">
-                          Haz clic para ocupar
-                        </p>
-                      </button>
-                    </div>
-                  ))}
-                  
-                  {/* Mensaje cuando no hay capacidad definida */}
-                  {!selectedTurno.lugar?.capacidad && (
-                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                      <p>Este lugar no tiene capacidad definida</p>
-                    </div>
+                      ))}
+                      
+                      {/* Puestos vacíos */}
+                      {selectedTurno.lugar?.capacidad && 
+                       Array.from({ length: Math.max(0, selectedTurno.lugar.capacidad - (selectedTurno.usuarios?.length || 0)) }, (_, index) => (
+                        <div key={`vacante-${index}`} className="group">
+                          <button
+                            onClick={() => handleClickPuestoVacio(selectedTurno)}
+                            disabled={ocuparTurnoMutation.isPending}
+                            className="w-full p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center hover:border-green-400 dark:hover:border-green-500 hover:from-green-50 hover:to-green-100 dark:hover:from-green-900/20 dark:hover:to-green-800/20 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 hover:shadow-lg"
+                            title="Haz clic para ocupar este puesto"
+                          >
+                            <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:from-green-200 group-hover:to-green-300 dark:group-hover:from-green-800 dark:group-hover:to-green-700 transition-all duration-300">
+                              <svg className="w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                            </div>
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-green-700 dark:group-hover:text-green-300 transition-all duration-300">
+                              Puesto Libre
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 group-hover:text-green-500 dark:group-hover:text-green-400 transition-all duration-300 mt-1">
+                              Haz clic para ocupar
+                            </p>
+                          </button>
+                        </div>
+                      ))}
+                    </>
                   )}
                 </div>
               </div>

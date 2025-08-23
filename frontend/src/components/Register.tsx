@@ -14,7 +14,7 @@ const Register: React.FC = () => {
     confirmPassword: '',
     sexo: 'M' as 'M' | 'F' | 'O',
     cargo: '',
-    rol: 'voluntario' as 'voluntario' | 'admin'
+    rol: 'voluntario' as 'voluntario' | 'admin' | 'superAdmin' | 'grupo'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,6 +53,58 @@ const Register: React.FC = () => {
     }
 
     try {
+      // Si es rol "grupo", solo se requiere el nombre
+      if (formData.rol === 'grupo') {
+        if (!formData.nombre.trim()) {
+          setError('El nombre es obligatorio para usuarios con rol "grupo"');
+          Swal.fire({
+            icon: 'warning',
+            title: 'Campo requerido',
+            text: 'El nombre es obligatorio para usuarios con rol "grupo".',
+            confirmButtonText: 'Entendido'
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // Para usuarios con rol "grupo", asignar valores por defecto
+        const registerData: RegisterRequest = {
+          nombre: formData.nombre.trim(),
+          email: '', // Campo vacío para usuarios de grupo
+          contraseña: '', // Campo vacío para usuarios de grupo
+          sexo: 'M',
+          cargo: 'Grupo'
+        };
+        
+        const response = await apiService.register(registerData);
+        
+        if (response.success && response.token && response.user) {
+          // Auto-login después del registro exitoso
+          await login(response.token, response.user);
+          
+          // Mostrar mensaje de éxito
+          await Swal.fire({
+            icon: 'success',
+            title: '¡Registro exitoso!',
+            text: `Usuario de grupo registrado exitosamente`,
+            timer: 2000,
+            showConfirmButton: false
+          });
+          
+          navigate('/dashboard');
+        } else {
+          setError(response.message || 'Error en el registro');
+          Swal.fire({
+            icon: 'error',
+            title: 'Error de registro',
+            text: response.message || 'Error en el registro',
+            confirmButtonText: 'Entendido'
+          });
+        }
+        return;
+      }
+      
+      // Para otros roles, validaciones normales
       // Preparar datos para el registro
       const registerData: RegisterRequest = {
         nombre: formData.nombre,
@@ -146,23 +198,6 @@ const Register: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
-                Correo electrónico
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="tu@email.com"
-              />
-            </div>
-
-            <div>
               <label htmlFor="rol" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
                 Rol
               </label>
@@ -174,46 +209,69 @@ const Register: React.FC = () => {
                 className="input-field"
               >
                 <option value="voluntario">Voluntario</option>
+                <option value="grupo">Grupo</option>
                 <option value="admin">Administrador</option>
                 <option value="superadmin">Super Administrador</option>
               </select>
             </div>
-            
-            <div>
-              <label htmlFor="contraseña" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
-                Contraseña
-              </label>
-              <input
-                id="contraseña"
-                name="contraseña"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={formData.contraseña}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="••••••••"
-                minLength={6}
-              />
-            </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
-                Confirmar contraseña
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="••••••••"
-                minLength={6}
-              />
-            </div>
+            {/* Campos adicionales - Solo visibles si NO es rol grupo */}
+            {formData.rol !== 'grupo' && (
+              <>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
+                    Correo electrónico
+                  </label>
+                                     <input
+                     id="email"
+                     name="email"
+                     type="email"
+                     autoComplete="email"
+                     required
+                     value={formData.email}
+                     onChange={handleChange}
+                     className="input-field"
+                     placeholder="tu@email.com"
+                   />
+                </div>
+                
+                <div>
+                  <label htmlFor="contraseña" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
+                    Contraseña
+                  </label>
+                  <input
+                    id="contraseña"
+                    name="contraseña"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={formData.contraseña}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="••••••••"
+                    minLength={6}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-2">
+                    Confirmar contraseña
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="••••••••"
+                    minLength={6}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {error && (

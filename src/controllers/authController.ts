@@ -36,7 +36,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Determinar el rol del usuario
-    let rol: 'voluntario' | 'admin' | 'superAdmin' = 'voluntario';
+    let rol: 'voluntario' | 'admin' | 'superAdmin' | 'grupo' = 'voluntario';
     
     // Verificar si es el primer usuario (será superAdmin)
     const userCount = await Usuario.count();

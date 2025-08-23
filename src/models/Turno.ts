@@ -5,7 +5,7 @@ export interface TurnoAttributes {
   id: number;
   fecha: Date;
   hora: string; // Formato HH:MM-HH:MM (rango de horas)
-  estado: 'libre' | 'ocupado';
+  estado: 'libre' | 'ocupado' | 'completo';
   lugarId: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -17,7 +17,7 @@ class Turno extends Model<TurnoAttributes, TurnoCreationAttributes> implements T
   public id!: number;
   public fecha!: Date;
   public hora!: string;
-  public estado!: 'libre' | 'ocupado';
+  public estado!: 'libre' | 'ocupado' | 'completo';
   public lugarId!: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -91,7 +91,7 @@ Turno.init(
       },
     },
     estado: {
-      type: DataTypes.ENUM('libre', 'ocupado'),
+      type: DataTypes.ENUM('libre', 'ocupado', 'completo'),
       allowNull: false,
       defaultValue: 'libre',
     },

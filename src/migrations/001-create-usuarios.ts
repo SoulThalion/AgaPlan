@@ -29,7 +29,7 @@ export async function up(queryInterface: QueryInterface) {
       allowNull: false,
     },
     rol: {
-      type: DataTypes.ENUM('voluntario', 'admin', 'superAdmin'),
+      type: DataTypes.ENUM('voluntario', 'admin', 'superAdmin', 'grupo'),
       allowNull: false,
       defaultValue: 'voluntario',
     },

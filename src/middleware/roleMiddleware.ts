@@ -1,12 +1,13 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types/auth';
 
-type Role = 'voluntario' | 'admin' | 'superAdmin';
+type Role = 'voluntario' | 'admin' | 'superAdmin' | 'grupo';
 
 const roleHierarchy: Record<Role, number> = {
   voluntario: 1,
-  admin: 2,
-  superAdmin: 3
+  grupo: 2,
+  admin: 3,
+  superAdmin: 4
 };
 
 export const roleMiddleware = (requiredRole: Role) => {
@@ -42,6 +43,7 @@ export const roleMiddleware = (requiredRole: Role) => {
 
 // Middlewares específicos para cada rol
 export const requireVoluntario = roleMiddleware('voluntario');
+export const requireGrupo = roleMiddleware('grupo');
 export const requireAdmin = roleMiddleware('admin');
 export const requireSuperAdmin = roleMiddleware('superAdmin');
 

@@ -18,7 +18,7 @@ const UserManagement: React.FC = () => {
     sexo: 'M' as 'M' | 'F' | 'O',
     cargo: '',
     cargoId: undefined as number | undefined,
-    rol: 'voluntario' as 'voluntario' | 'admin' | 'superAdmin',
+    rol: 'voluntario' as 'voluntario' | 'admin' | 'superAdmin' | 'grupo',
     participacionMensual: undefined as number | null | undefined,
     tieneCoche: false,
     siempreCon: undefined as number | undefined,
@@ -128,6 +128,44 @@ const UserManagement: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Si es rol "grupo", solo se requiere el nombre
+    if (formData.rol === 'grupo') {
+      if (!formData.nombre.trim()) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Campo requerido',
+          text: 'El nombre es obligatorio para usuarios con rol "grupo".',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+      
+      // Para usuarios con rol "grupo", asignar valores por defecto
+      const userData = {
+        nombre: formData.nombre.trim(),
+        rol: 'grupo' as const,
+        sexo: 'M' as const, // Valor por defecto
+        cargo: 'Grupo',
+        email: undefined,
+        contraseña: undefined,
+        participacionMensual: undefined,
+        tieneCoche: false,
+        siempreCon: undefined,
+        nuncaCon: undefined
+      };
+      
+      if (editingUser) {
+        updateUserMutation.mutate({
+          id: editingUser.id,
+          data: userData
+        });
+      } else {
+        createUserMutation.mutate(userData);
+      }
+      return;
+    }
+    
+    // Para otros roles, validaciones normales
     // Validación: si se proporciona contraseña, también debe proporcionarse email
     if (formData.contraseña && !formData.email) {
       Swal.fire({
@@ -712,205 +750,221 @@ const UserManagement: React.FC = () => {
                  <div className="text-sm text-blue-800 dark:text-blue-200">
                    <p className="font-medium mb-1">Información importante:</p>
                    <ul className="list-disc list-inside space-y-1 text-xs">
-                     <li><strong>Sin email ni contraseña:</strong> El usuario será registrado pero NO tendrá acceso a la aplicación</li>
-                     <li><strong>Con email y contraseña:</strong> El usuario podrá acceder a la aplicación normalmente</li>
-                     <li><strong>Con email sin contraseña:</strong> El usuario será registrado pero NO podrá acceder a la aplicación</li>
-                     <li><strong>Campos obligatorios:</strong> Nombre, Cargo y Rol siempre son requeridos</li>
+                     {formData.rol === 'grupo' ? (
+                       <>
+                         <li><strong>Rol Grupo:</strong> Solo se requiere el nombre del usuario</li>
+                         <li><strong>Usuarios de grupo:</strong> No tendrán acceso a la aplicación, solo se registrarán en el sistema</li>
+                       </>
+                     ) : (
+                       <>
+                         <li><strong>Sin email ni contraseña:</strong> El usuario será registrado pero NO tendrá acceso a la aplicación</li>
+                         <li><strong>Con email y contraseña:</strong> El usuario podrá acceder a la aplicación normalmente</li>
+                         <li><strong>Con email sin contraseña:</strong> El usuario será registrado pero NO podrá acceder a la aplicación</li>
+                         <li><strong>Campos obligatorios:</strong> Nombre, Cargo y Rol siempre son requeridos</li>
+                       </>
+                     )}
                    </ul>
                  </div>
                </div>
              </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Columna Izquierda */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Nombre
-                    </label>
-                    <input
-                      type="text"
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Email <span className="text-xs text-gray-500">(opcional)</span>
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                      placeholder="Dejar vacío si no tendrá acceso a la app"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Sin email = sin acceso a la aplicación
-                    </p>
-                  </div>
-
-                                     <div>
-                     <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                       Contraseña <span className="text-xs text-gray-500">(opcional)</span>
-                     </label>
-                     <input
-                       type="password"
-                       name="contraseña"
-                       value={formData.contraseña}
-                       onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
-                       className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                       placeholder={editingUser ? "Dejar vacía para mantener la contraseña actual" : "Dejar vacía si no tendrá acceso a la app"}
-                     />
-                     <p className="text-xs text-gray-500 mt-1">
-                       {editingUser 
-                         ? "Dejar vacía para mantener la contraseña actual"
-                         : "Sin contraseña = sin acceso a la aplicación"
-                       }
-                     </p>
-                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Sexo
-                    </label>
-                    <select
-                      name="sexo"
-                      value={formData.sexo}
-                      onChange={(e) => setFormData({...formData, sexo: e.target.value as 'M' | 'F' | 'O'})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                    >
-                      <option value="M">Masculino</option>
-                      <option value="F">Femenino</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Cargo
-                    </label>
-                    <select
-                      name="cargo"
-                      value={formData.cargoId ? cargos?.data?.find(c => c.id === formData.cargoId)?.nombre || '' : formData.cargo}
-                      onChange={(e) => {
-                        const selectedCargo = cargos?.data?.find(c => c.nombre === e.target.value);
-                        setFormData({
-                          ...formData, 
-                          cargo: e.target.value,
-                          cargoId: selectedCargo?.id
-                        });
-                      }}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                      required
-                    >
-                      <option value="">Seleccionar Cargo</option>
-                      {cargos?.data?.map((cargo) => (
-                        <option key={cargo.id} value={cargo.nombre}>
-                          {cargo.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Columna Derecha */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Rol
-                    </label>
-                    <select
-                      name="rol"
-                      value={formData.rol}
-                      onChange={(e) => setFormData({...formData, rol: e.target.value as 'voluntario' | 'admin' | 'superAdmin'})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                      required
-                    >
-                      <option value="voluntario">Voluntario</option>
-                      <option value="admin">Administrador</option>
-                      <option value="superAdmin">Super Administrador</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Participación Mensual (opcional)
-                    </label>
-                    <input
-                      type="number"
-                      name="participacionMensual"
-                      value={formData.participacionMensual || ''}
-                      onChange={(e) => setFormData({...formData, participacionMensual: e.target.value ? parseInt(e.target.value) : undefined})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                      min="0"
-                      placeholder="Número de veces al mes"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Tiene Coche
-                    </label>
-                    <select
-                      name="tieneCoche"
-                      value={formData.tieneCoche ? 'true' : 'false'}
-                      onChange={(e) => setFormData({...formData, tieneCoche: e.target.value === 'true'})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                    >
-                      <option value="false">No</option>
-                      <option value="true">Sí</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Siempre Con (opcional)
-                    </label>
-                    <select
-                      name="siempreCon"
-                      value={formData.siempreCon || ''}
-                      onChange={(e) => setFormData({...formData, siempreCon: e.target.value ? parseInt(e.target.value) : undefined})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                    >
-                      <option value="">Sin usuario específico</option>
-                      {usuarios?.data && usuarios.data
-                        .filter((user: Usuario) => !editingUser || user.id !== editingUser.id)
-                        .map((user: Usuario) => (
-                          <option key={user.id} value={user.id}>
-                            {user.nombre} ({user.email})
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
-                      Nunca Con (opcional)
-                    </label>
-                    <select
-                      name="nuncaCon"
-                      value={formData.nuncaCon || ''}
-                      onChange={(e) => setFormData({...formData, nuncaCon: e.target.value ? parseInt(e.target.value) : undefined})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
-                    >
-                      <option value="">Sin usuario específico</option>
-                      {usuarios?.data && usuarios.data
-                        .filter((user: Usuario) => !editingUser || user.id !== editingUser.id)
-                        .map((user: Usuario) => (
-                          <option key={user.id} value={user.id}>
-                            {user.nombre} ({user.email})
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </div>
+              {/* Campo Nombre - Siempre visible */}
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Nombre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  required
+                />
               </div>
+
+              {/* Campo Rol - Siempre visible */}
+              <div>
+                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  Rol <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="rol"
+                  value={formData.rol}
+                  onChange={(e) => setFormData({...formData, rol: e.target.value as 'voluntario' | 'admin' | 'superAdmin' | 'grupo'})}
+                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  required
+                >
+                  <option value="voluntario">Voluntario</option>
+                  <option value="grupo">Grupo</option>
+                  <option value="admin">Administrador</option>
+                  <option value="superAdmin">Super Administrador</option>
+                </select>
+              </div>
+
+              {/* Resto de campos - Solo visibles si NO es rol grupo */}
+              {formData.rol !== 'grupo' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Columna Izquierda */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Email <span className="text-xs text-gray-500">(opcional)</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        placeholder="Dejar vacío si no tendrá acceso a la app"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Sin email = sin acceso a la aplicación
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Contraseña <span className="text-xs text-gray-500">(opcional)</span>
+                      </label>
+                      <input
+                        type="password"
+                        name="contraseña"
+                        value={formData.contraseña}
+                        onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        placeholder={editingUser ? "Dejar vacía para mantener la contraseña actual" : "Dejar vacía si no tendrá acceso a la app"}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {editingUser 
+                          ? "Dejar vacía para mantener la contraseña actual"
+                          : "Sin contraseña = sin acceso a la aplicación"
+                        }
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Sexo <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="sexo"
+                        value={formData.sexo}
+                        onChange={(e) => setFormData({...formData, sexo: e.target.value as 'M' | 'F' | 'O'})}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        required
+                      >
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Cargo <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="cargo"
+                        value={formData.cargoId ? cargos?.data?.find(c => c.id === formData.cargoId)?.nombre || '' : formData.cargo}
+                        onChange={(e) => {
+                          const selectedCargo = cargos?.data?.find(c => c.nombre === e.target.value);
+                          setFormData({
+                            ...formData, 
+                            cargo: e.target.value,
+                            cargoId: selectedCargo?.id
+                          });
+                        }}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        required
+                      >
+                        <option value="">Seleccionar Cargo</option>
+                        {cargos?.data?.map((cargo) => (
+                          <option key={cargo.id} value={cargo.nombre}>
+                            {cargo.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Columna Derecha */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Participación Mensual (opcional)
+                      </label>
+                      <input
+                        type="number"
+                        name="participacionMensual"
+                        value={formData.participacionMensual || ''}
+                        onChange={(e) => setFormData({...formData, participacionMensual: e.target.value ? parseInt(e.target.value) : undefined})}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        min="0"
+                        placeholder="Número de veces al mes"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Tiene Coche
+                      </label>
+                      <select
+                        name="tieneCoche"
+                        value={formData.tieneCoche ? 'true' : 'false'}
+                        onChange={(e) => setFormData({...formData, tieneCoche: e.target.value === 'true'})}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Sí</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Siempre Con (opcional)
+                      </label>
+                      <select
+                        name="siempreCon"
+                        value={formData.siempreCon || ''}
+                        onChange={(e) => setFormData({...formData, siempreCon: e.target.value ? parseInt(e.target.value) : undefined})}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      >
+                        <option value="">Sin usuario específico</option>
+                        {usuarios?.data && usuarios.data
+                          .filter((user: Usuario) => !editingUser || user.id !== editingUser.id)
+                          .map((user: Usuario) => (
+                            <option key={user.id} value={user.id}>
+                              {user.nombre} ({user.email})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                        Nunca Con (opcional)
+                      </label>
+                      <select
+                        name="nuncaCon"
+                        value={formData.nuncaCon || ''}
+                        onChange={(e) => setFormData({...formData, nuncaCon: e.target.value ? parseInt(e.target.value) : undefined})}
+                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      >
+                        <option value="">Sin usuario específico</option>
+                        {usuarios?.data && usuarios.data
+                          .filter((user: Usuario) => !editingUser || user.id !== editingUser.id)
+                          .map((user: Usuario) => (
+                            <option key={user.id} value={user.id}>
+                              {user.nombre} ({user.email})
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-light dark:border-neutral">
                 <button

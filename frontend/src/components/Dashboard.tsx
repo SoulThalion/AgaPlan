@@ -12,7 +12,7 @@ import ExhibidorManagement from './ExhibidorManagement';
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const { user } = useAuth();
-  const isAdmin = user?.rol === 'admin' || user?.rol === 'superAdmin';
+  const isAdmin = user?.rol === 'admin' || user?.rol === 'superAdmin' || user?.rol === 'grupo';
 
   const renderContent = () => {
     switch (activeTab) {

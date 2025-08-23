@@ -4,7 +4,7 @@ export interface UserPayload {
   id: number;
   email: string;
   nombre: string;
-  rol: 'voluntario' | 'admin' | 'superAdmin';
+  rol: 'voluntario' | 'admin' | 'superAdmin' | 'grupo';
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -34,7 +34,7 @@ export interface AuthResponse {
 export interface JwtPayload {
   id: number;
   email: string;
-  rol: 'voluntario' | 'admin' | 'superAdmin';
+  rol: 'voluntario' | 'admin' | 'superAdmin' | 'grupo';
   iat: number;
   exp: number;
 }

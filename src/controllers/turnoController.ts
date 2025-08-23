@@ -9,6 +9,23 @@ import { AuthenticatedRequest } from '../types/auth';
 import { Op } from 'sequelize';
 import TurnoUsuario from '../models/TurnoUsuario';
 
+// Función helper para verificar si se cumplen los requisitos del turno
+export const verificarRequisitosTurno = (usuarios: any[], lugar: any) => {
+  const tieneMasculino = usuarios.some(u => u.sexo === 'M');
+  const tieneCoche = usuarios.some(u => u.tieneCoche);
+  const plazasOcupadas = usuarios.length;
+  const capacidad = lugar?.capacidad || 0;
+  
+  return {
+    tieneMasculino,
+    tieneCoche,
+    plazasOcupadas,
+    capacidad,
+    completo: capacidad > 0 ? plazasOcupadas >= capacidad : plazasOcupadas > 0,
+    requisitosCumplidos: tieneMasculino && (tieneCoche || !usuarios.some(u => u.tieneCoche))
+  };
+};
+
 // Obtener todos los turnos
 export const getAllTurnos = async (req: Request, res: Response) => {
   try {
@@ -457,9 +474,32 @@ export const ocuparTurno = async (req: AuthenticatedRequest, res: Response) => {
       usuarioId: usuarioId
     });
 
-    // Actualizar el estado del turno
-    turno.estado = 'ocupado';
-    await turno.save();
+    // LÓGICA ESPECIAL PARA ROL "GRUPO"
+    if (req.user!.rol === 'grupo') {
+      // Obtener el lugar del turno para verificar capacidad
+      const lugar = await Lugar.findByPk(turno.lugarId);
+      
+      if (lugar && lugar.capacidad) {
+        // Si es rol "grupo", marcar el turno como completo
+        // No se crean usuarios ficticios, solo se marca como ocupado por el grupo
+        turno.estado = 'completo';
+        await turno.save();
+        
+        console.log(`✅ Turno ${turno.id} marcado como completo por usuario grupo`);
+      }
+    } else {
+      // Para otros roles, verificar si se cumple la capacidad
+      const lugar = await Lugar.findByPk(turno.lugarId);
+      const usuariosActuales = turno.usuarios || [];
+      if (lugar && lugar.capacidad && usuariosActuales.length >= lugar.capacidad) {
+        turno.estado = 'completo';
+        await turno.save();
+      } else {
+        // Solo actualizar a 'ocupado' si no se marcó como 'completo'
+        turno.estado = 'ocupado';
+        await turno.save();
+      }
+    }
 
     // Obtener el turno con información completa
     const turnoOcupado = await Turno.findByPk(id, {
@@ -549,11 +589,35 @@ export const asignarUsuarioATurno = async (req: AuthenticatedRequest, res: Respo
       });
     }
 
+    // Obtener información del usuario para verificar su rol
+    const usuario = await Usuario.findByPk(usuarioId);
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+
     // Asignar el turno al usuario usando la tabla intermedia
     await TurnoUsuario.create({
       turnoId: turno.id,
       usuarioId: usuarioId
     });
+
+    // LÓGICA ESPECIAL PARA ROL "GRUPO"
+    if (usuario.rol === 'grupo') {
+      // Obtener el lugar del turno para verificar capacidad
+      const lugar = await Lugar.findByPk(turno.lugarId);
+      
+      if (lugar && lugar.capacidad) {
+        // Si es rol "grupo", marcar el turno como completo
+        // No se crean usuarios ficticios, solo se marca como ocupado por el grupo
+        turno.estado = 'completo';
+        await turno.save();
+        
+        console.log(`✅ Turno ${turno.id} marcado como completo por usuario grupo`);
+      }
+    }
 
     // Actualizar el estado del turno si es necesario
     if (turno.estado === 'libre') {

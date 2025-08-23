@@ -73,7 +73,7 @@ Backend con Node.js, Express, TypeScript y Sequelize conectado a MySQL.
 - `contraseña`: Contraseña hasheada con bcrypt
 - `sexo`: Género (M, F, O)
 - `cargo`: Cargo o función del usuario
-- `rol`: Rol del usuario (voluntario, admin, superAdmin)
+- `rol`: Rol del usuario (voluntario, grupo, admin, superAdmin)
 
 ### Lugar
 - `id`: Identificador único
@@ -108,8 +108,13 @@ Backend con Node.js, Express, TypeScript y Sequelize conectado a MySQL.
   - Puede ver turnos y lugares
   - Puede apuntarse/liberarse de turnos (si coinciden con su disponibilidad)
   - Puede gestionar su propio perfil
-- **admin**: 
+- **grupo**: 
   - Acceso de voluntario
+  - Puede gestionar turnos (crear, editar, eliminar)
+  - Puede ver todos los lugares
+  - Nivel intermedio entre voluntario y admin
+- **admin**: 
+  - Acceso de voluntario y grupo
   - Puede gestionar turnos (crear, editar, eliminar)
   - Puede ver todos los lugares
 - **superAdmin**: 

@@ -736,7 +736,7 @@ export default function DashboardOverview() {
         nombre: string;
         checked: boolean;
       }> = [];
-      const primerDia = new Date(año, mes, 1);
+      // const primerDia = new Date(año, mes, 1); // Variable no utilizada
       const ultimoDia = new Date(año, mes + 1, 0);
       
       for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
