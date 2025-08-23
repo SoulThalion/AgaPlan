@@ -192,7 +192,7 @@ const PlaceManagement: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -206,14 +206,14 @@ const PlaceManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold font-poppins text-neutral-text dark:text-white">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Gestión de Lugares
         </h2>
         <button
           onClick={openCreateModal}
-          className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
         >
           + Nuevo Lugar
         </button>
@@ -223,10 +223,10 @@ const PlaceManagement: React.FC = () => {
       {lugares?.data && lugares.data.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {lugares.data.map((lugar: Lugar) => (
-            <div key={lugar.id} className="bg-white dark:bg-neutral-dark rounded-lg shadow-lg overflow-hidden">
+            <div key={lugar.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold font-poppins text-neutral-text dark:text-white">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {lugar.nombre}
                   </h3>
                   <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -239,7 +239,7 @@ const PlaceManagement: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-neutral-text dark:text-white">
+                  <div className="flex items-center text-sm text-gray-900 dark:text-white">
                      <button
                        onClick={() => openMapModal(lugar)}
                        className="mr-2 hover:scale-110 transition-transform duration-200 cursor-pointer"
@@ -247,36 +247,36 @@ const PlaceManagement: React.FC = () => {
                      >
                        📍
                      </button>
-                     <span className="font-medium font-poppins">{lugar.direccion}</span>
+                     <span className="font-medium">{lugar.direccion}</span>
                    </div>
                   
                   {lugar.descripcion && (
-                    <div className="text-sm text-neutral-text/70 dark:text-white/70">
+                    <div className="text-sm text-gray-500 dark:text-gray-300">
                       {lugar.descripcion}
                     </div>
                   )}
                   
-                  <div className="flex items-center text-sm text-neutral-text dark:text-white">
+                  <div className="flex items-center text-sm text-gray-900 dark:text-white">
                     <span className="mr-2">👥</span>
-                    <span className="font-medium font-poppins">Voluntarios: {lugar.capacidad} personas</span>
+                    <span className="font-medium">Voluntarios: {lugar.capacidad} personas</span>
                   </div>
                   
-                  <div className="flex items-center text-sm text-neutral-text dark:text-white">
+                  <div className="flex items-center text-sm text-gray-900 dark:text-white">
                     <span className="mr-2">🎯</span>
-                    <span className="font-medium font-poppins">Exhibidores: {lugar.exhibidores}</span>
+                    <span className="font-medium">Exhibidores: {lugar.exhibidores}</span>
                   </div>
                 </div>
                 
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(lugar)}
-                    className="flex-1 bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 rounded-lg transition-colors text-sm"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(lugar.id)}
-                    className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium font-poppins py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-3 rounded-lg transition-colors text-sm"
                   >
                     Eliminar
                   </button>
@@ -288,15 +288,15 @@ const PlaceManagement: React.FC = () => {
       ) : (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🏢</div>
-          <h3 className="text-xl font-semibold font-poppins text-neutral-text dark:text-white mb-2">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
             No hay lugares registrados
           </h3>
-          <p className="text-neutral-text/70 dark:text-white/70 mb-6">
+          <p className="text-gray-500 dark:text-gray-300 mb-6">
             Comienza creando tu primer lugar para organizar los turnos
           </p>
           <button
             onClick={openCreateModal}
-            className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-3 px-6 rounded-lg transition-colors duration-200 text-lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors text-lg"
           >
             + Crear Primer Lugar
           </button>
@@ -306,14 +306,14 @@ const PlaceManagement: React.FC = () => {
       {/* Modal para crear/editar lugar */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-neutral-dark rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium font-poppins text-neutral-text dark:text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
               {editingPlace ? 'Editar Lugar' : 'Nuevo Lugar'}
             </h3>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Nombre
                 </label>
                 <input
@@ -321,14 +321,14 @@ const PlaceManagement: React.FC = () => {
                   name="nombre"
                   value={formData.nombre}
                   onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   required
                 />
               </div>
 
               {/* Campo de dirección con Google Maps */}
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Dirección
                 </label>
                 <GoogleMapsInput
@@ -343,27 +343,27 @@ const PlaceManagement: React.FC = () => {
               {(formData.latitud || formData.longitud) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Latitud
                     </label>
                     <input
                       type="number"
                       value={formData.latitud || ''}
                       onChange={(e) => setFormData({...formData, latitud: parseFloat(e.target.value) || undefined})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       step="0.00000001"
                       readOnly
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Longitud
                     </label>
                     <input
                       type="number"
                       value={formData.longitud || ''}
                       onChange={(e) => setFormData({...formData, longitud: parseFloat(e.target.value) || undefined})}
-                      className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       step="0.00000001"
                       readOnly
                     />
@@ -372,7 +372,7 @@ const PlaceManagement: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Descripción
                 </label>
                 <textarea
@@ -380,12 +380,12 @@ const PlaceManagement: React.FC = () => {
                   value={formData.descripcion}
                   onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Cantidad de voluntarios
                 </label>
                 <input
@@ -393,14 +393,14 @@ const PlaceManagement: React.FC = () => {
                   name="capacidad"
                   value={formData.capacidad}
                   onChange={(e) => setFormData({...formData, capacidad: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   min="1"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Cantidad de Exhibidores
                 </label>
                 <input
@@ -408,7 +408,7 @@ const PlaceManagement: React.FC = () => {
                   name="exhibidores"
                   value={formData.exhibidores}
                   onChange={(e) => setFormData({...formData, exhibidores: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   min="1"
                   required
                 />
@@ -420,9 +420,9 @@ const PlaceManagement: React.FC = () => {
                   name="activo"
                   checked={formData.activo}
                   onChange={(e) => setFormData({...formData, activo: e.target.checked})}
-                  className="h-4 w-4 text-primary focus:ring-primary border-neutral-light dark:border-neutral rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
                 />
-                <label className="ml-2 block text-sm font-poppins text-neutral-text dark:text-white">
+                <label className="ml-2 block text-sm text-gray-900 dark:text-white">
                   Lugar activo
                 </label>
               </div>
@@ -431,14 +431,14 @@ const PlaceManagement: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="w-full sm:w-auto px-4 py-2 text-neutral-text dark:text-white font-medium font-poppins rounded-lg border border-neutral-light dark:border-neutral hover:bg-neutral-light dark:hover:bg-neutral transition-colors duration-200"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={createPlaceMutation.isPending || updatePlaceMutation.isPending}
-                  className="w-full sm:w-auto px-4 py-2 bg-primary hover:bg-primary-dark text-white font-medium font-poppins rounded-lg transition-colors duration-200 disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   {createPlaceMutation.isPending || updatePlaceMutation.isPending ? 'Guardando...' : 'Guardar'}
                 </button>

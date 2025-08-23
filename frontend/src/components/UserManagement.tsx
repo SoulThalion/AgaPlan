@@ -472,7 +472,7 @@ const UserManagement: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -486,22 +486,22 @@ const UserManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold font-poppins text-neutral-text dark:text-white">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Gestión de Usuarios
         </h2>
         <div className="flex space-x-3">
           <button
             onClick={handleReplicarDisponibilidades}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             title="Replicar disponibilidades del mes actual al siguiente mes"
           >
             📅 Replicar Disponibilidades
           </button>
           <button
             onClick={openCreateModal}
-            className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
           >
             + Nuevo Usuario
           </button>
@@ -509,65 +509,65 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* Vista de escritorio - Tabla */}
-      <div className="hidden lg:block bg-white dark:bg-neutral-dark rounded-lg shadow overflow-hidden">
+      <div className="hidden lg:block bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div className="relative">
           <div className="overflow-x-auto custom-scrollbar" style={{
             scrollbarWidth: 'thin',
             scrollbarColor: 'rgb(156 163 175) transparent'
           }}>
-            <table className="min-w-full divide-y divide-neutral-light dark:divide-neutral" style={{ minWidth: '1200px' }}>
-              <thead className="bg-neutral-light dark:bg-neutral sticky top-0 z-10">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                 <tr>
-                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[180px]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Usuario
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[120px]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Cargo
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[100px]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Rol
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[100px]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Participación
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[80px]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Coche
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[120px]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Siempre Con
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[120px]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Nunca Con
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium font-poppins text-neutral-text dark:text-white uppercase tracking-wider min-w-[120px]">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-neutral-dark divide-y divide-neutral-light dark:divide-neutral">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {usuarios?.data && usuarios.data.length > 0 ? (
                   usuarios.data.map((user: Usuario) => (
-                    <tr key={user.id} className="hover:bg-neutral-light/50 dark:hover:bg-neutral/50">
-                      <td className="px-2 py-3">
+                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-4 py-4">
                         <div className="flex items-center space-x-3">
                           <div className={`w-2.5 h-2.5 rounded-full ${
-                            user.rol === 'admin' || user.rol === 'superAdmin' ? 'bg-success' : 'bg-primary'
+                            user.rol === 'admin' || user.rol === 'superAdmin' ? 'bg-green-500' : 'bg-blue-500'
                           }`}></div>
                           
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium font-poppins text-neutral-text dark:text-white truncate text-sm">
+                            <div className="font-medium text-gray-900 dark:text-white truncate text-sm">
                               {user.nombre}
                             </div>
-                            <div className="text-xs text-neutral-text/70 dark:text-white/70 truncate">
+                            <div className="text-xs text-gray-500 dark:text-gray-300 truncate">
                               {user.email}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                      <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
                         {user.cargo || '-'}
                       </td>
-                      <td className="px-2 py-3">
+                      <td className="px-4 py-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           user.rol === 'superAdmin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
                           user.rol === 'admin' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
@@ -576,26 +576,26 @@ const UserManagement: React.FC = () => {
                           {user.rol}
                         </span>
                       </td>
-                                             <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                                             <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
                          <ParticipacionMensualDisplay
                            userId={user.id}
                            participacionMensual={user.participacionMensual}
                          />
                        </td>
-                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                      <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
                         {user.tieneCoche ? 'Sí' : 'No'}
                       </td>
-                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                      <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
                         {user.siempreConUsuario ? user.siempreConUsuario.nombre : '-'}
                       </td>
-                      <td className="px-2 py-3 text-sm text-neutral-text dark:text-white">
+                      <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
                         {user.nuncaConUsuario ? user.nuncaConUsuario.nombre : '-'}
                       </td>
-                      <td className="px-2 py-3 text-sm font-medium">
+                      <td className="px-4 py-4 text-sm font-medium">
                         <div className="flex space-x-1">
                           <button
                             onClick={() => handleEdit(user)}
-                            className="text-primary hover:text-primary-dark p-1 rounded hover:bg-primary/10 transition-colors"
+                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                             title="Editar usuario"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -604,7 +604,7 @@ const UserManagement: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDisponibilidad(user)}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                             title="Gestionar disponibilidad"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -613,7 +613,7 @@ const UserManagement: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(user.id)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                             title="Eliminar usuario"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -626,7 +626,7 @@ const UserManagement: React.FC = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-2 py-6 text-center text-neutral-text/70 dark:text-white/70">
+                    <td colSpan={8} className="px-4 py-6 text-center text-gray-500 dark:text-gray-300">
                       No hay usuarios registrados.
                     </td>
                   </tr>
@@ -641,18 +641,18 @@ const UserManagement: React.FC = () => {
       <div className="lg:hidden space-y-4">
         {usuarios?.data && usuarios.data.length > 0 ? (
           usuarios.data.map((user: Usuario) => (
-            <div key={user.id} className="bg-white dark:bg-neutral-dark rounded-lg shadow p-4">
+            <div key={user.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
               {/* Header de la tarjeta */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-3">
                   <div className={`w-3 h-3 rounded-full ${
-                    user.rol === 'admin' || user.rol === 'superAdmin' ? 'bg-success' : 'bg-primary'
+                    user.rol === 'admin' || user.rol === 'superAdmin' ? 'bg-green-500' : 'bg-blue-500'
                   }`}></div>
                   <div>
-                    <h3 className="font-medium font-poppins text-neutral-text dark:text-white">
+                    <h3 className="font-medium text-gray-900 dark:text-white">
                       {user.nombre}
                     </h3>
-                    <p className="text-sm text-neutral-text/70 dark:text-white/70">
+                    <p className="text-sm text-gray-500 dark:text-gray-300">
                       {user.email}
                     </p>
                   </div>
@@ -669,12 +669,12 @@ const UserManagement: React.FC = () => {
               {/* Información del usuario */}
               <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
                 <div>
-                  <span className="text-neutral-text/60 dark:text-white/60">Cargo:</span>
-                  <p className="text-neutral-text dark:text-white font-medium">{user.cargo || '-'}</p>
+                  <span className="text-gray-400 dark:text-gray-400">Cargo:</span>
+                  <p className="text-gray-900 dark:text-white font-medium">{user.cargo || '-'}</p>
                 </div>
                 <div>
-                                     <span className="text-neutral-text/60 dark:text-white/60">Participación:</span>
-                   <div className="text-neutral-text dark:text-white font-medium">
+                                     <span className="text-gray-400 dark:text-gray-400">Participación:</span>
+                   <div className="text-gray-900 dark:text-white font-medium">
                      <ParticipacionMensualDisplay
                        userId={user.id}
                        participacionMensual={user.participacionMensual}
@@ -682,42 +682,42 @@ const UserManagement: React.FC = () => {
                    </div>
                 </div>
                 <div>
-                  <span className="text-neutral-text/60 dark:text-white/60">Tiene Coche:</span>
-                  <p className="text-neutral-text dark:text-white font-medium">
+                  <span className="text-gray-400 dark:text-gray-400">Tiene Coche:</span>
+                  <p className="text-gray-900 dark:text-white font-medium">
                     {user.tieneCoche ? 'Sí' : 'No'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-neutral-text/60 dark:text-white/60">Siempre Con:</span>
-                  <p className="text-neutral-text dark:text-white font-medium">
+                  <span className="text-gray-400 dark:text-gray-400">Siempre Con:</span>
+                  <p className="text-gray-900 dark:text-white font-medium">
                     {user.siempreConUsuario ? user.siempreConUsuario.nombre : '-'}
                   </p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-neutral-text/60 dark:text-white/60">Nunca Con:</span>
-                  <p className="text-neutral-text dark:text-white font-medium">
+                  <span className="text-gray-400 dark:text-gray-400">Nunca Con:</span>
+                  <p className="text-gray-900 dark:text-white font-medium">
                     {user.nuncaConUsuario ? user.nuncaConUsuario.nombre : '-'}
                   </p>
                 </div>
               </div>
 
               {/* Acciones */}
-              <div className="flex space-x-2 pt-3 border-t border-neutral-light dark:border-neutral">
+              <div className="flex space-x-2 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => handleEdit(user)}
-                  className="flex-1 text-primary hover:text-primary-dark font-medium font-poppins text-sm py-2 px-3 rounded-lg border border-primary hover:bg-primary/10 transition-colors"
+                  className="flex-1 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-sm py-2 px-3 rounded-lg border border-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                 >
                   Editar
                 </button>
                 <button
                   onClick={() => handleDisponibilidad(user)}
-                  className="flex-1 text-blue-600 hover:text-blue-900 font-medium font-poppins text-sm py-2 px-3 rounded-lg border border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  className="flex-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm py-2 px-3 rounded-lg border border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   Disponibilidad
                 </button>
                 <button
                   onClick={() => handleDelete(user.id)}
-                  className="flex-1 text-red-600 hover:text-red-900 font-medium font-poppins text-sm py-2 px-3 rounded-lg border border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  className="flex-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm py-2 px-3 rounded-lg border border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 >
                   Eliminar
                 </button>
@@ -725,8 +725,8 @@ const UserManagement: React.FC = () => {
             </div>
           ))
         ) : (
-          <div className="bg-white dark:bg-neutral-dark rounded-lg shadow p-8 text-center">
-            <p className="text-neutral-text/70 dark:text-white/70">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+            <p className="text-gray-500 dark:text-gray-300">
               No hay usuarios registrados.
             </p>
           </div>
@@ -736,8 +736,8 @@ const UserManagement: React.FC = () => {
       {/* Modal para crear/editar usuario */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-neutral-dark rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium font-poppins text-neutral-text dark:text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
               {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
             </h3>
             
@@ -771,7 +771,7 @@ const UserManagement: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Campo Nombre - Siempre visible */}
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Nombre <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -779,21 +779,21 @@ const UserManagement: React.FC = () => {
                   name="nombre"
                   value={formData.nombre}
                   onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   required
                 />
               </div>
 
               {/* Campo Rol - Siempre visible */}
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Rol <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="rol"
                   value={formData.rol}
                   onChange={(e) => setFormData({...formData, rol: e.target.value as 'voluntario' | 'admin' | 'superAdmin' | 'grupo'})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   required
                 >
                   <option value="voluntario">Voluntario</option>
@@ -809,7 +809,7 @@ const UserManagement: React.FC = () => {
                   {/* Columna Izquierda */}
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Email <span className="text-xs text-gray-500">(opcional)</span>
                       </label>
                       <input
@@ -817,7 +817,7 @@ const UserManagement: React.FC = () => {
                         name="email"
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         placeholder="Dejar vacío si no tendrá acceso a la app"
                       />
                       <p className="text-xs text-gray-500 mt-1">
@@ -826,7 +826,7 @@ const UserManagement: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Contraseña <span className="text-xs text-gray-500">(opcional)</span>
                       </label>
                       <input
@@ -834,7 +834,7 @@ const UserManagement: React.FC = () => {
                         name="contraseña"
                         value={formData.contraseña}
                         onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
-                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         placeholder={editingUser ? "Dejar vacía para mantener la contraseña actual" : "Dejar vacía si no tendrá acceso a la app"}
                       />
                       <p className="text-xs text-gray-500 mt-1">
@@ -846,14 +846,14 @@ const UserManagement: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Sexo <span className="text-red-500">*</span>
                       </label>
                       <select
                         name="sexo"
                         value={formData.sexo}
                         onChange={(e) => setFormData({...formData, sexo: e.target.value as 'M' | 'F' | 'O'})}
-                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         required
                       >
                         <option value="M">Masculino</option>
@@ -862,7 +862,7 @@ const UserManagement: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Cargo <span className="text-red-500">*</span>
                       </label>
                       <select
@@ -876,7 +876,7 @@ const UserManagement: React.FC = () => {
                             cargoId: selectedCargo?.id
                           });
                         }}
-                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         required
                       >
                         <option value="">Seleccionar Cargo</option>
@@ -892,7 +892,7 @@ const UserManagement: React.FC = () => {
                   {/* Columna Derecha */}
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Participación Mensual (opcional)
                       </label>
                       <input
@@ -900,21 +900,21 @@ const UserManagement: React.FC = () => {
                         name="participacionMensual"
                         value={formData.participacionMensual || ''}
                         onChange={(e) => setFormData({...formData, participacionMensual: e.target.value ? parseInt(e.target.value) : undefined})}
-                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         min="0"
                         placeholder="Número de veces al mes"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Tiene Coche
                       </label>
                       <select
                         name="tieneCoche"
                         value={formData.tieneCoche ? 'true' : 'false'}
                         onChange={(e) => setFormData({...formData, tieneCoche: e.target.value === 'true'})}
-                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="false">No</option>
                         <option value="true">Sí</option>
@@ -922,14 +922,14 @@ const UserManagement: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Siempre Con (opcional)
                       </label>
                       <select
                         name="siempreCon"
                         value={formData.siempreCon || ''}
                         onChange={(e) => setFormData({...formData, siempreCon: e.target.value ? parseInt(e.target.value) : undefined})}
-                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="">Sin usuario específico</option>
                         {usuarios?.data && usuarios.data
@@ -943,14 +943,14 @@ const UserManagement: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Nunca Con (opcional)
                       </label>
                       <select
                         name="nuncaCon"
                         value={formData.nuncaCon || ''}
                         onChange={(e) => setFormData({...formData, nuncaCon: e.target.value ? parseInt(e.target.value) : undefined})}
-                        className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="">Sin usuario específico</option>
                         {usuarios?.data && usuarios.data
@@ -966,18 +966,18 @@ const UserManagement: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-light dark:border-neutral">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-neutral-text dark:text-white font-medium font-poppins rounded-lg border border-neutral-light dark:border-neutral hover:bg-neutral-light dark:hover:bg-neutral transition-colors duration-200"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={createUserMutation.isPending || updateUserMutation.isPending}
-                  className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-medium font-poppins rounded-lg transition-colors duration-200 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   {createUserMutation.isPending || updateUserMutation.isPending ? 'Guardando...' : 'Guardar'}
                 </button>

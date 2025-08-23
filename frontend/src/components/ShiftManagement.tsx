@@ -781,40 +781,29 @@ const ShiftManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold font-poppins text-neutral-text dark:text-white">
-          Gestión de Turnos
-        </h2>
-        <div className="flex space-x-3">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Turnos</h2>
+        <div className="flex items-center space-x-3">
           {selectedTurnos.length > 0 && (
-            <button
-              onClick={handleDeleteMultiple}
-              disabled={deleteMultipleTurnosMutation.isPending}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50"
-            >
-              {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : `Eliminar ${selectedTurnos.length} seleccionados`}
-            </button>
-          )}
-          {turnos?.data && turnos.data.length > 0 && (
             <button
               onClick={handleDeleteAll}
               disabled={deleteMultipleTurnosMutation.isPending}
-              className="bg-red-800 hover:bg-red-900 text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50"
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
             >
               {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : 'Eliminar Todos'}
             </button>
           )}
           <button
             onClick={handleReplicarMes}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             title="Replicar turnos del mes actual al siguiente mes"
           >
             📅 Replicar Mes
           </button>
           <button
             onClick={openCreateModal}
-            className="bg-primary hover:bg-primary-dark text-white font-medium font-poppins py-2 px-4 rounded-lg transition-colors duration-200"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
           >
             + Nuevo Turno
           </button>
@@ -822,25 +811,25 @@ const ShiftManagement: React.FC = () => {
       </div>
 
       {/* Lista de turnos */}
-      <div className="bg-white dark:bg-neutral-dark rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-neutral-light dark:border-neutral">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold font-poppins text-neutral-text dark:text-white">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Turnos Programados
             </h3>
             {turnos?.data && turnos.data.length > 0 && (
               <div className="flex items-center space-x-3">
-                <label className="flex items-center space-x-2 text-sm text-neutral-text dark:text-white">
+                <label className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={selectAll}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary"
+                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                   />
                   <span>Seleccionar todos</span>
                 </label>
                 {selectedTurnos.length > 0 && (
-                  <span className="text-sm text-neutral-text/70 dark:text-white/70">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {selectedTurnos.length} de {turnos.data.length} seleccionados
                   </span>
                 )}
@@ -850,31 +839,31 @@ const ShiftManagement: React.FC = () => {
         </div>
         
         {turnos?.data && turnos.data.length > 0 ? (
-          <div className="divide-y divide-neutral-light dark:divide-neutral">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {turnos.data.map((turno: Turno) => (
-              <div key={turno.id} className="px-6 py-4 flex items-center justify-between">
+              <div key={turno.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700">
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <div className={`w-3 h-3 rounded-full ${
-                      turno.estado === 'ocupado' ? 'bg-success' : 
-                      turno.estado === 'libre' ? 'bg-warning' : 'bg-neutral-text/30'
+                      turno.estado === 'ocupado' ? 'bg-green-500' : 
+                      turno.estado === 'libre' ? 'bg-yellow-500' : 'bg-gray-400'
                     }`}></div>
                     <input
                       type="checkbox"
                       checked={selectedTurnos.includes(turno.id)}
                       onChange={(e) => handleTurnoSelection(turno.id, e.target.checked)}
-                      className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary"
+                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                     />
                   </div>
                   
                   <div>
-                    <div className="font-medium font-poppins text-neutral-text dark:text-white">
+                    <div className="font-medium text-gray-900 dark:text-white">
                       {getLugarNombre(turno.lugarId)} - {turno.exhibidores && turno.exhibidores.length > 0 ? turno.exhibidores.map(e => e.nombre).join(', ') : 'Sin exhibidores'}
                     </div>
-                    <div className="text-sm text-neutral-text/70 dark:text-white/70">
+                    <div className="text-sm text-gray-500 dark:text-gray-300">
                       {formatFecha(turno.fecha)} - {formatHora(turno.hora)}
                     </div>
-                    <div className="text-xs text-neutral-text/50 dark:text-white/50">
+                    <div className="text-xs text-gray-400 dark:text-gray-400">
                       {turno.usuarios && turno.usuarios.length > 0 ? turno.usuarios.map(u => u.nombre).join(', ') : 'Disponible'}
                     </div>
                   </div>
@@ -883,13 +872,13 @@ const ShiftManagement: React.FC = () => {
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(turno)}
-                    className="text-primary hover:text-primary-dark font-medium font-poppins text-sm"
+                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-sm"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(turno.id)}
-                    className="text-red-600 hover:text-red-900 font-medium font-poppins text-sm"
+                    className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm"
                   >
                     Eliminar
                   </button>
@@ -898,7 +887,7 @@ const ShiftManagement: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="px-6 py-8 text-center text-neutral-text/70 dark:text-white/70">
+          <div className="px-6 py-8 text-center text-gray-500 dark:text-gray-300">
             No hay turnos configurados. Crea uno nuevo para empezar.
           </div>
         )}
@@ -907,8 +896,8 @@ const ShiftManagement: React.FC = () => {
       {/* Modal para crear/editar turno */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-neutral-dark rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium font-poppins text-neutral-text dark:text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
               {editingShift ? 'Editar Turno' : 'Nuevo Turno'}
             </h3>
             
@@ -922,7 +911,7 @@ const ShiftManagement: React.FC = () => {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Fecha
                 </label>
                 <input
@@ -930,13 +919,13 @@ const ShiftManagement: React.FC = () => {
                   name="fecha"
                   value={formData.fecha}
                   onChange={(e) => setFormData({...formData, fecha: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Hora Inicio
                 </label>
                 <input
@@ -944,13 +933,13 @@ const ShiftManagement: React.FC = () => {
                   name="horaInicio"
                   value={formData.horaInicio}
                   onChange={(e) => setFormData({...formData, horaInicio: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Hora Fin
                 </label>
                 <input
@@ -958,13 +947,13 @@ const ShiftManagement: React.FC = () => {
                   name="horaFin"
                   value={formData.horaFin}
                   onChange={(e) => setFormData({...formData, horaFin: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Lugar
                 </label>
                 <select
@@ -976,7 +965,7 @@ const ShiftManagement: React.FC = () => {
                     const lugar = lugares?.data?.find(l => l.id === lugarId);
                     setSelectedLugar(lugar || null);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   required
                 >
                   <option value="">Selecciona un lugar</option>
@@ -989,10 +978,10 @@ const ShiftManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Exhibidores
                 </label>
-                <div className="max-h-32 overflow-y-auto border border-neutral-light dark:border-neutral rounded-lg p-2 dark:bg-neutral">
+                <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 dark:bg-gray-700">
                   {exhibidores?.data?.map((exhibidor: Exhibidor) => {
                     const isChecked = formData.exhibidorIds.includes(exhibidor.id);
                     const isDisabled = Boolean(selectedLugar && selectedLugar.exhibidores && 
@@ -1005,9 +994,9 @@ const ShiftManagement: React.FC = () => {
                           checked={isChecked}
                           onChange={(e) => handleExhibidorChange(exhibidor.id, e.target.checked)}
                           disabled={isDisabled}
-                          className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <span className={`text-sm ${isDisabled ? 'text-neutral-text/50 dark:text-white/50' : 'text-neutral-text dark:text-white'}`}>
+                        <span className={`text-sm ${isDisabled ? 'text-gray-400 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>
                           {exhibidor.nombre}
                         </span>
                       </label>
@@ -1015,7 +1004,7 @@ const ShiftManagement: React.FC = () => {
                   })}
                 </div>
                 {selectedLugar && selectedLugar.exhibidores && (
-                  <div className="text-xs text-neutral-text/70 dark:text-white/70 mt-1">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     <p>Este lugar puede tener hasta {selectedLugar.exhibidores} exhibidores</p>
                     <p className={`mt-1 ${formData.exhibidorIds.length >= selectedLugar.exhibidores ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                       Seleccionados: {formData.exhibidorIds.length} / {selectedLugar.exhibidores}
@@ -1025,10 +1014,10 @@ const ShiftManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Usuarios (opcional)
                 </label>
-                <div className="max-h-32 overflow-y-auto border border-neutral-light dark:border-neutral rounded-lg p-2 dark:bg-neutral">
+                <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 dark:bg-gray-700">
                   {usuarios?.data?.map((usuario: Usuario) => {
                     const isChecked = formData.usuarioIds.includes(usuario.id);
                     return (
@@ -1045,9 +1034,9 @@ const ShiftManagement: React.FC = () => {
                             }
                             setFormData(prev => ({ ...prev, usuarioIds: newUsuarioIds }));
                           }}
-                          className="rounded border-neutral-light dark:border-neutral text-primary focus:ring-primary"
+                          className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="text-sm text-neutral-text dark:text-white">
+                        <span className="text-sm text-gray-900 dark:text-white">
                           {usuario.nombre} - {usuario.cargo}
                         </span>
                       </label>
@@ -1057,7 +1046,7 @@ const ShiftManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Tipo de Turno
                 </label>
                 <div className="space-y-3">
@@ -1067,9 +1056,9 @@ const ShiftManagement: React.FC = () => {
                       name="tipoTurno"
                       checked={!formData.esRecurrente}
                       onChange={() => setFormData({...formData, esRecurrente: false})}
-                      className="text-primary focus:ring-primary"
+                      className="text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-neutral-text dark:text-white">Turno puntual</span>
+                    <span className="text-sm text-gray-900 dark:text-white">Turno puntual</span>
                   </label>
                   
                   <label className="flex items-center space-x-2">
@@ -1078,16 +1067,16 @@ const ShiftManagement: React.FC = () => {
                       name="tipoTurno"
                       checked={formData.esRecurrente}
                       onChange={() => setFormData({...formData, esRecurrente: true})}
-                      className="text-primary focus:ring-primary"
+                      className="text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-neutral-text dark:text-white">Turno recurrente semanal</span>
+                    <span className="text-sm text-gray-900 dark:text-white">Turno recurrente semanal</span>
                   </label>
                 </div>
               </div>
 
               {formData.esRecurrente && (
                 <div>
-                  <label className="block text-sm font-medium font-poppins text-neutral-text dark:text-white mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Número de semanas
                   </label>
                   <input
@@ -1096,10 +1085,10 @@ const ShiftManagement: React.FC = () => {
                     max="52"
                     value={formData.semanas}
                     onChange={(e) => setFormData({...formData, semanas: Number(e.target.value)})}
-                    className="w-full px-3 py-2 border border-neutral-light dark:border-neutral rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-neutral dark:text-white"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder="4"
                   />
-                  <p className="text-xs text-neutral-text/70 dark:text-white/70 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Se creará un turno cada semana durante {formData.semanas} semanas
                   </p>
                 </div>
@@ -1109,14 +1098,14 @@ const ShiftManagement: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-neutral-text dark:text-white font-medium font-poppins rounded-lg border border-neutral-light dark:border-neutral hover:bg-neutral-light dark:hover:bg-neutral transition-colors duration-200"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={createShiftMutation.isPending || updateShiftMutation.isPending || createRecurrenteMutation.isPending || deleteShiftMutation.isPending || deleteMultipleTurnosMutation.isPending}
-                  className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-medium font-poppins rounded-lg transition-colors duration-200 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
                   {createShiftMutation.isPending || updateShiftMutation.isPending || createRecurrenteMutation.isPending || deleteShiftMutation.isPending || deleteMultipleTurnosMutation.isPending
                     ? 'Guardando...' 
