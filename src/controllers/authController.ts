@@ -110,10 +110,13 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, contraseña }: LoginRequest = req.body;
+    const { email } = req.body;
+    
+    // Manejar el problema de encoding del campo contraseña
+    const password = req.body.contraseña || req.body.password || req.body.contrasena;
 
     // Validaciones básicas
-    if (!email || !contraseña) {
+    if (!email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Email y contraseña son requeridos'
@@ -138,7 +141,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Verificar la contraseña
-    const isValidPassword = await user.comparePassword(contraseña);
+    const isValidPassword = await user.comparePassword(password);
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,

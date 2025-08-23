@@ -3,20 +3,118 @@ import { AuthenticatedRequest } from '../types/auth';
 import Lugar from '../models/Lugar';
 import Turno from '../models/Turno';
 import { Op } from 'sequelize';
+import sequelize from '../config/database';
+
+// Endpoint de prueba para verificar la conexión
+export const testLugarConnection = async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 testLugarConnection: Probando conexión...');
+    
+    // Probar conexión directa
+    await sequelize.authenticate();
+    console.log('✅ testLugarConnection: Conexión exitosa');
+    
+    // Probar consulta simple
+    const [results] = await sequelize.query('SELECT 1 as test');
+    console.log('✅ testLugarConnection: Consulta simple exitosa:', results);
+    
+    // Probar si la tabla existe
+    const [tables] = await sequelize.query("SHOW TABLES LIKE 'lugares'");
+    console.log('✅ testLugarConnection: Tabla lugares existe:', tables.length > 0);
+    
+    // Mostrar estructura real de la tabla
+    if (tables.length > 0) {
+      const [columns] = await sequelize.query("DESCRIBE lugares");
+      console.log('📋 testLugarConnection: Estructura real de la tabla lugares:');
+      columns.forEach((col: any) => {
+        console.log(`  - ${col.Field}: ${col.Type} ${col.Null === 'NO' ? 'NOT NULL' : 'NULL'}`);
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Conexión exitosa',
+      data: {
+        connection: 'OK',
+        query: 'OK',
+        tableExists: tables.length > 0,
+        columns: tables.length > 0 ? await sequelize.query("DESCRIBE lugares") : []
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ testLugarConnection Error:', error);
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error en prueba de conexión',
+      error: error.message
+    });
+  }
+};
+
+// Endpoint de prueba para verificar el modelo Sequelize
+export const testLugarModel = async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 testLugarModel: Probando modelo Sequelize...');
+    console.log('🔍 testLugarModel: Modelo Lugar:', !!Lugar);
+    console.log('🔍 testLugarModel: Tipo de Lugar:', typeof Lugar);
+    console.log('🔍 testLugarModel: Lugar.findAll:', typeof Lugar.findAll);
+    
+    // Probar consulta directa con Sequelize
+    const [lugares] = await sequelize.query('SELECT * FROM lugares LIMIT 5');
+    console.log('✅ testLugarModel: Consulta directa exitosa, lugares encontrados:', lugares.length);
+    
+    // Probar el modelo Sequelize
+    const lugaresModel = await Lugar.findAll({
+      limit: 5,
+      raw: true // Obtener datos planos
+    });
+    console.log('✅ testLugarModel: Modelo Sequelize exitoso, lugares encontrados:', lugaresModel.length);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Modelo Sequelize funcionando',
+      data: {
+        directQuery: lugares.length,
+        sequelizeModel: lugaresModel.length,
+        lugares: lugaresModel
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ testLugarModel Error:', error);
+    console.error('❌ Stack trace:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Error en prueba del modelo',
+      error: error.message
+    });
+  }
+};
 
 // Obtener todos los lugares
 export const getAllLugares = async (req: Request, res: Response) => {
   try {
+    console.log('🔍 getAllLugares: Iniciando búsqueda de lugares...');
+    console.log('🔍 getAllLugares: Modelo Lugar importado:', !!Lugar);
+    console.log('🔍 getAllLugares: Tipo de Lugar:', typeof Lugar);
+    
+    // Prueba simple de conexión
+    console.log('🔍 getAllLugares: Probando conexión a la base de datos...');
+    
     const lugares = await Lugar.findAll({
       order: [['nombre', 'ASC']]
     });
+
+    console.log('✅ getAllLugares: Lugares encontrados:', lugares.length);
+    console.log('📋 getAllLugares: Datos de lugares:', JSON.stringify(lugares, null, 2));
 
     res.status(200).json({
       success: true,
       data: lugares
     });
-  } catch (error) {
-    console.error('Error obteniendo lugares:', error);
+  } catch (error: any) {
+    console.error('❌ Error obteniendo lugares:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor'

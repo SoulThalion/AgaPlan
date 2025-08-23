@@ -4,12 +4,18 @@ import {
   getLugarById, 
   createLugar, 
   updateLugar, 
-  deleteLugar 
+  deleteLugar,
+  testLugarConnection,
+  testLugarModel
 } from '../controllers/lugarController';
 import { requireSuperAdmin } from '../middleware/roleMiddleware';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
+
+// Rutas de prueba para verificar conexión y modelo
+router.get('/test', testLugarConnection);
+router.get('/test-model', testLugarModel);
 
 // Rutas públicas (solo lectura)
 router.get('/', getAllLugares);

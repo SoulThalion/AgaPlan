@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
-import Register from './components/Register';
+// import Register from './components/Register'; // Temporalmente deshabilitado
 import Dashboard from './components/Dashboard';
 
 // Crear cliente de React Query
@@ -40,7 +40,8 @@ const AppContent: React.FC = () => {
         <Routes>
           {/* Rutas públicas */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* Ruta de registro temporalmente deshabilitada - solo superAdmin puede crear usuarios */}
+          {/* <Route path="/register" element={<Register />} /> */}
           
           {/* Rutas protegidas */}
           <Route 

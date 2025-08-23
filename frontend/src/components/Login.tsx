@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; // Link comentado temporalmente
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import ThemeToggle from './ThemeToggle';
@@ -161,6 +161,8 @@ const Login: React.FC = () => {
             </button>
           </div>
 
+          {/* Enlace de registro temporalmente deshabilitado - solo superAdmin puede crear usuarios */}
+          {/* 
           <div className="text-center">
             <p className="text-sm font-roboto text-gray-600 dark:text-gray-300">
               ¿No tienes una cuenta?{' '}
@@ -172,6 +174,7 @@ const Login: React.FC = () => {
               </Link>
             </p>
           </div>
+          */}
         </form>
       </div>
     </div>
