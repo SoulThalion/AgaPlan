@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   }, []);
 
   const menuItems = [
-    { id: 'overview', label: 'Resumen', icon: '📊', adminOnly: false },
+    { id: 'overview', label: 'Calendario', icon: '📅', adminOnly: false },
     { id: 'usuarios', label: 'Usuarios', icon: '👥', adminOnly: true },
     { id: 'lugares', label: 'Lugares', icon: '📍', adminOnly: true },
     { id: 'cargos', label: 'Cargos', icon: '🎯', adminOnly: true },
