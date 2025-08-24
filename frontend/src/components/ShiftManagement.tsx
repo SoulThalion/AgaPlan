@@ -948,7 +948,6 @@ const ShiftManagement: React.FC = () => {
                   value={formData.fecha}
                   onChange={(date) => setFormData({...formData, fecha: date})}
                   placeholder="Seleccionar fecha"
-                  required
                 />
               </div>
 
@@ -962,7 +961,6 @@ const ShiftManagement: React.FC = () => {
                   onStartTimeChange={(time) => setFormData({...formData, horaInicio: time})}
                   onEndTimeChange={(time) => setFormData({...formData, horaFin: time})}
                   placeholder="Seleccionar horario"
-                  required
                 />
               </div>
 

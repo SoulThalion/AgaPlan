@@ -4,20 +4,16 @@ interface TimePickerProps {
   value: string;
   onChange: (time: string) => void;
   placeholder?: string;
-  required?: boolean;
   className?: string;
   disabled?: boolean;
-  step?: number; // Intervalo en minutos (por defecto 15)
 }
 
 const TimePicker: React.FC<TimePickerProps> = ({
   value,
   onChange,
   placeholder = "Seleccionar hora",
-  required = false,
   className = "",
-  disabled = false,
-  step = 15
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedHour, setSelectedHour] = useState(0);

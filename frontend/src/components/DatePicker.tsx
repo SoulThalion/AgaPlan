@@ -4,7 +4,6 @@ interface DatePickerProps {
   value: string;
   onChange: (date: string) => void;
   placeholder?: string;
-  required?: boolean;
   className?: string;
   disabled?: boolean;
 }
@@ -13,7 +12,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
   value,
   onChange,
   placeholder = "Seleccionar fecha",
-  required = false,
   className = "",
   disabled = false
 }) => {
@@ -84,18 +82,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
         newDate.setMonth(prev.getMonth() - 1);
       } else {
         newDate.setMonth(prev.getMonth() + 1);
-      }
-      return newDate;
-    });
-  };
-
-  const changeYear = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev);
-      if (direction === 'prev') {
-        newDate.setFullYear(prev.getFullYear() - 1);
-      } else {
-        newDate.setFullYear(prev.getFullYear() + 1);
       }
       return newDate;
     });

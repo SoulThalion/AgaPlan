@@ -6,7 +6,6 @@ interface TimeRangePickerProps {
   onStartTimeChange: (time: string) => void;
   onEndTimeChange: (time: string) => void;
   placeholder?: string;
-  required?: boolean;
   className?: string;
   disabled?: boolean;
 }
@@ -17,7 +16,6 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
   onStartTimeChange,
   onEndTimeChange,
   placeholder = "Seleccionar horario",
-  required = false,
   className = "",
   disabled = false
 }) => {
