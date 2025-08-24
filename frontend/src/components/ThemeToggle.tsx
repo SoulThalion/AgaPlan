@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 
 const ThemeToggle: React.FC = () => {
   const { isDarkMode, toggleTheme } = useTheme();
+
+  const updateFavicon = () => {
+    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/svg+xml';
+    link.rel = 'icon';
+    
+    // Usar media query para detectar el tema del sistema
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    link.href = darkModeMediaQuery.matches ? '/favicon-dark.svg' : '/favicon-light.svg';
+    document.getElementsByTagName('head')[0].appendChild(link);
+
+    // Escuchar cambios en el tema del sistema
+    darkModeMediaQuery.addEventListener('change', (e) => {
+      link.href = e.matches ? '/favicon-dark.svg' : '/favicon-light.svg';
+    });
+  };
+
+  useEffect(() => {
+    updateFavicon();
+  }, []);
 
   return (
     <button
