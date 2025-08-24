@@ -5,8 +5,12 @@ import type { Usuario } from '../types';
 import Swal from 'sweetalert2';
 import DisponibilidadModal from './DisponibilidadModal';
 import ParticipacionMensualDisplay from './ParticipacionMensualDisplay';
+import { useAuth } from '../contexts/AuthContext';
 
-const UserManagement: React.FC = () => {
+const UserManagement: React.FC = (): JSX.Element => {
+  const { user: currentUser } = useAuth();
+  console.log('Current user role:', currentUser?.rol);
+  console.log('LocalStorage user:', localStorage.getItem('user'));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [isDisponibilidadModalOpen, setIsDisponibilidadModalOpen] = useState(false);
@@ -18,7 +22,7 @@ const UserManagement: React.FC = () => {
     sexo: 'M' as 'M' | 'F' | 'O',
     cargo: '',
     cargoId: undefined as number | undefined,
-    rol: 'voluntario' as 'voluntario' | 'admin' | 'superAdmin' | 'grupo',
+    rol: currentUser?.rol === 'superAdmin' ? 'voluntario' : 'voluntario' as 'voluntario' | 'admin' | 'superAdmin' | 'grupo',
     participacionMensual: undefined as number | null | undefined,
     tieneCoche: false,
     siempreCon: undefined as number | undefined,
@@ -196,7 +200,7 @@ const UserManagement: React.FC = () => {
       sexo: user.sexo,
       cargo: user.cargo,
       cargoId: user.cargoId,
-      rol: user.rol,
+      rol: currentUser?.rol !== 'superAdmin' && user.rol === 'superAdmin' ? 'admin' : user.rol,
       participacionMensual: user.participacionMensual,
       tieneCoche: user.tieneCoche || false,
       siempreCon: user.siempreCon,
@@ -211,6 +215,18 @@ const UserManagement: React.FC = () => {
   };
 
   const handleDelete = (userId: number) => {
+    // Si el usuario actual es admin y está intentando eliminar un superAdmin, no permitirlo
+    const userToDelete = usuarios?.data?.find(u => u.id === userId);
+    if (currentUser?.rol === 'admin' && userToDelete?.rol === 'superAdmin') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Acceso denegado',
+        text: 'No tienes permisos para eliminar usuarios con rol de Super Administrador',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
     Swal.fire({
       title: '¿Estás seguro?',
       text: 'Esta acción no se puede deshacer',
@@ -611,15 +627,17 @@ const UserManagement: React.FC = () => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                           </button>
-                          <button
-                            onClick={() => handleDelete(user.id)}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                            title="Eliminar usuario"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                                                     {!(currentUser?.rol === 'admin' && user.rol === 'superAdmin') && (
+                             <button
+                               onClick={() => handleDelete(user.id)}
+                               className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                               title="Eliminar usuario"
+                             >
+                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                               </svg>
+                             </button>
+                           )}
                         </div>
                       </td>
                     </tr>
@@ -715,12 +733,14 @@ const UserManagement: React.FC = () => {
                 >
                   Disponibilidad
                 </button>
-                <button
-                  onClick={() => handleDelete(user.id)}
-                  className="flex-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm py-2 px-3 rounded-lg border border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  Eliminar
-                </button>
+                                 {!(currentUser?.rol === 'admin' && user.rol === 'superAdmin') && (
+                   <button
+                     onClick={() => handleDelete(user.id)}
+                     className="flex-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm py-2 px-3 rounded-lg border border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                   >
+                     Eliminar
+                   </button>
+                 )}
               </div>
             </div>
           ))
@@ -793,14 +813,22 @@ const UserManagement: React.FC = () => {
                   name="rol"
                   value={formData.rol}
                   onChange={(e) => setFormData({...formData, rol: e.target.value as 'voluntario' | 'admin' | 'superAdmin' | 'grupo'})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   required
+                  disabled={editingUser?.rol === 'superAdmin' && currentUser?.rol !== 'superAdmin'}
                 >
                   <option value="voluntario">Voluntario</option>
                   <option value="grupo">Grupo</option>
                   <option value="admin">Administrador</option>
-                  <option value="superAdmin">Super Administrador</option>
+                  {currentUser?.rol === 'superAdmin' ? (
+                    <option value="superAdmin">Super Administrador</option>
+                  ) : null}
                 </select>
+                {editingUser?.rol === 'superAdmin' && currentUser?.rol !== 'superAdmin' && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    No puedes cambiar el rol de un Super Administrador
+                  </p>
+                )}
               </div>
 
               {/* Resto de campos - Solo visibles si NO es rol grupo */}
@@ -808,42 +836,54 @@ const UserManagement: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Columna Izquierda */}
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Email <span className="text-xs text-gray-500">(opcional)</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        placeholder="Dejar vacío si no tendrá acceso a la app"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Sin email = sin acceso a la aplicación
-                      </p>
-                    </div>
+                                         <div>
+                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                         Email <span className="text-xs text-gray-500">(opcional)</span>
+                       </label>
+                       <input
+                         type="email"
+                         name="email"
+                         value={formData.email}
+                         onChange={(e) => setFormData({...formData, email: e.target.value})}
+                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                         placeholder="Dejar vacío si no tendrá acceso a la app"
+                         disabled={editingUser?.rol === 'superAdmin' && currentUser?.rol !== 'superAdmin'}
+                       />
+                       <p className="text-xs text-gray-500 mt-1">
+                         Sin email = sin acceso a la aplicación
+                       </p>
+                       {editingUser?.rol === 'superAdmin' && currentUser?.rol !== 'superAdmin' && (
+                         <p className="text-xs text-red-500 mt-1">
+                           No puedes modificar el email de un Super Administrador
+                         </p>
+                       )}
+                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Contraseña <span className="text-xs text-gray-500">(opcional)</span>
-                      </label>
-                      <input
-                        type="password"
-                        name="contraseña"
-                        value={formData.contraseña}
-                        onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        placeholder={editingUser ? "Dejar vacía para mantener la contraseña actual" : "Dejar vacía si no tendrá acceso a la app"}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {editingUser 
-                          ? "Dejar vacía para mantener la contraseña actual"
-                          : "Sin contraseña = sin acceso a la aplicación"
-                        }
-                      </p>
-                    </div>
+                     <div>
+                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                         Contraseña <span className="text-xs text-gray-500">(opcional)</span>
+                       </label>
+                       <input
+                         type="password"
+                         name="contraseña"
+                         value={formData.contraseña}
+                         onChange={(e) => setFormData({...formData, contraseña: e.target.value})}
+                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                         placeholder={editingUser ? "Dejar vacía para mantener la contraseña actual" : "Dejar vacía si no tendrá acceso a la app"}
+                         disabled={editingUser?.rol === 'superAdmin' && currentUser?.rol !== 'superAdmin'}
+                       />
+                       <p className="text-xs text-gray-500 mt-1">
+                         {editingUser 
+                           ? "Dejar vacía para mantener la contraseña actual"
+                           : "Sin contraseña = sin acceso a la aplicación"
+                         }
+                       </p>
+                       {editingUser?.rol === 'superAdmin' && currentUser?.rol !== 'superAdmin' && (
+                         <p className="text-xs text-red-500 mt-1">
+                           No puedes modificar la contraseña de un Super Administrador
+                         </p>
+                       )}
+                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
