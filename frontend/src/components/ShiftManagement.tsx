@@ -786,13 +786,22 @@ const ShiftManagement: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Turnos</h2>
         <div className="flex items-center space-x-3">
           {selectedTurnos.length > 0 && (
-            <button
-              onClick={handleDeleteAll}
-              disabled={deleteMultipleTurnosMutation.isPending}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : 'Eliminar Todos'}
-            </button>
+            <>
+              <button
+                onClick={handleDeleteMultiple}
+                disabled={deleteMultipleTurnosMutation.isPending}
+                className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : `Eliminar ${selectedTurnos.length} Seleccionados`}
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={deleteMultipleTurnosMutation.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : 'Eliminar Todos'}
+              </button>
+            </>
           )}
           <button
             onClick={handleReplicarMes}
