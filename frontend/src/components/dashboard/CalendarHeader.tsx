@@ -121,15 +121,6 @@ export default function CalendarHeader({
         
         {/* Lado derecho: Indicadores y botón PDF */}
         <div className="flex items-center space-x-4">
-          {/* Indicador del estado de filtros */}
-          {viewMyTurnos && (
-            <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
-              {viewAllTurnos 
-                ? '📅 Mis turnos de esta semana'
-                : '📅 Mis turnos de todo el mes'
-              }
-            </div>
-          )}
           
           {/* Botón para asignación automática de todos los turnos */}
           <button
