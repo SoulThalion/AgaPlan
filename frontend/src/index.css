@@ -4,6 +4,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Variables CSS personalizadas para el sistema de diseño de AgaPlan */
+:root {
+  /* Modo Claro */
+  --color-azul-sereno: #4A90E2;
+  --color-azul-claro: #D4E6FB;
+  --color-verde-esperanza: #6CC070;
+  --color-gris-calido: #F5F5F5;
+  --color-gris-texto: #4A4A4A;
+}
+
+/* Modo Oscuro */
+.dark {
+  --color-azul-sereno: #3A80D2;
+  --color-azul-claro: #1E3A5F;
+  --color-verde-esperanza: #5AB060;
+  --color-gris-calido: #1F2937;
+  --color-gris-texto: #E5E7EB;
+}
+
+/* Detección automática del modo oscuro del sistema */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-azul-sereno: #3A80D2;
+    --color-azul-claro: #1E3A5F;
+    --color-verde-esperanza: #5AB060;
+    --color-gris-calido: #1F2937;
+    --color-gris-texto: #E5E7EB;
+  }
+}
+
 /* Estilos personalizados para scrollbars */
 .custom-scrollbar::-webkit-scrollbar {
   height: 8px;
