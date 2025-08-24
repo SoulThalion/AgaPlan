@@ -5,7 +5,7 @@ const ThemeToggle: React.FC = () => {
   const { isDarkMode, toggleTheme } = useTheme();
 
   const updateFavicon = () => {
-    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    const link = (document.querySelector("link[rel*='icon']") as HTMLLinkElement) || document.createElement('link');
     link.type = 'image/svg+xml';
     link.rel = 'icon';
     
