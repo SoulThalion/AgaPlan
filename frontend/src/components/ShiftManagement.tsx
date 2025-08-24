@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Turno, Lugar, Usuario, Exhibidor, TurnoCreationRequest, TurnoRecurrenteRequest } from '../types';
 import Swal from 'sweetalert2';
+import DatePicker from './DatePicker';
+import TimeRangePicker from './TimeRangePicker';
 
 const ShiftManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -904,11 +906,30 @@ const ShiftManagement: React.FC = () => {
 
       {/* Modal para crear/editar turno */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              {editingShift ? 'Editar Turno' : 'Nuevo Turno'}
-            </h3>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del modal con título y botón de cerrar */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                {editingShift ? 'Editar Turno' : 'Nuevo Turno'}
+              </h3>
+              {/* Botón X para cerrar */}
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white transition-colors p-1"
+                title="Cerrar"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {editingShift && (
@@ -923,40 +944,24 @@ const ShiftManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Fecha
                 </label>
-                <input
-                  type="date"
-                  name="fecha"
+                <DatePicker
                   value={formData.fecha}
-                  onChange={(e) => setFormData({...formData, fecha: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  onChange={(date) => setFormData({...formData, fecha: date})}
+                  placeholder="Seleccionar fecha"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Hora Inicio
+                  Horario
                 </label>
-                <input
-                  type="time"
-                  name="horaInicio"
-                  value={formData.horaInicio}
-                  onChange={(e) => setFormData({...formData, horaInicio: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Hora Fin
-                </label>
-                <input
-                  type="time"
-                  name="horaFin"
-                  value={formData.horaFin}
-                  onChange={(e) => setFormData({...formData, horaFin: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                <TimeRangePicker
+                  startTime={formData.horaInicio}
+                  endTime={formData.horaFin}
+                  onStartTimeChange={(time) => setFormData({...formData, horaInicio: time})}
+                  onEndTimeChange={(time) => setFormData({...formData, horaFin: time})}
+                  placeholder="Seleccionar horario"
                   required
                 />
               </div>

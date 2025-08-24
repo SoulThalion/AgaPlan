@@ -321,7 +321,7 @@ const PlaceManagement: React.FC = () => {
               {/* Botón X para cerrar */}
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white transition-colors p-1"
                 title="Cerrar"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
