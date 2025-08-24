@@ -427,6 +427,15 @@
   transform: translateX(2px);
 }
 
+/* Centrar íconos cuando el sidebar está colapsado */
+.sidebar-transition.w-16 .sidebar-item {
+  justify-content: center;
+}
+
+.sidebar-transition.w-16 .sidebar-item span:first-child {
+  margin: 0;
+}
+
 /* Estilos para el contenido principal */
 .main-content {
   transition: margin-left 0.3s ease-in-out;
