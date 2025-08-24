@@ -22,7 +22,7 @@ const GoogleMapsInput: React.FC<GoogleMapsInputProps> = ({ value, onChange, plac
   const [showMap, setShowMap] = useState(false);
   const [isPinMode, setIsPinMode] = useState(false);
   const [markerPosition, setMarkerPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 28.2916, lng: -16.6291 }); // Tenerife por defecto
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 27.8478, lng: -15.4464 }); // Vecindario, Gran Canaria por defecto
   const [showConfirmation, setShowConfirmation] = useState(false);
   
   const mapRef = useRef<HTMLDivElement>(null);
