@@ -31,52 +31,9 @@ export default function CalendarHeader({
           💡 <strong>Consejo:</strong> Haz clic en cualquier turno para ver sus detalles completos y gestionar usuarios
         </p>
       </div>
-      <div className="flex items-center justify-between">
+      {/* Primera fila: Filtros de turnos y botones de acción */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
-          {/* Selector de vista */}
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentView('month')}
-              className={`px-3 py-1 text-sm rounded-md ${
-                currentView === 'month'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Mes
-            </button>
-            <button
-              onClick={() => setCurrentView('week')}
-              className={`px-3 py-1 text-sm rounded-md ${
-                currentView === 'week'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Semana
-            </button>
-            <button
-              onClick={() => setCurrentView('day')}
-              className={`px-3 py-1 text-sm rounded-md ${
-                currentView === 'day'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Día
-            </button>
-            <button
-              onClick={() => setCurrentView('list')}
-              className={`px-3 py-1 text-sm rounded-md ${
-                currentView === 'list'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              Lista
-            </button>
-          </div>
-          
           {/* Filtros de turnos */}
           <div className="flex space-x-2">
             <button
@@ -119,8 +76,23 @@ export default function CalendarHeader({
           </div>
         </div>
         
-        {/* Lado derecho: Indicadores y botón PDF */}
+        {/* Lado derecho: Botones de acción y selector de vista */}
         <div className="flex items-center space-x-4">
+          
+          {/* Selector de vista del calendario */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Vista:</span>
+            <select
+              value={currentView}
+              onChange={(e) => setCurrentView(e.target.value as 'month' | 'week' | 'day' | 'list')}
+              className="px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+            >
+              <option value="month">Mes</option>
+              <option value="week">Semana</option>
+              <option value="day">Día</option>
+              <option value="list">Lista</option>
+            </select>
+          </div>
           
           {/* Botón para asignación automática de todos los turnos */}
           <button
