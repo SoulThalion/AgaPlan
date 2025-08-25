@@ -16,8 +16,20 @@ const DatePicker: React.FC<DatePickerProps> = ({
   disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date(value ? new Date(value) : new Date()));
-  const [selectedDate, setSelectedDate] = useState(value ? new Date(value) : new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (value) {
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    return new Date();
+  });
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (value) {
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    return new Date();
+  });
   const [viewMode, setViewMode] = useState<'days' | 'months' | 'years'>('days');
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -34,8 +46,10 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   useEffect(() => {
     if (value) {
-      setSelectedDate(new Date(value));
-      setCurrentDate(new Date(value));
+      const [year, month, day] = value.split('-').map(Number);
+      const newDate = new Date(year, month - 1, day);
+      setSelectedDate(newDate);
+      setCurrentDate(newDate);
     }
   }, [value]);
 
@@ -71,7 +85,14 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     setSelectedDate(newDate);
     setCurrentDate(newDate);
-    onChange(newDate.toISOString().split('T')[0]);
+    
+    // Formatear la fecha correctamente sin problemas de zona horaria
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${dayStr}`;
+    
+    onChange(formattedDate);
     setIsOpen(false);
   };
 
