@@ -9,6 +9,7 @@ import {
   getConfiguracionesUsuarioAutenticado,
 } from '../controllers/userDisponibilidadConfigController';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { requireAdmin } from '../middleware/roleMiddleware';
 
 const router = express.Router();
 
@@ -27,13 +28,9 @@ router.get('/usuario-autenticado/:mes', getConfiguracionesUsuarioAutenticado);
 // Obtener una configuración específica por ID
 router.get('/:id', getConfiguracionById);
 
-// Crear una nueva configuración
-router.post('/', createConfiguracion);
-
-// Actualizar una configuración existente
-router.put('/:id', updateConfiguracion);
-
-// Eliminar una configuración
-router.delete('/:id', deleteConfiguracion);
+// Rutas protegidas (solo admin o superior)
+router.post('/', requireAdmin, createConfiguracion);
+router.put('/:id', requireAdmin, updateConfiguracion);
+router.delete('/:id', requireAdmin, deleteConfiguracion);
 
 export default router;

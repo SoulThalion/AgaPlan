@@ -8,7 +8,7 @@ import {
   testLugarConnection,
   testLugarModel
 } from '../controllers/lugarController';
-import { requireSuperAdmin } from '../middleware/roleMiddleware';
+import { requireAdmin } from '../middleware/roleMiddleware';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -22,8 +22,9 @@ router.get('/', getAllLugares);
 router.get('/:id', getLugarById);
 
 // Rutas protegidas (primero autenticación, luego verificación de rol)
-router.post('/', authMiddleware, requireSuperAdmin, createLugar);
-router.put('/:id', authMiddleware, requireSuperAdmin, updateLugar);
-router.delete('/:id', authMiddleware, requireSuperAdmin, deleteLugar);
+// Permite acceso a admin y superAdmin
+router.post('/', authMiddleware, requireAdmin, createLugar);
+router.put('/:id', authMiddleware, requireAdmin, updateLugar);
+router.delete('/:id', authMiddleware, requireAdmin, deleteLugar);
 
 export default router;

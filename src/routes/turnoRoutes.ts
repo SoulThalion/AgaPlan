@@ -13,7 +13,7 @@ import {
   getTurnos,
   limpiarTodosLosUsuariosDeTurnos
 } from '../controllers/turnoController';
-import { requireAdmin, requireSuperAdmin } from '../middleware/roleMiddleware';
+import { requireAdmin } from '../middleware/roleMiddleware';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -21,11 +21,11 @@ const router = Router();
 // Rutas públicas (solo lectura)
 router.get('/', getTurnos);
 
-// Ruta para limpiar todos los usuarios de todos los turnos (admin) - DEBE IR ANTES DE /:id
+// Ruta para limpiar todos los usuarios de todos los turnos (admin o superior)
 router.delete('/limpiar-usuarios', authMiddleware, requireAdmin, limpiarTodosLosUsuariosDeTurnos);
 
-// Ruta para generar turnos automáticos (solo superAdmin)
-router.post('/generar-automaticos', authMiddleware, requireSuperAdmin, generarTurnosAutomaticos);
+// Ruta para generar turnos automáticos (admin o superior)
+router.post('/generar-automaticos', authMiddleware, requireAdmin, generarTurnosAutomaticos);
 
 // Rutas con parámetros dinámicos (DEBEN IR DESPUÉS de las rutas específicas)
 router.get('/:id', getTurnoById);
@@ -38,7 +38,7 @@ router.delete('/:id', authMiddleware, requireAdmin, deleteTurno);
 router.post('/:id/ocupar', authMiddleware, ocuparTurno);
 router.post('/:id/liberar', authMiddleware, liberarTurno);
 
-// Ruta para asignar usuarios a turnos (admin)
+// Ruta para asignar usuarios a turnos (admin o superior)
 router.post('/:id/asignar-usuario', authMiddleware, requireAdmin, asignarUsuarioATurno);
 
 export default router;

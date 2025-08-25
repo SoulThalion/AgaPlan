@@ -7,6 +7,7 @@ import {
   deleteCargo 
 } from '../controllers/cargoController';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { requireAdmin } from '../middleware/roleMiddleware';
 
 const router = Router();
 
@@ -16,8 +17,10 @@ router.use(authMiddleware);
 // Rutas para cargos
 router.get('/', getAllCargos);
 router.get('/:id', getCargoById);
-router.post('/', createCargo);
-router.put('/:id', updateCargo);
-router.delete('/:id', deleteCargo);
+
+// Rutas protegidas (solo admin o superior)
+router.post('/', requireAdmin, createCargo);
+router.put('/:id', requireAdmin, updateCargo);
+router.delete('/:id', requireAdmin, deleteCargo);
 
 export default router;

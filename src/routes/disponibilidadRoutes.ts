@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { disponibilidadController } from '../controllers/disponibilidadController';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { requireAdmin } from '../middleware/roleMiddleware';
 
 const router = Router();
 
@@ -13,14 +14,10 @@ router.get('/', disponibilidadController.getAllDisponibilidades);
 // Obtener disponibilidades por usuario
 router.get('/usuario/:usuarioId', disponibilidadController.getDisponibilidadesByUsuario);
 
-// Crear nueva disponibilidad
-router.post('/', disponibilidadController.createDisponibilidad);
-
-// Actualizar disponibilidad
-router.put('/:id', disponibilidadController.updateDisponibilidad);
-
-// Eliminar disponibilidad
-router.delete('/:id', disponibilidadController.deleteDisponibilidad);
+// Rutas protegidas (solo admin o superior)
+router.post('/', requireAdmin, disponibilidadController.createDisponibilidad);
+router.put('/:id', requireAdmin, disponibilidadController.updateDisponibilidad);
+router.delete('/:id', requireAdmin, disponibilidadController.deleteDisponibilidad);
 
 export default router;
 
