@@ -320,6 +320,32 @@ class ApiService {
     const response = await this.api.get(`/user-disponibilidad-config/usuario-autenticado/${mes}`);
     return response.data;
   }
+
+  // Funciones para el sistema de notificaciones
+  async testEmailNotifications(): Promise<any> {
+    const response = await this.api.post('/notifications/run-manual');
+    return response.data;
+  }
+
+  async getNotificationConfig(usuarioId: number): Promise<any> {
+    const response = await this.api.get(`/notifications/config/${usuarioId}`);
+    return response.data;
+  }
+
+  async updateNotificationConfig(usuarioId: number, config: {
+    notificarUnaSemanaAntes?: boolean;
+    notificarUnDiaAntes?: boolean;
+    notificarUnaHoraAntes?: boolean;
+    activo?: boolean;
+  }): Promise<any> {
+    const response = await this.api.put(`/notifications/config/${usuarioId}`, config);
+    return response.data;
+  }
+
+  async getCronJobsStatus(): Promise<any> {
+    const response = await this.api.get('/notifications/cron-status');
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();
