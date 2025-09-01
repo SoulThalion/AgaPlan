@@ -390,8 +390,8 @@ class EmailService {
           .turno-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
           .fecha { color: #667eea; font-size: 16px; }
           .horario { color: #555; font-size: 14px; }
-          .turno-details { display: flex; justify-content: space-between; gap: 12px; }
-          .detail-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+          .turno-details { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+          .detail-item { display: flex; align-items: center; gap: 8px; font-size: 14px; min-width: 0; flex: 1; }
           .icon { font-size: 16px; min-width: 20px; }
           .text { color: #333; }
           .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; color: #666; font-size: 13px; }
