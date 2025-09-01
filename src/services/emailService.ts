@@ -29,6 +29,7 @@ export interface TurnosAgrupadosNotificationData {
     companeros: Usuario[];
   }>;
   tipoNotificacion: 'manual';
+  month: string;
 }
 
 class EmailService {
@@ -295,14 +296,14 @@ class EmailService {
   /**
    * Envía notificación de turnos agrupados (para envío manual)
    */
-  async sendTurnosAgrupadosNotification(data: TurnosAgrupadosNotificationData): Promise<boolean> {
+  async sendTurnosAgrupadosNotification(data: TurnosAgrupadosNotificationData, month: string): Promise<boolean> {
     if (!this.transporter || !this.config) {
       console.warn('⚠️  Servicio de email no configurado');
       return false;
     }
 
     try {
-      const { subject, html, text } = this.generateTurnosAgrupadosEmailContent(data);
+      const { subject, html, text } = this.generateTurnosAgrupadosEmailContent(data, month);
 
       const mailOptions = {
         from: `"AgaPlan Notificaciones" <${this.config.auth.user}>`,
@@ -323,10 +324,15 @@ class EmailService {
   /**
    * Genera el contenido del email para turnos agrupados
    */
-  private generateTurnosAgrupadosEmailContent(data: TurnosAgrupadosNotificationData): { subject: string; html: string; text: string } {
+  private generateTurnosAgrupadosEmailContent(data: TurnosAgrupadosNotificationData, month: string): { subject: string; html: string; text: string } {
     const { usuario, turnos } = data;
     
-    const subject = `📋 Todos tus turnos asignados en AgaPlan (${turnos.length} turnos)`;
+    // Obtener el nombre del mes en español
+    const [year, monthNum] = month.split('-').map(Number);
+    const monthDate = new Date(year, monthNum - 1, 1);
+    const monthName = monthDate.toLocaleDateString('es-ES', { month: 'long' });
+    
+    const subject = `📋 Tus turnos para el mes de ${monthName} (${turnos.length} turnos)`;
 
      // Generar HTML para cada turno (diseño compacto)
     const turnosHtml = turnos.map(({ turno, lugar, exhibidores, companeros }) => {
@@ -384,7 +390,7 @@ class EmailService {
           .turno-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
           .fecha { color: #667eea; font-size: 16px; }
           .horario { color: #555; font-size: 14px; }
-          .turno-details { display: flex; flex-direction: column; gap: 12px; }
+          .turno-details { display: flex; justify-content: space-between; gap: 12px; }
           .detail-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
           .icon { font-size: 16px; min-width: 20px; }
           .text { color: #333; }
@@ -394,8 +400,8 @@ class EmailService {
       </head>
       <body>
         <div class="header">
-          <h1>📋 Todos tus turnos asignados</h1>
-          <p>Hola ${usuario.nombre}, aquí tienes todos tus turnos asignados</p>
+          <h1>📋 Tus turnos para el mes de ${monthName}</h1>
+          <p>Hola ${usuario.nombre}, aquí tienes todos tus turnos para ${monthName}</p>
         </div>
         
         <div class="content">
@@ -415,7 +421,7 @@ class EmailService {
     const text = `
       ¡Hola ${usuario.nombre}!
       
-      Aquí tienes todos tus turnos asignados agrupados.
+      Aquí tienes todos tus turnos para ${monthName}.
       
       RESUMEN DE TURNOS (${turnos.length} turnos):
       

@@ -361,11 +361,12 @@ class NotificationService {
         const emailData = {
           usuario,
           turnos, // Array de turnos agrupados
-          tipoNotificacion: 'manual' as const // Tipo especial para envío manual
+          tipoNotificacion: 'manual' as const, // Tipo especial para envío manual
+          month // Mes seleccionado
         };
 
         // Enviar email agrupado
-        const success = await emailService.sendTurnosAgrupadosNotification(emailData);
+        const success = await emailService.sendTurnosAgrupadosNotification(emailData, month);
         
         if (success) {
           console.log(`✅ Notificación manual agrupada enviada a ${usuario.nombre} (${usuario.email}) con ${turnos.length} turnos`);
