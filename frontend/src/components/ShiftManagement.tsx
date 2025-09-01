@@ -22,6 +22,8 @@ const ShiftManagement: React.FC = () => {
   const [selectedLugar, setSelectedLugar] = useState<Lugar | null>(null);
   const [selectedTurnos, setSelectedTurnos] = useState<number[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -468,46 +470,54 @@ const ShiftManagement: React.FC = () => {
     setEditingShift(null);
     setSelectedTurnos([]);
     setSelectAll(false);
+    setValidationErrors({});
+    setShowValidationErrors(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
     
     if (formData.lugarId === 0) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Debes seleccionar un lugar'
-      });
-      return;
+      errors.lugarId = 'Debes seleccionar un lugar';
     }
     
     if (formData.exhibidorIds.length === 0) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Debes seleccionar al menos un exhibidor'
-      });
-      return;
+      errors.exhibidorIds = 'Debes seleccionar al menos un exhibidor';
     }
     
     // Validar que no se exceda el límite de exhibidores del lugar
     if (selectedLugar && selectedLugar.exhibidores && formData.exhibidorIds.length > selectedLugar.exhibidores) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: `No puedes seleccionar más de ${selectedLugar.exhibidores} exhibidores para este lugar`
-      });
-      return;
+      errors.exhibidorIds = `No puedes seleccionar más de ${selectedLugar.exhibidores} exhibidores para este lugar`;
     }
 
     // Validar que la hora de fin sea mayor que la de inicio
     if (formData.horaFin <= formData.horaInicio) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'La hora de fin debe ser mayor que la hora de inicio'
+      errors.horaFin = 'La hora de fin debe ser mayor que la hora de inicio';
+    }
+
+    return errors;
+  };
+
+  const clearFieldError = (fieldName: string) => {
+    if (showValidationErrors && validationErrors[fieldName]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
       });
+    }
+  };
+
+  const handleSubmit = () => {
+    // Activar validaciones al hacer clic en el botón
+    setShowValidationErrors(true);
+    
+    // Validar el formulario
+    const errors = validateForm();
+    setValidationErrors(errors);
+    
+    // Si hay errores, no continuar
+    if (Object.keys(errors).length > 0) {
       return;
     }
 
@@ -615,6 +625,8 @@ const ShiftManagement: React.FC = () => {
       esRecurrente: false, // Al editar, por defecto es un turno puntual
       semanas: 4
     });
+    setValidationErrors({});
+    setShowValidationErrors(false);
     setIsModalOpen(true);
   };
 
@@ -650,6 +662,8 @@ const ShiftManagement: React.FC = () => {
     setSelectedLugar(null);
     setSelectedTurnos([]);
     setSelectAll(false);
+    setValidationErrors({});
+    setShowValidationErrors(false);
     setIsModalOpen(true);
   };
 
@@ -907,7 +921,7 @@ const ShiftManagement: React.FC = () => {
       {/* Modal para crear/editar turno */}
       {isModalOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4"
           onClick={() => setIsModalOpen(false)}
         >
           <div 
@@ -931,7 +945,7 @@ const ShiftManagement: React.FC = () => {
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form className="space-y-4">
               {editingShift && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -958,10 +972,21 @@ const ShiftManagement: React.FC = () => {
                 <TimeRangePicker
                   startTime={formData.horaInicio}
                   endTime={formData.horaFin}
-                  onStartTimeChange={(time) => setFormData({...formData, horaInicio: time})}
-                  onEndTimeChange={(time) => setFormData({...formData, horaFin: time})}
+                  onStartTimeChange={(time) => {
+                    setFormData({...formData, horaInicio: time});
+                    clearFieldError('horaFin');
+                  }}
+                  onEndTimeChange={(time) => {
+                    setFormData({...formData, horaFin: time});
+                    clearFieldError('horaFin');
+                  }}
                   placeholder="Seleccionar horario"
                 />
+                {showValidationErrors && validationErrors.horaFin && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {validationErrors.horaFin}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -976,9 +1001,13 @@ const ShiftManagement: React.FC = () => {
                     setFormData({...formData, lugarId});
                     const lugar = lugares?.data?.find(l => l.id === lugarId);
                     setSelectedLugar(lugar || null);
+                    clearFieldError('lugarId');
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  required
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
+                    showValidationErrors && validationErrors.lugarId 
+                      ? 'border-red-500 dark:border-red-500' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 >
                   <option value="">Selecciona un lugar</option>
                   {lugares?.data?.map((lugar: Lugar) => (
@@ -987,13 +1016,22 @@ const ShiftManagement: React.FC = () => {
                     </option>
                   ))}
                 </select>
+                {showValidationErrors && validationErrors.lugarId && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {validationErrors.lugarId}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Exhibidores
                 </label>
-                <div className="max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 dark:bg-gray-700">
+                <div className={`max-h-32 overflow-y-auto border rounded-md p-2 dark:bg-gray-700 ${
+                  showValidationErrors && validationErrors.exhibidorIds 
+                    ? 'border-red-500 dark:border-red-500' 
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}>
                   {exhibidores?.data?.map((exhibidor: Exhibidor) => {
                     const isChecked = formData.exhibidorIds.includes(exhibidor.id);
                     const isDisabled = Boolean(selectedLugar && selectedLugar.exhibidores && 
@@ -1004,7 +1042,10 @@ const ShiftManagement: React.FC = () => {
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={(e) => handleExhibidorChange(exhibidor.id, e.target.checked)}
+                          onChange={(e) => {
+                            handleExhibidorChange(exhibidor.id, e.target.checked);
+                            clearFieldError('exhibidorIds');
+                          }}
                           disabled={isDisabled}
                           className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
@@ -1015,6 +1056,11 @@ const ShiftManagement: React.FC = () => {
                     );
                   })}
                 </div>
+                {showValidationErrors && validationErrors.exhibidorIds && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {validationErrors.exhibidorIds}
+                  </p>
+                )}
                 {selectedLugar && selectedLugar.exhibidores && (
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     <p>Este lugar puede tener hasta {selectedLugar.exhibidores} exhibidores</p>
@@ -1115,7 +1161,8 @@ const ShiftManagement: React.FC = () => {
                   Cancelar
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   disabled={createShiftMutation.isPending || updateShiftMutation.isPending || createRecurrenteMutation.isPending || deleteShiftMutation.isPending || deleteMultipleTurnosMutation.isPending}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
@@ -1123,7 +1170,7 @@ const ShiftManagement: React.FC = () => {
                     ? 'Guardando...' 
                     : editingShift 
                       ? (formData.esRecurrente ? 'Convertir a Recurrente' : 'Actualizar Turno')
-                      : 'Guardar'
+                      : 'Crear Turno'
                   }
                 </button>
               </div>

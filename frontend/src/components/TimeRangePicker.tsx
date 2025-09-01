@@ -116,7 +116,10 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
         </div>
         <button
           type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onClick={(e) => {
+            e.stopPropagation();
+            !disabled && setIsOpen(!isOpen);
+          }}
           disabled={disabled}
           className={`w-full pl-10 pr-3 py-2 text-left border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
         >
@@ -130,7 +133,11 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white">Seleccionar Horario</h3>
               <button
-                onClick={() => setIsOpen(false)}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
                 className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white transition-colors p-1"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +160,11 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
                         return (
                           <button
                             key={hour}
-                            onClick={() => handleStartHourSelect(hour)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartHourSelect(hour);
+                            }}
                             className={`w-full py-1 text-center text-xs transition-colors ${
                               isSelected
                                 ? 'bg-blue-600 text-white'
@@ -179,7 +190,11 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
                         return (
                           <button
                             key={minute}
-                            onClick={() => handleStartMinuteSelect(minute)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartMinuteSelect(minute);
+                            }}
                             className={`w-full py-1 text-center text-xs transition-colors ${
                               isSelected
                                 ? 'bg-blue-600 text-white'
@@ -208,7 +223,11 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
                         return (
                           <button
                             key={hour}
-                            onClick={() => handleEndHourSelect(hour)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEndHourSelect(hour);
+                            }}
                             className={`w-full py-1 text-center text-xs transition-colors ${
                               isSelected
                                 ? 'bg-blue-600 text-white'
@@ -234,7 +253,11 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
                         return (
                           <button
                             key={minute}
-                            onClick={() => handleEndMinuteSelect(minute)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEndMinuteSelect(minute);
+                            }}
                             className={`w-full py-1 text-center text-xs transition-colors ${
                               isSelected
                                 ? 'bg-blue-600 text-white'
