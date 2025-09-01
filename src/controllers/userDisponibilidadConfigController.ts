@@ -103,27 +103,7 @@ export const createConfiguracion = async (req: Request, res: Response) => {
       });
     }
 
-    // Verificar que no exista una configuración duplicada solo para tipos que no permiten múltiples
-    // Los tipos 'todasTardes', 'todasMananas' solo permiten una configuración por mes
-    // Los tipos 'diasSemana', 'fechaConcreta', 'noDisponibleFecha' permiten múltiples configuraciones
-    if (tipo_disponibilidad === 'todasTardes' || tipo_disponibilidad === 'todasMananas') {
-      const existingConfig = await UserDisponibilidadConfig.findOne({
-        where: {
-          usuarioId,
-          mes,
-          tipo_disponibilidad,
-        },
-      });
-
-      if (existingConfig) {
-        return res.status(409).json({
-          success: false,
-          message: `Ya existe una configuración de '${tipo_disponibilidad}' para este usuario y mes`,
-        });
-      }
-    }
-
-    // Crear la configuración
+    // Crear nueva configuración (se permiten múltiples configuraciones del mismo tipo)
     const nuevaConfiguracion = await UserDisponibilidadConfig.create({
       usuarioId,
       mes,
