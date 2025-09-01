@@ -226,6 +226,11 @@ export const updateUsuario = async (req: AuthenticatedRequest, res: Response) =>
       delete updateData.contraseña;
     }
 
+    // Si el email está vacío, convertirlo a null para evitar errores de validación
+    if (updateData.email === '') {
+      updateData.email = null;
+    }
+
     // Validación: si se proporciona contraseña, también debe proporcionarse email
     if (updateData.contraseña && !updateData.email) {
       return res.status(400).json({
