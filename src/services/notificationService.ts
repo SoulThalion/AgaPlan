@@ -272,7 +272,7 @@ class NotificationService {
 
     console.log('📧 Enviando notificaciones a TODOS los usuarios con turnos...');
 
-    // Obtener todos los turnos con usuarios y email
+    // Obtener todos los turnos con TODOS los usuarios (para mostrar compañeros correctamente)
     const turnos = await Turno.findAll({
       where: {
         estado: 'ocupado' // Solo turnos ocupados
@@ -283,8 +283,7 @@ class NotificationService {
           as: 'usuarios',
           through: { attributes: [] },
           where: {
-            email: { [Op.ne]: null }, // Solo usuarios con email
-            activo: true
+            activo: true // Todos los usuarios activos
           }
         },
         {
@@ -299,14 +298,17 @@ class NotificationService {
       ]
     });
 
-    console.log(`📊 Encontrados ${turnos.length} turnos con usuarios que tienen email`);
+    console.log(`📊 Encontrados ${turnos.length} turnos con usuarios`);
 
-    // Para cada turno, enviar notificación a cada usuario
+    // Para cada turno, enviar notificación solo a usuarios con email
     for (const turno of turnos) {
       if (turno.usuarios) {
-        for (const usuario of turno.usuarios) {
+        // Filtrar solo usuarios con email para enviar notificaciones
+        const usuariosConEmail = turno.usuarios.filter(u => u.email && u.email.trim() !== '');
+        
+        for (const usuario of usuariosConEmail) {
           try {
-            // Obtener compañeros (otros usuarios del turno)
+            // Obtener TODOS los compañeros del turno (incluyendo los que no tienen email)
             const companeros = turno.usuarios.filter(u => u.id !== usuario.id);
 
             // Preparar datos para el email
@@ -324,6 +326,7 @@ class NotificationService {
             
             if (success) {
               console.log(`✅ Notificación manual enviada a ${usuario.nombre} (${usuario.email}) para turno ${turno.id}`);
+              console.log(`   👥 Compañeros: ${companeros.map(c => c.nombre).join(', ') || 'Ninguno'}`);
               sent++;
             } else {
               console.warn(`⚠️  Falló envío a ${usuario.nombre} (${usuario.email}) para turno ${turno.id}`);
