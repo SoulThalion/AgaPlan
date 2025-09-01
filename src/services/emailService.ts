@@ -358,20 +358,28 @@ class EmailService {
             <span class="fecha">📅 ${fecha}</span>
             <span class="horario">🕐 ${horario}</span>
           </div>
-          <div class="turno-details">
-            <div class="detail-item">
-              <span class="icon">📍</span>
-              <span class="text">${lugar.nombre}</span>
-            </div>
-            <div class="detail-item">
-              <span class="icon">🎪</span>
-              <span class="text">${exhibidoresText}</span>
-            </div>
-            <div class="detail-item">
-              <span class="icon">👥</span>
-              <span class="text">${companerosText}</span>
-            </div>
-          </div>
+          <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin: 10px 0;">
+            <tr>
+              <td style="padding: 8px 15px; vertical-align: top; width: 33.33%;">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                  <span style="font-size: 16px; min-width: 20px;">📍</span>
+                  <span style="color: #333;">${lugar.nombre}</span>
+                </div>
+              </td>
+              <td style="padding: 8px 15px; vertical-align: top; width: 33.33%;">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                  <span style="font-size: 16px; min-width: 20px;">🎪</span>
+                  <span style="color: #333;">${exhibidoresText}</span>
+                </div>
+              </td>
+              <td style="padding: 8px 15px; vertical-align: top; width: 33.33%;">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                  <span style="font-size: 16px; min-width: 20px;">👥</span>
+                  <span style="color: #333;">${companerosText}</span>
+                </div>
+              </td>
+            </tr>
+          </table>
         </div>
       `;
     }).join('');
@@ -390,8 +398,9 @@ class EmailService {
           .turno-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
           .fecha { color: #667eea; font-size: 16px; }
           .horario { color: #555; font-size: 14px; }
-          .turno-details { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
-          .detail-item { display: flex; align-items: center; gap: 8px; font-size: 14px; min-width: 0; flex: 1; }
+          .turno-details { width: 100%; margin: 10px 0; }
+          .turno-details td { padding: 8px 15px; vertical-align: top; width: 33.33%; }
+          .detail-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
           .icon { font-size: 16px; min-width: 20px; }
           .text { color: #333; }
           .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; color: #666; font-size: 13px; }
