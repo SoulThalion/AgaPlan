@@ -848,6 +848,7 @@ const UserManagement: React.FC = (): JSX.Element => {
                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                          placeholder="Dejar vacío si no tendrá acceso a la app"
                          disabled={editingUser?.rol === 'superAdmin' && currentUser?.rol !== 'superAdmin'}
+                         autoComplete="off"
                        />
                        <p className="text-xs text-gray-500 mt-1">
                          Sin email = sin acceso a la aplicación
@@ -871,6 +872,7 @@ const UserManagement: React.FC = (): JSX.Element => {
                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                          placeholder={editingUser ? "Dejar vacía para mantener la contraseña actual" : "Dejar vacía si no tendrá acceso a la app"}
                          disabled={editingUser?.rol === 'superAdmin' && currentUser?.rol !== 'superAdmin'}
+                         autoComplete="new-password"
                        />
                        <p className="text-xs text-gray-500 mt-1">
                          {editingUser 
