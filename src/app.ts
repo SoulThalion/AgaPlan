@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { testConnection, syncDatabase } from './models';
 import { runMigrations } from './migrations/runner';
 import apiRoutes from './routes';
+import cronService from './services/cronService';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -84,11 +85,15 @@ export const initializeApp = async () => {
     // Sincronizar modelos (esto creará las tablas si no existen)
     await syncDatabase();
     
+    // Inicializar sistema de notificaciones por email
+    cronService.initialize();
+    
     // Iniciar servidor
     app.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
       console.log(`📊 API disponible en http://localhost:${PORT}/api`);
       console.log(`🔗 Endpoint de prueba: http://localhost:${PORT}/api/test`);
+      console.log(`📧 Sistema de notificaciones por email inicializado`);
     });
   } catch (error) {
     console.error('Error al inicializar la aplicación:', error);

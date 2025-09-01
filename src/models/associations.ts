@@ -6,6 +6,7 @@ import Exhibidor from './Exhibidor';
 import TurnoExhibidor from './TurnoExhibidor';
 import TurnoUsuario from './TurnoUsuario';
 import UserDisponibilidadConfig from './UserDisponibilidadConfig';
+import UsuarioNotificacionConfig from './UsuarioNotificacionConfig';
 import Cargo from './Cargo';
 
 // Asociaciones Usuario - Turno (muchos a muchos)
@@ -46,6 +47,10 @@ Disponibilidad.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
 Usuario.hasMany(UserDisponibilidadConfig, { foreignKey: 'usuarioId', as: 'configuracionesDisponibilidad' });
 UserDisponibilidadConfig.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
 
+// Asociaciones Usuario - UsuarioNotificacionConfig
+Usuario.hasOne(UsuarioNotificacionConfig, { foreignKey: 'usuarioId', as: 'configuracionNotificaciones' });
+UsuarioNotificacionConfig.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
+
 // Asociaciones Usuario - Cargo
 Usuario.belongsTo(Cargo, { foreignKey: 'cargoId', as: 'cargoInfo' });
 Cargo.hasMany(Usuario, { foreignKey: 'cargoId', as: 'usuarios' });
@@ -63,5 +68,6 @@ export {
   TurnoExhibidor,
   TurnoUsuario,
   UserDisponibilidadConfig,
+  UsuarioNotificacionConfig,
   Cargo
 };

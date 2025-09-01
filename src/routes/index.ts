@@ -8,6 +8,7 @@ import disponibilidadRoutes from './disponibilidadRoutes';
 import cargoRoutes from './cargoRoutes';
 import exhibidorRoutes from './exhibidorRoutes';
 import userDisponibilidadConfigRoutes from './userDisponibilidadConfigRoutes';
+import notificationRoutes from './notificationRoutes';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/disponibilidades', disponibilidadRoutes);
 router.use('/cargos', cargoRoutes);
 router.use('/exhibidores', exhibidorRoutes);
 router.use('/user-disponibilidad-config', userDisponibilidadConfigRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

@@ -7,6 +7,10 @@ import Lugar from './Lugar';
 import Disponibilidad from './Disponibilidad';
 import Turno from './Turno';
 import Cargo from './Cargo';
+import UsuarioNotificacionConfig from './UsuarioNotificacionConfig';
+import Exhibidor from './Exhibidor';
+import TurnoUsuario from './TurnoUsuario';
+import TurnoExhibidor from './TurnoExhibidor';
 
 // Importar y configurar las asociaciones
 import './associations';
@@ -19,6 +23,10 @@ export {
   Disponibilidad,
   Turno,
   Cargo,
+  UsuarioNotificacionConfig,
+  Exhibidor,
+  TurnoUsuario,
+  TurnoExhibidor,
   sequelize // Add this line to export the sequelize instance
 };
 
