@@ -20,6 +20,17 @@ export interface TurnoNotificationData {
   tipoNotificacion: 'una_semana' | 'un_dia' | 'una_hora' | 'manual';
 }
 
+export interface TurnosAgrupadosNotificationData {
+  usuario: Usuario;
+  turnos: Array<{
+    turno: Turno;
+    lugar: Lugar;
+    exhibidores: Exhibidor[];
+    companeros: Usuario[];
+  }>;
+  tipoNotificacion: 'manual';
+}
+
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
   private config: EmailConfig | null = null;
@@ -273,6 +284,177 @@ class EmailService {
       - Dirección: ${lugar.direccion}
       - Exhibidores: ${exhibidoresText}
       - Compañeros: ${companerosText}
+      
+      Este es un mensaje automático del sistema AgaPlan.
+      Si tienes alguna pregunta, contacta con los administradores.
+    `;
+
+    return { subject, html, text };
+  }
+
+  /**
+   * Envía notificación de turnos agrupados (para envío manual)
+   */
+  async sendTurnosAgrupadosNotification(data: TurnosAgrupadosNotificationData): Promise<boolean> {
+    if (!this.transporter || !this.config) {
+      console.warn('⚠️  Servicio de email no configurado');
+      return false;
+    }
+
+    try {
+      const { subject, html, text } = this.generateTurnosAgrupadosEmailContent(data);
+
+      const mailOptions = {
+        from: `"AgaPlan Notificaciones" <${this.config.auth.user}>`,
+        to: data.usuario.email!,
+        subject,
+        text,
+        html
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      return true;
+    } catch (error) {
+      console.error('❌ Error enviando email de turnos agrupados:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Genera el contenido del email para turnos agrupados
+   */
+  private generateTurnosAgrupadosEmailContent(data: TurnosAgrupadosNotificationData): { subject: string; html: string; text: string } {
+    const { usuario, turnos } = data;
+    
+    const subject = `📧 Prueba: Todos tus turnos asignados en AgaPlan (${turnos.length} turnos)`;
+
+    // Generar HTML para cada turno
+    const turnosHtml = turnos.map(({ turno, lugar, exhibidores, companeros }) => {
+      const fecha = new Date(turno.fecha).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      const horario = `${turno.horaInicio} - ${turno.horaFin}`;
+      
+      const exhibidoresText = exhibidores.length > 0 
+        ? exhibidores.map(e => e.nombre).join(', ')
+        : 'No especificados';
+      
+      const companerosText = companeros.length > 0 
+        ? companeros.map(c => c.nombre).join(', ')
+        : 'Ninguno';
+
+      return `
+        <div class="turno-card">
+          <h3>📅 ${fecha}</h3>
+          <div class="info-row">
+            <span class="info-label">🕐 Horario:</span>
+            <span class="info-value">${horario}</span>
+          </div>
+          
+          <div class="info-row">
+            <span class="info-label">📍 Lugar:</span>
+            <span class="info-value">${lugar.nombre}</span>
+          </div>
+          
+          <div class="info-row">
+            <span class="info-label">🏠 Dirección:</span>
+            <span class="info-value">${lugar.direccion}</span>
+          </div>
+          
+          <div class="info-row">
+            <span class="info-label">🎪 Exhibidores:</span>
+            <span class="info-value">${exhibidoresText}</span>
+          </div>
+          
+          <div class="info-row">
+            <span class="info-label">👥 Compañeros:</span>
+            <span class="info-value">${companerosText}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Turnos Asignados - AgaPlan</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .turno-card { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          .info-row { margin: 10px 0; display: flex; align-items: center; }
+          .info-label { font-weight: bold; min-width: 120px; color: #555; }
+          .info-value { color: #333; }
+          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px; }
+          .test-notice { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>📧 Prueba: Todos tus turnos asignados</h1>
+          <p>Hola ${usuario.nombre}, aquí tienes todos tus turnos asignados</p>
+        </div>
+        
+        <div class="content">
+          <div class="test-notice">
+            <strong>🧪 Esta es una PRUEBA del sistema de notificaciones</strong><br>
+            Se muestran todos tus turnos asignados agrupados en un solo email.
+          </div>
+          
+          <h2>📋 Resumen de turnos (${turnos.length} turnos)</h2>
+          
+          ${turnosHtml}
+          
+          <div class="footer">
+            <p>Este es un mensaje automático del sistema AgaPlan.</p>
+            <p>Si tienes alguna pregunta, contacta con los administradores.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      ¡Hola ${usuario.nombre}!
+      
+      Esta es una PRUEBA del sistema de notificaciones con todos tus turnos asignados agrupados.
+      
+      RESUMEN DE TURNOS (${turnos.length} turnos):
+      
+      ${turnos.map(({ turno, lugar, exhibidores, companeros }) => {
+        const fecha = new Date(turno.fecha).toLocaleDateString('es-ES', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        
+        const horario = `${turno.horaInicio} - ${turno.horaFin}`;
+        
+        const exhibidoresText = exhibidores.length > 0 
+          ? exhibidores.map(e => e.nombre).join(', ')
+          : 'No especificados';
+        
+        const companerosText = companeros.length > 0 
+          ? companeros.map(c => c.nombre).join(', ')
+          : 'Ninguno';
+
+        return `
+      📅 ${fecha}
+      - Horario: ${horario}
+      - Lugar: ${lugar.nombre}
+      - Dirección: ${lugar.direccion}
+      - Exhibidores: ${exhibidoresText}
+      - Compañeros: ${companerosText}
+      `;
+      }).join('\n')}
       
       Este es un mensaje automático del sistema AgaPlan.
       Si tienes alguna pregunta, contacta con los administradores.

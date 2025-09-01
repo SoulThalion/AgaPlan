@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import { Turno, Usuario, Lugar, Exhibidor, TurnoUsuario, TurnoExhibidor, UsuarioNotificacionConfig } from '../models';
-import emailService from './emailService';
+import emailService, { TurnosAgrupadosNotificationData } from './emailService';
 
 export interface NotificationJob {
   turnoId: number;
@@ -265,12 +265,13 @@ class NotificationService {
 
   /**
    * Envía notificaciones a TODOS los usuarios con turnos (para pruebas manuales)
+   * AGRUPA todos los turnos del usuario en un solo email
    */
   async sendNotificationsToAllUsers(): Promise<{ sent: number; failed: number }> {
     let sent = 0;
     let failed = 0;
 
-    console.log('📧 Enviando notificaciones a TODOS los usuarios con turnos...');
+    console.log('📧 Enviando notificaciones agrupadas a TODOS los usuarios con turnos...');
 
     // Obtener todos los turnos con TODOS los usuarios (para mostrar compañeros correctamente)
     const turnos = await Turno.findAll({
@@ -300,47 +301,76 @@ class NotificationService {
 
     console.log(`📊 Encontrados ${turnos.length} turnos con usuarios`);
 
-    // Para cada turno, enviar notificación solo a usuarios con email
+    // Agrupar turnos por usuario
+    const turnosPorUsuario = new Map<number, {
+      usuario: Usuario;
+      turnos: Array<{
+        turno: Turno;
+        lugar: Lugar;
+        exhibidores: Exhibidor[];
+        companeros: Usuario[];
+      }>;
+    }>();
+
+    // Procesar cada turno y agrupar por usuario
     for (const turno of turnos) {
       if (turno.usuarios) {
         // Filtrar solo usuarios con email para enviar notificaciones
         const usuariosConEmail = turno.usuarios.filter(u => u.email && u.email.trim() !== '');
         
         for (const usuario of usuariosConEmail) {
-          try {
-            // Obtener TODOS los compañeros del turno (incluyendo los que no tienen email)
-            const companeros = turno.usuarios.filter(u => u.id !== usuario.id);
+          // Obtener TODOS los compañeros del turno (incluyendo los que no tienen email)
+          const companeros = turno.usuarios.filter(u => u.id !== usuario.id);
 
-            // Preparar datos para el email
-            const emailData = {
-              turno,
+          // Agregar turno al usuario
+          if (!turnosPorUsuario.has(usuario.id)) {
+            turnosPorUsuario.set(usuario.id, {
               usuario,
-              lugar: turno.lugar,
-              exhibidores: turno.exhibidores || [],
-              companeros,
-              tipoNotificacion: 'manual' as const // Tipo especial para envío manual
-            };
-
-            // Enviar email
-            const success = await emailService.sendTurnoNotification(emailData);
-            
-            if (success) {
-              console.log(`✅ Notificación manual enviada a ${usuario.nombre} (${usuario.email}) para turno ${turno.id}`);
-              console.log(`   👥 Compañeros: ${companeros.map(c => c.nombre).join(', ') || 'Ninguno'}`);
-              sent++;
-            } else {
-              console.warn(`⚠️  Falló envío a ${usuario.nombre} (${usuario.email}) para turno ${turno.id}`);
-              failed++;
-            }
-          } catch (error) {
-            console.error(`❌ Error enviando notificación a ${usuario.nombre} (${usuario.email}) para turno ${turno.id}:`, error);
-            failed++;
+              turnos: []
+            });
           }
+
+          turnosPorUsuario.get(usuario.id)!.turnos.push({
+            turno,
+            lugar: turno.lugar!,
+            exhibidores: turno.exhibidores || [],
+            companeros
+          });
         }
       }
     }
 
-    console.log(`📊 Notificaciones manuales procesadas: ${sent} enviadas, ${failed} fallidas`);
+    console.log(`👥 Encontrados ${turnosPorUsuario.size} usuarios únicos con email`);
+
+    // Enviar un email por usuario con todos sus turnos
+    for (const [usuarioId, usuarioData] of turnosPorUsuario) {
+      try {
+        const { usuario, turnos } = usuarioData;
+
+        // Preparar datos para el email agrupado
+        const emailData = {
+          usuario,
+          turnos, // Array de turnos agrupados
+          tipoNotificacion: 'manual' as const // Tipo especial para envío manual
+        };
+
+        // Enviar email agrupado
+        const success = await emailService.sendTurnosAgrupadosNotification(emailData);
+        
+        if (success) {
+          console.log(`✅ Notificación manual agrupada enviada a ${usuario.nombre} (${usuario.email}) con ${turnos.length} turnos`);
+          sent++;
+        } else {
+          console.warn(`⚠️  Falló envío agrupado a ${usuario.nombre} (${usuario.email})`);
+          failed++;
+        }
+      } catch (error) {
+        console.error(`❌ Error enviando notificación agrupada a usuario ${usuarioId}:`, error);
+        failed++;
+      }
+    }
+
+    console.log(`📊 Notificaciones manuales agrupadas procesadas: ${sent} enviadas, ${failed} fallidas`);
     return { sent, failed };
   }
 }
