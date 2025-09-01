@@ -564,6 +564,68 @@ const UserManagement: React.FC = (): JSX.Element => {
     }
   };
 
+  const handleSendToAllUsers = async () => {
+    try {
+      // Mostrar confirmación
+      const result = await Swal.fire({
+        title: '¿Enviar a TODOS los usuarios?',
+        text: 'Esto enviará notificaciones a TODOS los usuarios con turnos, sin importar las fechas. Es para pruebas.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, enviar a todos',
+        cancelButtonText: 'Cancelar'
+      });
+
+      if (!result.isConfirmed) return;
+
+      // Mostrar loading
+      Swal.fire({
+        title: 'Enviando a todos...',
+        text: 'Enviando notificaciones a todos los usuarios con turnos',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Ejecutar envío a todos
+      const response = await apiService.sendNotificationsToAllUsers();
+      
+      // Mostrar resultado
+      await Swal.fire({
+        icon: 'success',
+        title: 'Notificaciones enviadas',
+        html: `
+          <div class="text-center">
+            <p class="mb-3">Se han enviado notificaciones a todos los usuarios con turnos.</p>
+            <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+              <p><strong>Resultado:</strong></p>
+              <ul class="list-disc list-inside mt-2">
+                <li>✅ Emails enviados: ${response.data?.sent || 0}</li>
+                <li>❌ Emails fallidos: ${response.data?.failed || 0}</li>
+              </ul>
+            </div>
+            <p class="mt-3 text-xs text-gray-600 dark:text-gray-400">
+              Revisa los logs del servidor para más detalles.
+            </p>
+          </div>
+        `,
+        confirmButtonText: 'Perfecto'
+      });
+
+    } catch (error: any) {
+      console.error('Error enviando a todos los usuarios:', error);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error en el envío',
+        text: error.response?.data?.message || 'Error interno del servidor',
+        confirmButtonText: 'Entendido'
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -593,6 +655,13 @@ const UserManagement: React.FC = (): JSX.Element => {
             title="Probar el sistema de notificaciones por email"
           >
             📧 Probar Emails
+          </button>
+          <button
+            onClick={handleSendToAllUsers}
+            className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            title="Enviar notificaciones a TODOS los usuarios con turnos (para pruebas)"
+          >
+            📨 Enviar a Todos
           </button>
           <button
             onClick={handleReplicarDisponibilidades}

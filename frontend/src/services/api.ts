@@ -346,6 +346,11 @@ class ApiService {
     const response = await this.api.get('/notifications/cron-status');
     return response.data;
   }
+
+  async sendNotificationsToAllUsers(): Promise<any> {
+    const response = await this.api.post('/notifications/send-to-all');
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

@@ -17,7 +17,7 @@ export interface TurnoNotificationData {
   lugar: Lugar;
   exhibidores: Exhibidor[];
   companeros: Usuario[];
-  tipoNotificacion: 'una_semana' | 'un_dia' | 'una_hora';
+  tipoNotificacion: 'una_semana' | 'un_dia' | 'una_hora' | 'manual';
 }
 
 class EmailService {
@@ -110,6 +110,10 @@ class EmailService {
       case 'una_hora':
         subject = `Recordatorio: Tu turno en AgaPlan es en una hora`;
         tiempoRestante = 'una hora';
+        break;
+      case 'manual':
+        subject = `📧 Prueba: Información de tu turno en AgaPlan`;
+        tiempoRestante = 'próximamente';
         break;
     }
 
@@ -205,7 +209,10 @@ class EmailService {
           
           <div class="highlight">
             <strong>¡Hola ${usuario.nombre}!</strong><br>
-            Te recordamos que tienes un turno en <strong>${tiempoRestante}</strong>.
+            ${tipoNotificacion === 'manual' 
+              ? 'Esta es una <strong>prueba del sistema de notificaciones</strong> con la información de tu turno.'
+              : `Te recordamos que tienes un turno en <strong>${tiempoRestante}</strong>.`
+            }
           </div>
           
           <div class="turno-info">
@@ -254,7 +261,10 @@ class EmailService {
     const text = `
       ¡Hola ${usuario.nombre}!
       
-      Te recordamos que tienes un turno en ${tiempoRestante}.
+      ${tipoNotificacion === 'manual' 
+        ? 'Esta es una PRUEBA del sistema de notificaciones con la información de tu turno.'
+        : `Te recordamos que tienes un turno en ${tiempoRestante}.`
+      }
       
       DETALLES DEL TURNO:
       - Fecha: ${fecha}

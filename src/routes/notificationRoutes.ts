@@ -44,6 +44,13 @@ router.get('/configs', requireAdmin, notificationController.getAllNotificationCo
 router.post('/run-manual', requireAdmin, notificationController.runNotificationsManually);
 
 /**
+ * @route POST /api/notifications/send-to-all
+ * @desc Envía notificaciones a TODOS los usuarios con turnos (para pruebas)
+ * @access Private (Admin/SuperAdmin)
+ */
+router.post('/send-to-all', requireAdmin, notificationController.sendNotificationsToAllUsers);
+
+/**
  * @route GET /api/notifications/cron-status
  * @desc Obtiene el estado de los trabajos programados
  * @access Private (Admin/SuperAdmin)

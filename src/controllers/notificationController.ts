@@ -106,6 +106,27 @@ export class NotificationController {
   }
 
   /**
+   * Envía notificaciones a TODOS los usuarios con turnos (para pruebas)
+   */
+  async sendNotificationsToAllUsers(req: Request, res: Response): Promise<void> {
+    try {
+      const result = await notificationService.sendNotificationsToAllUsers();
+      
+      res.json({
+        success: true,
+        message: 'Notificaciones enviadas a todos los usuarios con turnos',
+        data: result
+      });
+    } catch (error) {
+      console.error('Error enviando notificaciones a todos los usuarios:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  /**
    * Obtiene el estado de los trabajos programados
    */
   async getCronJobsStatus(req: Request, res: Response): Promise<void> {

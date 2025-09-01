@@ -262,6 +262,84 @@ class NotificationService {
       where: { usuarioId }
     });
   }
+
+  /**
+   * Envía notificaciones a TODOS los usuarios con turnos (para pruebas manuales)
+   */
+  async sendNotificationsToAllUsers(): Promise<{ sent: number; failed: number }> {
+    let sent = 0;
+    let failed = 0;
+
+    console.log('📧 Enviando notificaciones a TODOS los usuarios con turnos...');
+
+    // Obtener todos los turnos con usuarios y email
+    const turnos = await Turno.findAll({
+      where: {
+        estado: 'ocupado' // Solo turnos ocupados
+      },
+      include: [
+        {
+          model: Usuario,
+          as: 'usuarios',
+          through: { attributes: [] },
+          where: {
+            email: { [Op.ne]: null }, // Solo usuarios con email
+            activo: true
+          }
+        },
+        {
+          model: Lugar,
+          as: 'lugar'
+        },
+        {
+          model: Exhibidor,
+          as: 'exhibidores',
+          through: { attributes: [] }
+        }
+      ]
+    });
+
+    console.log(`📊 Encontrados ${turnos.length} turnos con usuarios que tienen email`);
+
+    // Para cada turno, enviar notificación a cada usuario
+    for (const turno of turnos) {
+      if (turno.usuarios) {
+        for (const usuario of turno.usuarios) {
+          try {
+            // Obtener compañeros (otros usuarios del turno)
+            const companeros = turno.usuarios.filter(u => u.id !== usuario.id);
+
+            // Preparar datos para el email
+            const emailData = {
+              turno,
+              usuario,
+              lugar: turno.lugar,
+              exhibidores: turno.exhibidores || [],
+              companeros,
+              tipoNotificacion: 'manual' as const // Tipo especial para envío manual
+            };
+
+            // Enviar email
+            const success = await emailService.sendTurnoNotification(emailData);
+            
+            if (success) {
+              console.log(`✅ Notificación manual enviada a ${usuario.nombre} (${usuario.email}) para turno ${turno.id}`);
+              sent++;
+            } else {
+              console.warn(`⚠️  Falló envío a ${usuario.nombre} (${usuario.email}) para turno ${turno.id}`);
+              failed++;
+            }
+          } catch (error) {
+            console.error(`❌ Error enviando notificación a ${usuario.nombre} (${usuario.email}) para turno ${turno.id}:`, error);
+            failed++;
+          }
+        }
+      }
+    }
+
+    console.log(`📊 Notificaciones manuales procesadas: ${sent} enviadas, ${failed} fallidas`);
+    return { sent, failed };
+  }
 }
 
 export default new NotificationService();
