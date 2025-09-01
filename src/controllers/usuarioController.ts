@@ -166,6 +166,11 @@ export const createUsuario = async (req: Request, res: Response) => {
 
 export const updateUsuario = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    console.log('=== INICIO updateUsuario ===');
+    console.log('ID del usuario:', req.params.id);
+    console.log('Datos recibidos:', JSON.stringify(req.body, null, 2));
+    console.log('Usuario actual:', req.user);
+    
     const { id } = req.params;
     let updateData = req.body;
     const currentUser = req.user;
@@ -249,18 +254,23 @@ export const updateUsuario = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     // Actualizar el usuario
+    console.log('Datos finales para actualizar:', JSON.stringify(updateData, null, 2));
     await usuario.update(updateData);
+    console.log('Usuario actualizado exitosamente');
 
     // Excluir la contraseña de la respuesta
     const { contraseña: _, ...usuarioActualizado } = usuario.toJSON();
 
+    console.log('=== FIN updateUsuario - ÉXITO ===');
     res.status(200).json({
       success: true,
       message: 'Usuario actualizado exitosamente',
       data: usuarioActualizado
     });
-  } catch (error) {
-    console.error('Error actualizando usuario:', error);
+  } catch (error: any) {
+    console.error('=== ERROR en updateUsuario ===');
+    console.error('Error completo:', error);
+    console.error('Stack trace:', error?.stack);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor'
