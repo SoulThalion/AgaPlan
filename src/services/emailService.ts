@@ -328,16 +328,15 @@ class EmailService {
     
     const subject = `📧 Prueba: Todos tus turnos asignados en AgaPlan (${turnos.length} turnos)`;
 
-    // Generar HTML para cada turno
+    // Generar HTML para cada turno (diseño compacto)
     const turnosHtml = turnos.map(({ turno, lugar, exhibidores, companeros }) => {
       const fecha = new Date(turno.fecha).toLocaleDateString('es-ES', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short'
       });
       
-      const horario = `${turno.horaInicio} - ${turno.horaFin}`;
+      const horario = `${turno.horaInicio}-${turno.horaFin}`;
       
       const exhibidoresText = exhibidores.length > 0 
         ? exhibidores.map(e => e.nombre).join(', ')
@@ -348,31 +347,24 @@ class EmailService {
         : 'Ninguno';
 
       return `
-        <div class="turno-card">
-          <h3>📅 ${fecha}</h3>
-          <div class="info-row">
-            <span class="info-label">🕐 Horario:</span>
-            <span class="info-value">${horario}</span>
+        <div class="turno-compact">
+          <div class="turno-header">
+            <span class="fecha">📅 ${fecha}</span>
+            <span class="horario">🕐 ${horario}</span>
           </div>
-          
-          <div class="info-row">
-            <span class="info-label">📍 Lugar:</span>
-            <span class="info-value">${lugar.nombre}</span>
-          </div>
-          
-          <div class="info-row">
-            <span class="info-label">🏠 Dirección:</span>
-            <span class="info-value">${lugar.direccion}</span>
-          </div>
-          
-          <div class="info-row">
-            <span class="info-label">🎪 Exhibidores:</span>
-            <span class="info-value">${exhibidoresText}</span>
-          </div>
-          
-          <div class="info-row">
-            <span class="info-label">👥 Compañeros:</span>
-            <span class="info-value">${companerosText}</span>
+          <div class="turno-details">
+            <div class="detail-item">
+              <span class="icon">📍</span>
+              <span class="text">${lugar.nombre}</span>
+            </div>
+            <div class="detail-item">
+              <span class="icon">🎪</span>
+              <span class="text">${exhibidoresText}</span>
+            </div>
+            <div class="detail-item">
+              <span class="icon">👥</span>
+              <span class="text">${companerosText}</span>
+            </div>
           </div>
         </div>
       `;
@@ -385,15 +377,19 @@ class EmailService {
         <meta charset="utf-8">
         <title>Turnos Asignados - AgaPlan</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .turno-card { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          .info-row { margin: 10px 0; display: flex; align-items: center; }
-          .info-label { font-weight: bold; min-width: 120px; color: #555; }
-          .info-value { color: #333; }
-          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px; }
-          .test-notice { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+          body { font-family: Arial, sans-serif; line-height: 1.4; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 25px; border-radius: 0 0 10px 10px; }
+          .turno-compact { background: white; margin: 12px 0; padding: 15px; border-radius: 6px; border-left: 3px solid #667eea; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+          .turno-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
+          .fecha { color: #667eea; font-size: 16px; }
+          .horario { color: #555; font-size: 14px; }
+          .turno-details { display: flex; flex-direction: column; gap: 6px; }
+          .detail-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+          .icon { font-size: 16px; min-width: 20px; }
+          .text { color: #333; }
+          .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px solid #ddd; color: #666; font-size: 13px; }
+          .test-notice { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; }
         </style>
       </head>
       <body>
@@ -430,13 +426,12 @@ class EmailService {
       
       ${turnos.map(({ turno, lugar, exhibidores, companeros }) => {
         const fecha = new Date(turno.fecha).toLocaleDateString('es-ES', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short'
         });
         
-        const horario = `${turno.horaInicio} - ${turno.horaFin}`;
+        const horario = `${turno.horaInicio}-${turno.horaFin}`;
         
         const exhibidoresText = exhibidores.length > 0 
           ? exhibidores.map(e => e.nombre).join(', ')
@@ -447,12 +442,10 @@ class EmailService {
           : 'Ninguno';
 
         return `
-      📅 ${fecha}
-      - Horario: ${horario}
-      - Lugar: ${lugar.nombre}
-      - Dirección: ${lugar.direccion}
-      - Exhibidores: ${exhibidoresText}
-      - Compañeros: ${companerosText}
+      📅 ${fecha} | 🕐 ${horario}
+      📍 ${lugar.nombre}
+      🎪 ${exhibidoresText}
+      👥 ${companerosText}
       `;
       }).join('\n')}
       
