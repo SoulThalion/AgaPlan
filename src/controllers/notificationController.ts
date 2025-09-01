@@ -110,11 +110,21 @@ export class NotificationController {
    */
   async sendNotificationsToAllUsers(req: Request, res: Response): Promise<void> {
     try {
-      const result = await notificationService.sendNotificationsToAllUsers();
+      const { month } = req.body;
+      
+      if (!month) {
+        res.status(400).json({
+          success: false,
+          message: 'El parámetro "month" es requerido (formato: YYYY-MM)'
+        });
+        return;
+      }
+
+      const result = await notificationService.sendNotificationsToAllUsers(month);
       
       res.json({
         success: true,
-        message: 'Notificaciones enviadas a todos los usuarios con turnos',
+        message: `Notificaciones enviadas a todos los usuarios con turnos para ${month}`,
         data: result
       });
     } catch (error) {

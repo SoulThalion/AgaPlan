@@ -322,10 +322,6 @@ class ApiService {
   }
 
   // Funciones para el sistema de notificaciones
-  async testEmailNotifications(): Promise<any> {
-    const response = await this.api.post('/notifications/run-manual');
-    return response.data;
-  }
 
   async getNotificationConfig(usuarioId: number): Promise<any> {
     const response = await this.api.get(`/notifications/config/${usuarioId}`);
@@ -347,8 +343,8 @@ class ApiService {
     return response.data;
   }
 
-  async sendNotificationsToAllUsers(): Promise<any> {
-    const response = await this.api.post('/notifications/send-to-all');
+  async sendNotificationsToAllUsers(month?: string): Promise<any> {
+    const response = await this.api.post('/notifications/send-to-all', { month });
     return response.data;
   }
 }

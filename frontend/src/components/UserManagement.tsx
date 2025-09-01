@@ -485,96 +485,64 @@ const UserManagement: React.FC = (): JSX.Element => {
     setIsModalOpen(true);
   };
 
-  const handleTestEmails = async () => {
-    try {
-      // Mostrar confirmación
-      const result = await Swal.fire({
-        title: '¿Probar sistema de emails?',
-        text: 'Esto enviará notificaciones de prueba a todos los usuarios con turnos programados y email configurado.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, probar',
-        cancelButtonText: 'Cancelar'
-      });
 
-      if (!result.isConfirmed) return;
-
-      // Mostrar loading
-      Swal.fire({
-        title: 'Probando emails...',
-        text: 'Ejecutando notificaciones de prueba',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      // Ejecutar prueba
-      const response = await apiService.testEmailNotifications();
-      
-      // Mostrar resultado
-      await Swal.fire({
-        icon: 'success',
-        title: 'Prueba de emails completada',
-        html: `
-          <div class="text-center">
-            <p class="mb-3">Se han procesado las notificaciones de prueba.</p>
-            <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
-              <p><strong>Resultado:</strong></p>
-              <ul class="list-disc list-inside mt-2">
-                <li>✅ Emails enviados: ${response.data?.sent || 0}</li>
-                <li>❌ Emails fallidos: ${response.data?.failed || 0}</li>
-              </ul>
-            </div>
-            <p class="mt-3 text-xs text-gray-600 dark:text-gray-400">
-              Revisa los logs del servidor para más detalles.
-            </p>
-          </div>
-        `,
-        confirmButtonText: 'Perfecto'
-      });
-
-    } catch (error: any) {
-      console.error('Error al probar emails:', error);
-      
-      await Swal.fire({
-        icon: 'error',
-        title: 'Error al probar emails',
-        html: `
-          <div class="text-center">
-            <p class="mb-3">No se pudo ejecutar la prueba de emails.</p>
-            <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-sm">
-              <p><strong>Posibles causas:</strong></p>
-              <ul class="list-disc list-inside mt-2 text-xs">
-                <li>Configuración SMTP incorrecta</li>
-                <li>Servidor de email no disponible</li>
-                <li>Credenciales de email inválidas</li>
-                <li>No hay turnos programados para notificar</li>
-              </ul>
-            </div>
-            <p class="mt-3 text-xs text-gray-600 dark:text-gray-400">
-              Revisa la configuración del servidor y los logs para más detalles.
-            </p>
-          </div>
-        `,
-        confirmButtonText: 'Entendido'
-      });
-    }
-  };
 
   const handleSendToAllUsers = async () => {
     try {
-      // Mostrar confirmación
-      const result = await Swal.fire({
-        title: '¿Enviar a TODOS los usuarios?',
-        text: 'Esto enviará notificaciones a TODOS los usuarios con turnos, sin importar las fechas. Es para pruebas.',
-        icon: 'warning',
+      // Obtener el mes actual y los próximos meses
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      
+      const months = [];
+      for (let i = 0; i < 12; i++) {
+        const date = new Date(currentYear, currentMonth + i, 1);
+        const monthName = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        const monthValue = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        months.push({ value: monthValue, label: monthName });
+      }
+
+      // Mostrar selector de mes
+      const { value: selectedMonth } = await Swal.fire({
+        title: 'Seleccionar mes',
+        text: '¿Para qué mes quieres enviar las notificaciones?',
+        input: 'select',
+        inputOptions: months.reduce((acc, month) => {
+          acc[month.value] = month.label;
+          return acc;
+        }, {} as Record<string, string>),
+        inputValue: months[0].value,
         showCancelButton: true,
         confirmButtonColor: '#f59e0b',
         cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, enviar a todos',
+        confirmButtonText: 'Continuar',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+          if (!value) {
+            return 'Debes seleccionar un mes';
+          }
+        }
+      });
+
+      if (!selectedMonth) return;
+
+      // Mostrar confirmación final
+      const monthLabel = months.find(m => m.value === selectedMonth)?.label;
+      const result = await Swal.fire({
+        title: '¿Enviar notificaciones?',
+        html: `
+          <div class="text-center">
+            <p class="mb-3">Se enviarán notificaciones a todos los usuarios con turnos en:</p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+              <strong class="text-blue-800 dark:text-blue-200">${monthLabel}</strong>
+            </div>
+          </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, enviar',
         cancelButtonText: 'Cancelar'
       });
 
@@ -582,16 +550,16 @@ const UserManagement: React.FC = (): JSX.Element => {
 
       // Mostrar loading
       Swal.fire({
-        title: 'Enviando a todos...',
-        text: 'Enviando notificaciones a todos los usuarios con turnos',
+        title: 'Enviando notificaciones...',
+        text: `Enviando notificaciones para ${monthLabel}`,
         allowOutsideClick: false,
         didOpen: () => {
           Swal.showLoading();
         }
       });
 
-      // Ejecutar envío a todos
-      const response = await apiService.sendNotificationsToAllUsers();
+      // Ejecutar envío a todos con el mes seleccionado
+      const response = await apiService.sendNotificationsToAllUsers(selectedMonth);
       
       // Mostrar resultado
       await Swal.fire({
@@ -599,7 +567,7 @@ const UserManagement: React.FC = (): JSX.Element => {
         title: 'Notificaciones enviadas',
         html: `
           <div class="text-center">
-            <p class="mb-3">Se han enviado notificaciones a todos los usuarios con turnos.</p>
+            <p class="mb-3">Se han enviado notificaciones para <strong>${monthLabel}</strong>.</p>
             <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
               <p><strong>Resultado:</strong></p>
               <ul class="list-disc list-inside mt-2">
@@ -649,13 +617,6 @@ const UserManagement: React.FC = (): JSX.Element => {
           Gestión de Usuarios
         </h2>
         <div className="flex space-x-3">
-          <button
-            onClick={handleTestEmails}
-            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            title="Probar el sistema de notificaciones por email"
-          >
-            📧 Probar Emails
-          </button>
           <button
             onClick={handleSendToAllUsers}
             className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"

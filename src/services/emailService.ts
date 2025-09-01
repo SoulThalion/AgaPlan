@@ -326,9 +326,9 @@ class EmailService {
   private generateTurnosAgrupadosEmailContent(data: TurnosAgrupadosNotificationData): { subject: string; html: string; text: string } {
     const { usuario, turnos } = data;
     
-    const subject = `📧 Prueba: Todos tus turnos asignados en AgaPlan (${turnos.length} turnos)`;
+    const subject = `📋 Todos tus turnos asignados en AgaPlan (${turnos.length} turnos)`;
 
-    // Generar HTML para cada turno (diseño compacto)
+     // Generar HTML para cada turno (diseño compacto)
     const turnosHtml = turnos.map(({ turno, lugar, exhibidores, companeros }) => {
       const fecha = new Date(turno.fecha).toLocaleDateString('es-ES', {
         weekday: 'short',
@@ -384,7 +384,7 @@ class EmailService {
           .turno-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
           .fecha { color: #667eea; font-size: 16px; }
           .horario { color: #555; font-size: 14px; }
-          .turno-details { display: flex; flex-direction: column; gap: 6px; }
+          .turno-details { display: flex; flex-direction: column; gap: 12px; }
           .detail-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
           .icon { font-size: 16px; min-width: 20px; }
           .text { color: #333; }
@@ -394,16 +394,11 @@ class EmailService {
       </head>
       <body>
         <div class="header">
-          <h1>📧 Prueba: Todos tus turnos asignados</h1>
+          <h1>📋 Todos tus turnos asignados</h1>
           <p>Hola ${usuario.nombre}, aquí tienes todos tus turnos asignados</p>
         </div>
         
         <div class="content">
-          <div class="test-notice">
-            <strong>🧪 Esta es una PRUEBA del sistema de notificaciones</strong><br>
-            Se muestran todos tus turnos asignados agrupados en un solo email.
-          </div>
-          
           <h2>📋 Resumen de turnos (${turnos.length} turnos)</h2>
           
           ${turnosHtml}
@@ -420,7 +415,7 @@ class EmailService {
     const text = `
       ¡Hola ${usuario.nombre}!
       
-      Esta es una PRUEBA del sistema de notificaciones con todos tus turnos asignados agrupados.
+      Aquí tienes todos tus turnos asignados agrupados.
       
       RESUMEN DE TURNOS (${turnos.length} turnos):
       
@@ -443,8 +438,11 @@ class EmailService {
 
         return `
       📅 ${fecha} | 🕐 ${horario}
+      
       📍 ${lugar.nombre}
+      
       🎪 ${exhibidoresText}
+      
       👥 ${companerosText}
       `;
       }).join('\n')}

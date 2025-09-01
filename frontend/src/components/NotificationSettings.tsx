@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,7 +26,7 @@ interface CronJobInfo {
 
 const NotificationSettings: React.FC = (): JSX.Element => {
   const { user: currentUser } = useAuth();
-  const [isTesting, setIsTesting] = useState(false);
+
   const queryClient = useQueryClient();
 
   // Obtener configuración de notificaciones del usuario actual
@@ -67,87 +67,7 @@ const NotificationSettings: React.FC = (): JSX.Element => {
     }
   });
 
-  // Función para probar emails
-  const handleTestEmails = async () => {
-    if (!(currentUser?.rol === 'admin' || currentUser?.rol === 'superAdmin')) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Acceso restringido',
-        text: 'Solo los administradores pueden probar el sistema de emails.',
-        confirmButtonText: 'Entendido'
-      });
-      return;
-    }
 
-    try {
-      setIsTesting(true);
-      
-      const result = await Swal.fire({
-        title: '¿Probar sistema de emails?',
-        text: 'Esto enviará notificaciones de prueba a todos los usuarios con turnos programados.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#10b981',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, probar',
-        cancelButtonText: 'Cancelar'
-      });
-
-      if (!result.isConfirmed) return;
-
-      Swal.fire({
-        title: 'Probando emails...',
-        text: 'Ejecutando notificaciones de prueba',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      const response = await apiService.testEmailNotifications();
-      
-      await Swal.fire({
-        icon: 'success',
-        title: 'Prueba completada',
-        html: `
-          <div class="text-center">
-            <p class="mb-3">Se han procesado las notificaciones de prueba.</p>
-            <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
-              <p><strong>Resultado:</strong></p>
-              <ul class="list-disc list-inside mt-2">
-                <li>✅ Emails enviados: ${response.data?.sent || 0}</li>
-                <li>❌ Emails fallidos: ${response.data?.failed || 0}</li>
-              </ul>
-            </div>
-          </div>
-        `,
-        confirmButtonText: 'Perfecto'
-      });
-
-    } catch (error: any) {
-      await Swal.fire({
-        icon: 'error',
-        title: 'Error al probar emails',
-        html: `
-          <div class="text-center">
-            <p class="mb-3">No se pudo ejecutar la prueba de emails.</p>
-            <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-sm">
-              <p><strong>Posibles causas:</strong></p>
-              <ul class="list-disc list-inside mt-2 text-xs">
-                <li>Configuración SMTP incorrecta</li>
-                <li>Servidor de email no disponible</li>
-                <li>Credenciales de email inválidas</li>
-                <li>No hay turnos programados para notificar</li>
-              </ul>
-            </div>
-          </div>
-        `,
-        confirmButtonText: 'Entendido'
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
 
   // Función para actualizar configuración
   const handleConfigChange = (field: keyof NotificationConfig, value: boolean) => {
@@ -174,16 +94,7 @@ const NotificationSettings: React.FC = (): JSX.Element => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Configuración de Notificaciones
         </h2>
-        {(currentUser?.rol === 'admin' || currentUser?.rol === 'superAdmin') && (
-          <button
-            onClick={handleTestEmails}
-            disabled={isTesting}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            title="Probar el sistema de notificaciones por email"
-          >
-            {isTesting ? '⏳ Probando...' : '📧 Probar Emails'}
-          </button>
-        )}
+
       </div>
 
       {/* Configuración personal */}

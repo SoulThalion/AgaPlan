@@ -267,16 +267,26 @@ class NotificationService {
    * Envía notificaciones a TODOS los usuarios con turnos (para pruebas manuales)
    * AGRUPA todos los turnos del usuario en un solo email
    */
-  async sendNotificationsToAllUsers(): Promise<{ sent: number; failed: number }> {
+  async sendNotificationsToAllUsers(month: string): Promise<{ sent: number; failed: number }> {
     let sent = 0;
     let failed = 0;
 
-    console.log('📧 Enviando notificaciones agrupadas a TODOS los usuarios con turnos...');
+    console.log(`📧 Enviando notificaciones agrupadas a TODOS los usuarios con turnos para ${month}...`);
+
+    // Parsear el mes (formato: YYYY-MM)
+    const [year, monthNum] = month.split('-').map(Number);
+    const startDate = new Date(year, monthNum - 1, 1);
+    const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+
+    console.log(`📅 Filtrando turnos entre ${startDate.toISOString()} y ${endDate.toISOString()}`);
 
     // Obtener todos los turnos con TODOS los usuarios (para mostrar compañeros correctamente)
     const turnos = await Turno.findAll({
       where: {
-        estado: 'ocupado' // Solo turnos ocupados
+        estado: 'ocupado', // Solo turnos ocupados
+        fecha: {
+          [Op.between]: [startDate, endDate]
+        }
       },
       include: [
         {
