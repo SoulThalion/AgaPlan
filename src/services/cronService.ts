@@ -72,7 +72,7 @@ class CronService {
         console.error(`❌ Error en trabajo programado ${name}:`, error);
       }
     }, {
-      timezone: 'Europe/Madrid' // Zona horaria de España
+      timezone: 'Atlantic/Canary' // Zona horaria de Canarias
     });
 
     this.jobs.set(name, job);

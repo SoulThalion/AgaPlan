@@ -7,9 +7,49 @@ export interface NotificationJob {
   usuarioId: number;
   tipoNotificacion: 'una_semana' | 'un_dia' | 'una_hora';
   fechaEnvio: Date;
+  tiempoRestante?: string; // Tiempo exacto restante para notificaciones de una hora
 }
 
 class NotificationService {
+  
+  /**
+   * Calcula el tiempo restante hasta el turno en formato legible
+   */
+  private calcularTiempoRestante(fechaTurno: Date, horaTurno: string): string {
+    const [horaInicio] = horaTurno.split('-');
+    const [horas, minutos] = horaInicio.split(':').map(Number);
+    
+    // Crear fecha completa del turno en zona horaria de Canarias
+    const fechaCompletaTurno = new Date(fechaTurno);
+    fechaCompletaTurno.setHours(horas, minutos, 0, 0);
+    
+    // Obtener hora actual en zona horaria de Canarias
+    const ahora = new Date().toLocaleString("en-US", {timeZone: "Atlantic/Canary"});
+    const ahoraCanarias = new Date(ahora);
+    
+    const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
+    const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
+    
+    if (diferenciaMinutos < 60) {
+      return `${diferenciaMinutos} minutos`;
+    } else if (diferenciaMinutos < 120) {
+      const horas = Math.floor(diferenciaMinutos / 60);
+      const minutosRestantes = diferenciaMinutos % 60;
+      if (minutosRestantes === 0) {
+        return `${horas} hora${horas > 1 ? 's' : ''}`;
+      } else {
+        return `${horas} hora${horas > 1 ? 's' : ''} y ${minutosRestantes} minutos`;
+      }
+    } else {
+      const horas = Math.floor(diferenciaMinutos / 60);
+      const minutosRestantes = diferenciaMinutos % 60;
+      if (minutosRestantes === 0) {
+        return `${horas} horas`;
+      } else {
+        return `${horas} horas y ${minutosRestantes} minutos`;
+      }
+    }
+  }
   
   /**
    * Verifica si ya se envió una notificación para un turno, usuario y tipo específico
@@ -59,19 +99,21 @@ class NotificationService {
    * Obtiene todos los turnos que necesitan notificaciones en el momento actual
    */
   async getPendingNotifications(): Promise<NotificationJob[]> {
-    const now = new Date();
+    // Obtener hora actual en zona horaria de Canarias
+    const now = new Date().toLocaleString("en-US", {timeZone: "Atlantic/Canary"});
+    const nowCanarias = new Date(now);
     const jobs: NotificationJob[] = [];
 
     // Obtener turnos que necesitan notificación de una semana antes
-    const unaSemanaJobs = await this.getTurnosForNotification(now, 'una_semana');
+    const unaSemanaJobs = await this.getTurnosForNotification(nowCanarias, 'una_semana');
     jobs.push(...unaSemanaJobs);
 
     // Obtener turnos que necesitan notificación de un día antes
-    const unDiaJobs = await this.getTurnosForNotification(now, 'un_dia');
+    const unDiaJobs = await this.getTurnosForNotification(nowCanarias, 'un_dia');
     jobs.push(...unDiaJobs);
 
     // Obtener turnos que necesitan notificación de una hora antes
-    const unaHoraJobs = await this.getTurnosForNotification(now, 'una_hora');
+    const unaHoraJobs = await this.getTurnosForNotification(nowCanarias, 'una_hora');
     jobs.push(...unaHoraJobs);
 
     return jobs;
@@ -268,11 +310,15 @@ class NotificationService {
               const alreadySent = await this.isNotificationAlreadySent(turno.id, usuario.id, 'una_hora');
               
               if (!alreadySent) {
+                // Calcular el tiempo restante exacto
+                const tiempoRestante = this.calcularTiempoRestante(new Date(turno.fecha), turno.hora);
+                
                 jobs.push({
                   turnoId: turno.id,
                   usuarioId: usuario.id,
                   tipoNotificacion: 'una_hora',
-                  fechaEnvio: now
+                  fechaEnvio: now,
+                  tiempoRestante: tiempoRestante
                 });
               } else {
                 console.log(`   ⏭️  Notificación una_hora ya enviada para turno ${turno.id}, usuario ${usuario.id}`);
@@ -359,7 +405,8 @@ class NotificationService {
         lugar: turno.lugar,
         exhibidores: turno.exhibidores || [],
         companeros,
-        tipoNotificacion: job.tipoNotificacion
+        tipoNotificacion: job.tipoNotificacion,
+        tiempoRestante: job.tiempoRestante
       };
 
       // Enviar email
@@ -448,7 +495,11 @@ class NotificationService {
   async testOneHourNotifications(): Promise<{ sent: number; failed: number; jobs: NotificationJob[] }> {
     console.log('🧪 Probando notificaciones de una hora antes...');
     
-    const jobs = await this.getTurnosForOneHourNotification(new Date());
+    // Obtener hora actual en zona horaria de Canarias
+    const now = new Date().toLocaleString("en-US", {timeZone: "Atlantic/Canary"});
+    const nowCanarias = new Date(now);
+    
+    const jobs = await this.getTurnosForOneHourNotification(nowCanarias);
     let sent = 0;
     let failed = 0;
 

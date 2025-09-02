@@ -18,6 +18,7 @@ export interface TurnoNotificationData {
   exhibidores: Exhibidor[];
   companeros: Usuario[];
   tipoNotificacion: 'una_semana' | 'un_dia' | 'una_hora' | 'manual';
+  tiempoRestante?: string; // Tiempo exacto restante para notificaciones de una hora
 }
 
 export interface TurnosAgrupadosNotificationData {
@@ -93,7 +94,7 @@ class EmailService {
   }
 
   private generateEmailContent(data: TurnoNotificationData) {
-    const { turno, usuario, lugar, exhibidores, companeros, tipoNotificacion } = data;
+    const { turno, usuario, lugar, exhibidores, companeros, tipoNotificacion, tiempoRestante: tiempoCalculado } = data;
     
     // Formatear fecha y hora
     const fecha = new Date(turno.fecha).toLocaleDateString('es-ES', {
@@ -120,8 +121,9 @@ class EmailService {
         tiempoRestante = 'un día';
         break;
       case 'una_hora':
-        subject = `Recordatorio: Tu turno en AgaPlan es en una hora`;
-        tiempoRestante = 'una hora';
+        // Usar el tiempo calculado si está disponible, sino usar el genérico
+        tiempoRestante = tiempoCalculado || 'una hora';
+        subject = `Recordatorio: Tu turno en AgaPlan es en ${tiempoRestante}`;
         break;
       case 'manual':
         subject = `📧 Prueba: Información de tu turno en AgaPlan`;
