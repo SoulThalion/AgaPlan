@@ -106,6 +106,37 @@ export class NotificationController {
   }
 
   /**
+   * Prueba específicamente las notificaciones de una hora antes
+   */
+  async testOneHourNotifications(req: Request, res: Response): Promise<void> {
+    try {
+      const result = await notificationService.testOneHourNotifications();
+      
+      res.json({
+        success: true,
+        message: 'Prueba de notificaciones de una hora antes completada',
+        data: {
+          sent: result.sent,
+          failed: result.failed,
+          totalJobs: result.jobs.length,
+          jobs: result.jobs.map(job => ({
+            turnoId: job.turnoId,
+            usuarioId: job.usuarioId,
+            tipoNotificacion: job.tipoNotificacion,
+            fechaEnvio: job.fechaEnvio
+          }))
+        }
+      });
+    } catch (error) {
+      console.error('Error probando notificaciones de una hora antes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  /**
    * Envía notificaciones a TODOS los usuarios con turnos (para pruebas)
    */
   async sendNotificationsToAllUsers(req: Request, res: Response): Promise<void> {

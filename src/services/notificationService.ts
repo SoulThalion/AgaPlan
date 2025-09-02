@@ -39,6 +39,11 @@ class NotificationService {
   private async getTurnosForNotification(now: Date, tipo: 'una_semana' | 'un_dia' | 'una_hora'): Promise<NotificationJob[]> {
     const jobs: NotificationJob[] = [];
     
+    // Para notificaciones de una hora antes, necesitamos una lógica diferente
+    if (tipo === 'una_hora') {
+      return await this.getTurnosForOneHourNotification(now);
+    }
+    
     // Calcular la fecha objetivo según el tipo de notificación
     let fechaObjetivo: Date;
     switch (tipo) {
@@ -47,9 +52,6 @@ class NotificationService {
         break;
       case 'un_dia':
         fechaObjetivo = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +1 día
-        break;
-      case 'una_hora':
-        fechaObjetivo = new Date(now.getTime() + 60 * 60 * 1000); // +1 hora
         break;
     }
 
@@ -116,6 +118,111 @@ class NotificationService {
       }
     }
 
+    return jobs;
+  }
+
+  /**
+   * Obtiene turnos que necesitan notificación de una hora antes
+   * Esta función es más precisa ya que considera tanto la fecha como la hora específica
+   */
+  private async getTurnosForOneHourNotification(now: Date): Promise<NotificationJob[]> {
+    const jobs: NotificationJob[] = [];
+    
+    // Calcular la hora objetivo (una hora desde ahora)
+    const horaObjetivo = new Date(now.getTime() + 60 * 60 * 1000);
+    
+    // Obtener todos los turnos del día actual y del día siguiente
+    const fechaActual = now.toISOString().split('T')[0];
+    const fechaSiguiente = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    console.log(`🔍 Buscando turnos para notificación de una hora antes:`);
+    console.log(`   - Hora actual: ${now.toISOString()}`);
+    console.log(`   - Hora objetivo: ${horaObjetivo.toISOString()}`);
+    console.log(`   - Fechas a buscar: ${fechaActual} y ${fechaSiguiente}`);
+    
+    const turnos = await Turno.findAll({
+      where: {
+        fecha: [fechaActual, fechaSiguiente],
+        estado: 'ocupado'
+      },
+      include: [
+        {
+          model: Usuario,
+          as: 'usuarios',
+          through: { attributes: [] },
+          where: {
+            email: { [Op.ne]: null },
+            activo: true
+          }
+        },
+        {
+          model: Lugar,
+          as: 'lugar'
+        },
+        {
+          model: Exhibidor,
+          as: 'exhibidores',
+          through: { attributes: [] }
+        }
+      ]
+    });
+
+    console.log(`📊 Encontrados ${turnos.length} turnos para evaluar`);
+
+    // Filtrar turnos que empiecen aproximadamente en una hora
+    for (const turno of turnos) {
+      if (turno.usuarios) {
+        // Crear fecha y hora completa del turno
+        const [horaInicio] = turno.hora.split('-');
+        const [hora, minuto] = horaInicio.split(':').map(Number);
+        
+        const fechaTurno = new Date(turno.fecha);
+        fechaTurno.setHours(hora, minuto, 0, 0);
+        
+        // Calcular diferencia en minutos
+        const diferenciaMinutos = (fechaTurno.getTime() - now.getTime()) / (1000 * 60);
+        
+        console.log(`   - Turno ${turno.id}: ${fechaTurno.toISOString()} (diferencia: ${diferenciaMinutos.toFixed(1)} min)`);
+        
+        // Enviar notificación si el turno empieza entre 50 y 70 minutos desde ahora
+        // Esto da un margen de 10 minutos para que el cron pueda ejecutarse
+        if (diferenciaMinutos >= 50 && diferenciaMinutos <= 70) {
+          console.log(`   ✅ Turno ${turno.id} califica para notificación de una hora antes`);
+          
+          for (const usuario of turno.usuarios) {
+            // Obtener configuración de notificaciones del usuario
+            const config = await UsuarioNotificacionConfig.findOne({
+              where: { usuarioId: usuario.id }
+            });
+
+            // Si no hay configuración, crear una por defecto
+            if (!config) {
+              await UsuarioNotificacionConfig.create({
+                usuarioId: usuario.id,
+                notificarUnaSemanaAntes: true,
+                notificarUnDiaAntes: true,
+                notificarUnaHoraAntes: true,
+                activo: true
+              });
+            }
+
+            // Verificar si el usuario quiere recibir notificaciones de una hora antes
+            const shouldNotify = this.shouldSendNotification(config, 'una_hora');
+            
+            if (shouldNotify) {
+              jobs.push({
+                turnoId: turno.id,
+                usuarioId: usuario.id,
+                tipoNotificacion: 'una_hora',
+                fechaEnvio: now
+              });
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`📧 Se generaron ${jobs.length} trabajos de notificación de una hora antes`);
     return jobs;
   }
 
@@ -261,6 +368,31 @@ class NotificationService {
     return await UsuarioNotificacionConfig.findOne({
       where: { usuarioId }
     });
+  }
+
+  /**
+   * Prueba las notificaciones de una hora antes (para testing)
+   */
+  async testOneHourNotifications(): Promise<{ sent: number; failed: number; jobs: NotificationJob[] }> {
+    console.log('🧪 Probando notificaciones de una hora antes...');
+    
+    const jobs = await this.getTurnosForOneHourNotification(new Date());
+    let sent = 0;
+    let failed = 0;
+
+    console.log(`📧 Procesando ${jobs.length} notificaciones de prueba...`);
+
+    for (const job of jobs) {
+      const success = await this.processNotification(job);
+      if (success) {
+        sent++;
+      } else {
+        failed++;
+      }
+    }
+
+    console.log(`📊 Prueba completada: ${sent} enviadas, ${failed} fallidas`);
+    return { sent, failed, jobs };
   }
 
   /**

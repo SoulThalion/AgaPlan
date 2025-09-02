@@ -44,6 +44,13 @@ router.get('/configs', requireAdmin, notificationController.getAllNotificationCo
 router.post('/run-manual', requireAdmin, notificationController.runNotificationsManually);
 
 /**
+ * @route POST /api/notifications/test-one-hour
+ * @desc Prueba específicamente las notificaciones de una hora antes
+ * @access Private (Admin/SuperAdmin)
+ */
+router.post('/test-one-hour', requireAdmin, notificationController.testOneHourNotifications);
+
+/**
  * @route POST /api/notifications/send-to-all
  * @desc Envía notificaciones a TODOS los usuarios con turnos (para pruebas)
  * @access Private (Admin/SuperAdmin)

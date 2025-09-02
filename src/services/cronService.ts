@@ -26,10 +26,11 @@ class CronService {
       await notificationService.processAllPendingNotifications();
     });
 
-    // Trabajo para notificaciones de una hora antes (cada hora)
-    this.scheduleJob('notifications-hour', '0 * * * *', async () => {
+    // Trabajo para notificaciones de una hora antes (cada 10 minutos para mayor precisión)
+    this.scheduleJob('notifications-hour', '*/10 * * * *', async () => {
       console.log('⏰ Ejecutando notificaciones de una hora antes...');
-      await notificationService.processAllPendingNotifications();
+      const result = await notificationService.processAllPendingNotifications();
+      console.log(`📊 Resultado notificaciones de una hora: ${result.sent} enviadas, ${result.failed} fallidas`);
     });
 
     // Trabajo de mantenimiento diario (a las 2:00 AM)
@@ -173,8 +174,8 @@ class CronService {
       },
       {
         name: 'notifications-hour',
-        schedule: '0 * * * *',
-        description: 'Notificaciones de una hora antes (cada hora)'
+        schedule: '*/10 * * * *',
+        description: 'Notificaciones de una hora antes (cada 10 minutos para mayor precisión)'
       },
       {
         name: 'maintenance',
