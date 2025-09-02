@@ -7,12 +7,31 @@ class CronService {
 
   /**
    * Inicializa todos los trabajos programados
+   * NOTA: En producción, estos trabajos se ejecutan via Cloudflare Workers o Render Cron Jobs externos
    */
   initialize(): void {
     console.log('🕐 Inicializando trabajos programados...');
 
     // Verificar conexión SMTP al inicio
     this.testEmailConnection();
+
+    // Verificar si estamos en producción
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+    
+    if (isProduction) {
+      console.log('🌐 Modo producción detectado - Usando cron jobs externos');
+      console.log('📋 Endpoints de cron disponibles:');
+      console.log('   - GET /api/notifications/cron/smart (endpoint inteligente)');
+      console.log('   - GET /api/notifications/cron/week (individual)');
+      console.log('   - GET /api/notifications/cron/day (individual)');
+      console.log('   - GET /api/notifications/cron/hour (individual)');
+      console.log('   - GET /api/notifications/cron/maintenance (individual)');
+      console.log('💡 Recomendado: Usar /cron/smart con Cloudflare Workers');
+      return;
+    }
+
+    // Solo ejecutar cron interno en desarrollo
+    console.log('🔧 Modo desarrollo - Usando cron interno');
 
     // Trabajo para notificaciones de una semana antes (diario a las 9:00 AM)
     this.scheduleJob('notifications-week', '0 9 * * *', async () => {

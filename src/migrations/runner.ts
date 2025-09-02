@@ -27,6 +27,7 @@ import * as addMissingUsuarioFields from './026-add-missing-usuario-fields';
 import * as addDescripcionToLugares from './027-add-descripcion-to-lugares';
 import * as removeUniqueConstraintUserDisponibilidadConfig from './028-remove-unique-constraint-user-disponibilidad-config';
 import * as createUsuarioNotificacionConfig from './029-create-usuario-notificacion-config';
+import * as createNotificacionesEnviadas from './030-create-notificaciones-enviadas';
 
 const migrations = [
   { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.down },
@@ -54,6 +55,7 @@ const migrations = [
   { name: '027-add-descripcion-to-lugares', up: addDescripcionToLugares.up, down: addDescripcionToLugares.down },
   { name: '028-remove-unique-constraint-user-disponibilidad-config', up: removeUniqueConstraintUserDisponibilidadConfig.up, down: removeUniqueConstraintUserDisponibilidadConfig.down },
   { name: '029-create-usuario-notificacion-config', up: createUsuarioNotificacionConfig.up, down: createUsuarioNotificacionConfig.down },
+  { name: '030-create-notificaciones-enviadas', up: createNotificacionesEnviadas.up, down: createNotificacionesEnviadas.down },
 ];
 
 // Función para crear la tabla de migraciones si no existe

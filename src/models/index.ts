@@ -8,6 +8,7 @@ import Disponibilidad from './Disponibilidad';
 import Turno from './Turno';
 import Cargo from './Cargo';
 import UsuarioNotificacionConfig from './UsuarioNotificacionConfig';
+import NotificacionEnviada from './NotificacionEnviada';
 import Exhibidor from './Exhibidor';
 import TurnoUsuario from './TurnoUsuario';
 import TurnoExhibidor from './TurnoExhibidor';
@@ -24,6 +25,7 @@ export {
   Turno,
   Cargo,
   UsuarioNotificacionConfig,
+  NotificacionEnviada,
   Exhibidor,
   TurnoUsuario,
   TurnoExhibidor,

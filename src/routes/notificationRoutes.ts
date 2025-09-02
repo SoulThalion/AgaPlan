@@ -50,6 +50,44 @@ router.post('/run-manual', requireAdmin, notificationController.runNotifications
  */
 router.post('/test-one-hour', requireAdmin, notificationController.testOneHourNotifications);
 
+// ===== ENDPOINTS PARA RENDER CRON JOBS =====
+// Estos endpoints NO requieren autenticación ya que Render los llama directamente
+
+/**
+ * @route GET /api/notifications/cron/week
+ * @desc Endpoint para Render Cron Job - Notificaciones de una semana antes
+ * @access Public (llamado por Render)
+ */
+router.get('/cron/week', notificationController.cronWeekNotifications);
+
+/**
+ * @route GET /api/notifications/cron/day
+ * @desc Endpoint para Render Cron Job - Notificaciones de un día antes
+ * @access Public (llamado por Render)
+ */
+router.get('/cron/day', notificationController.cronDayNotifications);
+
+/**
+ * @route GET /api/notifications/cron/hour
+ * @desc Endpoint para Render Cron Job - Notificaciones de una hora antes
+ * @access Public (llamado por Render)
+ */
+router.get('/cron/hour', notificationController.cronHourNotifications);
+
+/**
+ * @route GET /api/notifications/cron/maintenance
+ * @desc Endpoint para Render Cron Job - Mantenimiento diario
+ * @access Public (llamado por Render)
+ */
+router.get('/cron/maintenance', notificationController.cronMaintenance);
+
+/**
+ * @route GET /api/notifications/cron/smart
+ * @desc Endpoint inteligente para Render Cron Job - Evalúa y ejecuta todas las notificaciones necesarias
+ * @access Public (llamado por Render)
+ */
+router.get('/cron/smart', notificationController.smartCronJob);
+
 /**
  * @route POST /api/notifications/send-to-all
  * @desc Envía notificaciones a TODOS los usuarios con turnos (para pruebas)

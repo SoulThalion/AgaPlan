@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Turno, Usuario, Lugar, Exhibidor, TurnoUsuario, TurnoExhibidor, UsuarioNotificacionConfig } from '../models';
+import { Turno, Usuario, Lugar, Exhibidor, TurnoUsuario, TurnoExhibidor, UsuarioNotificacionConfig, NotificacionEnviada } from '../models';
 import emailService, { TurnosAgrupadosNotificationData } from './emailService';
 
 export interface NotificationJob {
@@ -11,6 +11,50 @@ export interface NotificationJob {
 
 class NotificationService {
   
+  /**
+   * Verifica si ya se envió una notificación para un turno, usuario y tipo específico
+   */
+  private async isNotificationAlreadySent(
+    turnoId: number, 
+    usuarioId: number, 
+    tipoNotificacion: 'una_semana' | 'un_dia' | 'una_hora'
+  ): Promise<boolean> {
+    const existing = await NotificacionEnviada.findOne({
+      where: {
+        turnoId,
+        usuarioId,
+        tipoNotificacion,
+        emailEnviado: true
+      }
+    });
+    
+    return existing !== null;
+  }
+
+  /**
+   * Registra que se envió una notificación
+   */
+  private async markNotificationAsSent(
+    turnoId: number,
+    usuarioId: number,
+    tipoNotificacion: 'una_semana' | 'un_dia' | 'una_hora',
+    success: boolean,
+    error?: string
+  ): Promise<void> {
+    try {
+      await NotificacionEnviada.upsert({
+        turnoId,
+        usuarioId,
+        tipoNotificacion,
+        fechaEnvio: new Date(),
+        emailEnviado: success,
+        error: error || undefined
+      });
+    } catch (error) {
+      console.error('Error registrando notificación enviada:', error);
+    }
+  }
+
   /**
    * Obtiene todos los turnos que necesitan notificaciones en el momento actual
    */
@@ -107,12 +151,19 @@ class NotificationService {
           const shouldNotify = this.shouldSendNotification(config, tipo);
           
           if (shouldNotify) {
-            jobs.push({
-              turnoId: turno.id,
-              usuarioId: usuario.id,
-              tipoNotificacion: tipo,
-              fechaEnvio: now
-            });
+            // Verificar si ya se envió esta notificación
+            const alreadySent = await this.isNotificationAlreadySent(turno.id, usuario.id, tipo);
+            
+            if (!alreadySent) {
+              jobs.push({
+                turnoId: turno.id,
+                usuarioId: usuario.id,
+                tipoNotificacion: tipo,
+                fechaEnvio: now
+              });
+            } else {
+              console.log(`   ⏭️  Notificación ${tipo} ya enviada para turno ${turno.id}, usuario ${usuario.id}`);
+            }
           }
         }
       }
@@ -184,9 +235,12 @@ class NotificationService {
         
         console.log(`   - Turno ${turno.id}: ${fechaTurno.toISOString()} (diferencia: ${diferenciaMinutos.toFixed(1)} min)`);
         
-        // Enviar notificación si el turno empieza entre 50 y 70 minutos desde ahora
-        // Esto da un margen de 10 minutos para que el cron pueda ejecutarse
-        if (diferenciaMinutos >= 50 && diferenciaMinutos <= 70) {
+        // Enviar notificación si el turno empieza en el margen apropiado
+        // Margen ampliado para frecuencias menos frecuentes (15-30 min)
+        const margenMinimo = 30; // 30 minutos antes
+        const margenMaximo = 90; // 90 minutos antes (1.5 horas)
+        
+        if (diferenciaMinutos >= margenMinimo && diferenciaMinutos <= margenMaximo) {
           console.log(`   ✅ Turno ${turno.id} califica para notificación de una hora antes`);
           
           for (const usuario of turno.usuarios) {
@@ -210,12 +264,19 @@ class NotificationService {
             const shouldNotify = this.shouldSendNotification(config, 'una_hora');
             
             if (shouldNotify) {
-              jobs.push({
-                turnoId: turno.id,
-                usuarioId: usuario.id,
-                tipoNotificacion: 'una_hora',
-                fechaEnvio: now
-              });
+              // Verificar si ya se envió esta notificación
+              const alreadySent = await this.isNotificationAlreadySent(turno.id, usuario.id, 'una_hora');
+              
+              if (!alreadySent) {
+                jobs.push({
+                  turnoId: turno.id,
+                  usuarioId: usuario.id,
+                  tipoNotificacion: 'una_hora',
+                  fechaEnvio: now
+                });
+              } else {
+                console.log(`   ⏭️  Notificación una_hora ya enviada para turno ${turno.id}, usuario ${usuario.id}`);
+              }
             }
           }
         }
@@ -304,8 +365,19 @@ class NotificationService {
       // Enviar email
       const success = await emailService.sendTurnoNotification(emailData);
       
+      // Registrar que se envió la notificación
+      await this.markNotificationAsSent(
+        job.turnoId,
+        job.usuarioId,
+        job.tipoNotificacion,
+        success,
+        success ? undefined : 'Error enviando email'
+      );
+      
       if (success) {
         console.log(`✅ Notificación ${job.tipoNotificacion} enviada a ${usuario.nombre} (${usuario.email}) para turno ${job.turnoId}`);
+      } else {
+        console.log(`❌ Error enviando notificación ${job.tipoNotificacion} a ${usuario.nombre} (${usuario.email}) para turno ${job.turnoId}`);
       }
 
       return success;
