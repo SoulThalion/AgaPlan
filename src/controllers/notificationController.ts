@@ -351,8 +351,7 @@ export class NotificationController {
         data: {
           ...results,
           executedActions,
-          timestamp: endTime.toISOString(),
-          nextExecution: this.getNextExecutionTime(now)
+          timestamp: endTime.toISOString()
         }
       });
 
