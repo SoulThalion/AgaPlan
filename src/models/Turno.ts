@@ -7,6 +7,7 @@ export interface TurnoAttributes {
   hora: string; // Formato HH:MM-HH:MM (rango de horas)
   estado: 'libre' | 'ocupado' | 'completo';
   lugarId: number;
+  equipoId: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -19,6 +20,7 @@ class Turno extends Model<TurnoAttributes, TurnoCreationAttributes> implements T
   public hora!: string;
   public estado!: 'libre' | 'ocupado' | 'completo';
   public lugarId!: number;
+  public equipoId!: number;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -26,6 +28,7 @@ class Turno extends Model<TurnoAttributes, TurnoCreationAttributes> implements T
   public readonly usuarios?: any[];
   public readonly lugar?: any;
   public readonly exhibidores?: any[];
+  public readonly equipo?: any;
 
   // Métodos helper para trabajar con rangos de horas
   public get horaInicio(): string {
@@ -100,6 +103,14 @@ Turno.init(
       allowNull: false,
       references: {
         model: 'lugares',
+        key: 'id',
+      },
+    },
+    equipoId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'equipos',
         key: 'id',
       },
     },

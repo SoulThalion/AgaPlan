@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import Cargo from '../models/Cargo';
 
 // Obtener todos los cargos
@@ -50,7 +51,7 @@ export const getCargoById = async (req: Request, res: Response) => {
 };
 
 // Crear un nuevo cargo
-export const createCargo = async (req: Request, res: Response) => {
+export const createCargo = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { nombre, descripcion, prioridad, activo } = req.body;
     
@@ -85,7 +86,8 @@ export const createCargo = async (req: Request, res: Response) => {
       nombre: nombre.trim(),
       descripcion: descripcion?.trim() || null,
       prioridad: prioridad || 999,
-      activo: activo !== undefined ? activo : true
+      activo: activo !== undefined ? activo : true,
+      equipoId: req.user?.equipoId || 1
     });
     
     res.status(201).json({

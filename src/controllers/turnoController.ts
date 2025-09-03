@@ -178,7 +178,8 @@ export const createTurno = async (req: AuthenticatedRequest, res: Response) => {
       fecha,
       hora,
       lugarId,
-      estado: estado || 'libre'
+      estado: estado || 'libre',
+      equipoId: req.user?.equipoId || 1
     });
 
     // Crear las relaciones con exhibidores
@@ -852,7 +853,8 @@ export const generarTurnosAutomaticos = async (req: AuthenticatedRequest, res: R
               fecha: fechaActual,
               hora: horaString,
               lugarId,
-              estado: 'libre'
+              estado: 'libre',
+              equipoId: req.user?.equipoId || 1
             });
 
             // Crear las relaciones con exhibidores (del 1 al número máximo)
@@ -968,7 +970,8 @@ export const createTurnosRecurrentes = async (req: AuthenticatedRequest, res: Re
             fecha: fechaTurno,
             hora,
             lugarId,
-            estado: estado || 'libre'
+            estado: estado || 'libre',
+            equipoId: req.user?.equipoId || 1
           });
 
           // Crear las relaciones con exhibidores
@@ -1012,7 +1015,8 @@ export const createTurnosRecurrentes = async (req: AuthenticatedRequest, res: Re
         fecha: fechaInicioDate,
         hora,
         lugarId,
-        estado: estado || 'libre'
+        estado: estado || 'libre',
+        equipoId: req.user?.equipoId || 1
       });
 
       // Crear las relaciones con exhibidores

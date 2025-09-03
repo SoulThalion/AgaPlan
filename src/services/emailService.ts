@@ -194,7 +194,7 @@ class EmailService {
     let tiempoRestante = '';
     
     // Calcular tiempo exacto restante para todas las notificaciones
-    const tiempoExacto = this.calcularTiempoRestante(fecha, horaInicio, tipoNotificacion);
+    const tiempoExacto = this.calcularTiempoRestante(turno.fecha.toISOString().split('T')[0], horaInicio, tipoNotificacion);
     
     switch (tipoNotificacion) {
       case 'una_semana':

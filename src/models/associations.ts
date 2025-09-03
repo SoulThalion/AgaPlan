@@ -8,6 +8,7 @@ import TurnoUsuario from './TurnoUsuario';
 import UserDisponibilidadConfig from './UserDisponibilidadConfig';
 import UsuarioNotificacionConfig from './UsuarioNotificacionConfig';
 import Cargo from './Cargo';
+import Equipo from './Equipo';
 
 // Asociaciones Usuario - Turno (muchos a muchos)
 Usuario.belongsToMany(Turno, { 
@@ -55,6 +56,22 @@ UsuarioNotificacionConfig.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usu
 Usuario.belongsTo(Cargo, { foreignKey: 'cargoId', as: 'cargoInfo' });
 Cargo.hasMany(Usuario, { foreignKey: 'cargoId', as: 'usuarios' });
 
+// Asociaciones con Equipo
+Equipo.hasMany(Usuario, { foreignKey: 'equipoId', as: 'usuarios' });
+Usuario.belongsTo(Equipo, { foreignKey: 'equipoId', as: 'equipo' });
+
+Equipo.hasMany(Lugar, { foreignKey: 'equipoId', as: 'lugares' });
+Lugar.belongsTo(Equipo, { foreignKey: 'equipoId', as: 'equipo' });
+
+Equipo.hasMany(Turno, { foreignKey: 'equipoId', as: 'turnos' });
+Turno.belongsTo(Equipo, { foreignKey: 'equipoId', as: 'equipo' });
+
+Equipo.hasMany(Cargo, { foreignKey: 'equipoId', as: 'cargos' });
+Cargo.belongsTo(Equipo, { foreignKey: 'equipoId', as: 'equipo' });
+
+Equipo.hasMany(Exhibidor, { foreignKey: 'equipoId', as: 'exhibidores' });
+Exhibidor.belongsTo(Equipo, { foreignKey: 'equipoId', as: 'equipo' });
+
 // Asociaciones Lugar - Disponibilidad (comentadas porque la tabla no tiene lugarId)
 // Lugar.hasMany(Disponibilidad, { foreignKey: 'lugarId', as: 'disponibilidades' });
 // Disponibilidad.belongsTo(Lugar, { foreignKey: 'lugarId', as: 'lugar' });
@@ -69,5 +86,6 @@ export {
   TurnoUsuario,
   UserDisponibilidadConfig,
   UsuarioNotificacionConfig,
-  Cargo
+  Cargo,
+  Equipo
 };

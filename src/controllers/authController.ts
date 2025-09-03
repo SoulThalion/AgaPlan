@@ -73,14 +73,16 @@ export const register = async (req: Request, res: Response) => {
       contraseña: password, // Usar la variable corregida
       sexo,
       cargo,
-      rol
+      rol,
+      equipoId: 1 // Asignar al equipo principal por defecto
     });
 
     // Generar token JWT (sin la propiedad exp manual)
     const tokenPayload: Omit<JwtPayload, 'exp' | 'iat'> = {
       id: newUser.id,
       email: newUser.email!, // Usar ! porque sabemos que tiene email en este contexto
-      rol: newUser.rol
+      rol: newUser.rol,
+      equipoId: newUser.equipoId
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -94,7 +96,8 @@ export const register = async (req: Request, res: Response) => {
         id: newUser.id,
         nombre: newUser.nombre,
         email: newUser.email!, // Usar ! porque sabemos que tiene email en este contexto
-        rol: newUser.rol
+        rol: newUser.rol,
+        equipoId: newUser.equipoId
       }
     };
 
@@ -153,7 +156,8 @@ export const login = async (req: Request, res: Response) => {
     const tokenPayload: Omit<JwtPayload, 'exp' | 'iat'> = {
       id: user.id,
       email: user.email!, // Usar ! porque sabemos que tiene email en este contexto
-      rol: user.rol
+      rol: user.rol,
+      equipoId: user.equipoId
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -167,7 +171,8 @@ export const login = async (req: Request, res: Response) => {
         id: user.id,
         nombre: user.nombre,
         email: user.email!, // Usar ! porque sabemos que tiene email en este contexto
-        rol: user.rol
+        rol: user.rol,
+        equipoId: user.equipoId
       }
     };
 

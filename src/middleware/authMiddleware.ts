@@ -27,7 +27,7 @@ export const authMiddleware = async (
       
       // Verificar que el usuario aún existe en la base de datos
       const usuario = await Usuario.findByPk(decoded.id, {
-        attributes: ['id', 'nombre', 'email', 'rol']
+        attributes: ['id', 'nombre', 'email', 'rol', 'equipoId']
       });
       
       if (!usuario) {
@@ -42,7 +42,8 @@ export const authMiddleware = async (
         id: usuario.id,
         email: usuario.email || '', // Proporcionar valor por defecto si email es undefined
         nombre: usuario.nombre,
-        rol: usuario.rol
+        rol: usuario.rol,
+        equipoId: usuario.equipoId
       };
       
       next();

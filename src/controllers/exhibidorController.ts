@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth';
 import Exhibidor from '../models/Exhibidor';
 
 // Obtener todos los exhibidores
@@ -50,7 +51,7 @@ export const getExhibidorById = async (req: Request, res: Response): Promise<voi
 };
 
 // Crear un nuevo exhibidor
-export const createExhibidor = async (req: Request, res: Response): Promise<void> => {
+export const createExhibidor = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { nombre, descripcion } = req.body;
 
@@ -79,6 +80,7 @@ export const createExhibidor = async (req: Request, res: Response): Promise<void
       nombre: nombre.trim(),
       descripcion: descripcion?.trim() || null,
       activo: true,
+      equipoId: req.user?.equipoId || 1
     });
 
     res.status(201).json({

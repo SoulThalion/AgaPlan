@@ -1,30 +1,27 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/database';
 
-export interface ExhibidorAttributes {
+export interface EquipoAttributes {
   id: number;
   nombre: string;
   descripcion?: string;
   activo: boolean;
-  equipoId: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export interface ExhibidorCreationAttributes extends Omit<ExhibidorAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+export interface EquipoCreationAttributes extends Omit<EquipoAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
 
-class Exhibidor extends Model<ExhibidorAttributes, ExhibidorCreationAttributes> implements ExhibidorAttributes {
+class Equipo extends Model<EquipoAttributes, EquipoCreationAttributes> implements EquipoAttributes {
   public id!: number;
   public nombre!: string;
   public descripcion?: string;
   public activo!: boolean;
-  public equipoId!: number;
-  public equipo?: any; // Para la relación con Equipo
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
 
-Exhibidor.init(
+Equipo.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -35,6 +32,10 @@ Exhibidor.init(
       type: DataTypes.STRING(100),
       allowNull: false,
       unique: true,
+      validate: {
+        len: [2, 100],
+        notEmpty: true,
+      },
     },
     descripcion: {
       type: DataTypes.TEXT,
@@ -45,21 +46,21 @@ Exhibidor.init(
       allowNull: false,
       defaultValue: true,
     },
-    equipoId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'equipos',
-        key: 'id',
-      },
-    },
   },
   {
     sequelize,
-    tableName: 'exhibidores',
+    tableName: 'equipos',
     timestamps: true,
-    modelName: 'Exhibidor',
+    indexes: [
+      {
+        unique: true,
+        fields: ['nombre']
+      },
+      {
+        fields: ['activo']
+      }
+    ],
   }
 );
 
-export default Exhibidor;
+export default Equipo;

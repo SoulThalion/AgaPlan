@@ -16,6 +16,7 @@ export interface UsuarioAttributes {
   tieneCoche?: boolean; // Si el usuario tiene coche disponible
   siempreCon?: number; // ID del usuario que siempre debe acompañar a este usuario
   nuncaCon?: number; // ID del usuario que nunca debe acompañar a este usuario
+  equipoId: number; // ID del equipo al que pertenece el usuario
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -39,6 +40,8 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
   public tieneCoche?: boolean;
   public siempreCon?: number;
   public nuncaCon?: number;
+  public equipoId!: number;
+  public equipo?: any; // Para la relación con Equipo
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -133,6 +136,14 @@ Usuario.init(
     nuncaCon: {
       type: DataTypes.INTEGER,
       allowNull: true,
+    },
+    equipoId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'equipos',
+        key: 'id',
+      },
     },
   },
   {

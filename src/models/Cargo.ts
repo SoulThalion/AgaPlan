@@ -7,6 +7,7 @@ export interface CargoAttributes {
   descripcion?: string;
   prioridad: number; // Prioridad para asignación de turnos (1 = más alta, 999 = más baja)
   activo: boolean;
+  equipoId: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -19,6 +20,8 @@ class Cargo extends Model<CargoAttributes, CargoCreationAttributes> implements C
   public descripcion?: string;
   public prioridad!: number;
   public activo!: boolean;
+  public equipoId!: number;
+  public equipo?: any; // Para la relación con Equipo
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -53,6 +56,14 @@ Cargo.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+    },
+    equipoId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'equipos',
+        key: 'id',
+      },
     },
   },
   {

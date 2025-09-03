@@ -28,6 +28,13 @@ import * as addDescripcionToLugares from './027-add-descripcion-to-lugares';
 import * as removeUniqueConstraintUserDisponibilidadConfig from './028-remove-unique-constraint-user-disponibilidad-config';
 import * as createUsuarioNotificacionConfig from './029-create-usuario-notificacion-config';
 import * as createNotificacionesEnviadas from './030-create-notificaciones-enviadas';
+import * as createEquipos from './031-create-equipos';
+import * as addEquipoIdToUsuarios from './032-add-equipo-id-to-usuarios';
+import * as addEquipoIdToLugares from './033-add-equipo-id-to-lugares';
+import * as addEquipoIdToTurnos from './034-add-equipo-id-to-turnos';
+import * as addEquipoIdToCargos from './035-add-equipo-id-to-cargos';
+import * as addEquipoIdToExhibidores from './036-add-equipo-id-to-exhibidores';
+import * as createDefaultEquipoAndAssignData from './037-create-default-equipo-and-assign-data';
 
 const migrations = [
   { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.down },
@@ -56,6 +63,13 @@ const migrations = [
   { name: '028-remove-unique-constraint-user-disponibilidad-config', up: removeUniqueConstraintUserDisponibilidadConfig.up, down: removeUniqueConstraintUserDisponibilidadConfig.down },
   { name: '029-create-usuario-notificacion-config', up: createUsuarioNotificacionConfig.up, down: createUsuarioNotificacionConfig.down },
   { name: '030-create-notificaciones-enviadas', up: createNotificacionesEnviadas.up, down: createNotificacionesEnviadas.down },
+  { name: '031-create-equipos', up: createEquipos.up, down: createEquipos.down },
+  { name: '032-add-equipo-id-to-usuarios', up: addEquipoIdToUsuarios.up, down: addEquipoIdToUsuarios.down },
+  { name: '033-add-equipo-id-to-lugares', up: addEquipoIdToLugares.up, down: addEquipoIdToLugares.down },
+  { name: '034-add-equipo-id-to-turnos', up: addEquipoIdToTurnos.up, down: addEquipoIdToTurnos.down },
+  { name: '035-add-equipo-id-to-cargos', up: addEquipoIdToCargos.up, down: addEquipoIdToCargos.down },
+  { name: '036-add-equipo-id-to-exhibidores', up: addEquipoIdToExhibidores.up, down: addEquipoIdToExhibidores.down },
+  { name: '037-create-default-equipo-and-assign-data', up: createDefaultEquipoAndAssignData.up, down: createDefaultEquipoAndAssignData.down },
 ];
 
 // Función para crear la tabla de migraciones si no existe

@@ -184,12 +184,17 @@ export const createLugar = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Verificar si ya existe un lugar con ese nombre
-    const existingLugar = await Lugar.findOne({ where: { nombre: nombre.trim() } });
+    // Verificar si ya existe un lugar con ese nombre en el mismo equipo
+    const existingLugar = await Lugar.findOne({ 
+      where: { 
+        nombre: nombre.trim(),
+        equipoId: req.user?.equipoId || 1
+      } 
+    });
     if (existingLugar) {
       return res.status(400).json({
         success: false,
-        message: 'Ya existe un lugar con ese nombre'
+        message: 'Ya existe un lugar con ese nombre en tu equipo'
       });
     }
 
@@ -200,7 +205,8 @@ export const createLugar = async (req: AuthenticatedRequest, res: Response) => {
       capacidad: capacidad,
       exhibidores: exhibidores,
       latitud: latitud,
-      longitud: longitud
+      longitud: longitud,
+      equipoId: req.user?.equipoId || 1
     });
 
     res.status(201).json({

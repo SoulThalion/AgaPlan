@@ -12,6 +12,7 @@ import NotificacionEnviada from './NotificacionEnviada';
 import Exhibidor from './Exhibidor';
 import TurnoUsuario from './TurnoUsuario';
 import TurnoExhibidor from './TurnoExhibidor';
+import Equipo from './Equipo';
 
 // Importar y configurar las asociaciones
 import './associations';
@@ -29,6 +30,7 @@ export {
   Exhibidor,
   TurnoUsuario,
   TurnoExhibidor,
+  Equipo,
   sequelize // Add this line to export the sequelize instance
 };
 

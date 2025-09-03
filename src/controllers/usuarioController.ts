@@ -91,9 +91,9 @@ export const getUsuarioById = async (req: Request, res: Response) => {
   }
 };
 
-export const createUsuario = async (req: Request, res: Response) => {
+export const createUsuario = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { nombre, email, contraseña, sexo, cargo, cargoId, rol, participacionMensual, tieneCoche, siempreCon, nuncaCon } = req.body;
+    const { nombre, email, contraseña, sexo, cargo, cargoId, rol, participacionMensual, tieneCoche, siempreCon, nuncaCon, equipoId } = req.body;
 
     // Validaciones básicas - solo nombre, sexo y cargo son obligatorios
     if (!nombre || !sexo || !cargo) {
@@ -132,6 +132,19 @@ export const createUsuario = async (req: Request, res: Response) => {
       }
     }
 
+    // Determinar el equipoId para el nuevo usuario
+    let usuarioEquipoId: number;
+    if (req.user?.rol === 'superAdmin' && equipoId) {
+      // SuperAdmin puede elegir el equipo
+      usuarioEquipoId = equipoId;
+    } else if (req.user?.equipoId) {
+      // Admin usa su propio equipo
+      usuarioEquipoId = req.user.equipoId;
+    } else {
+      // Fallback al equipo principal (ID: 1)
+      usuarioEquipoId = 1;
+    }
+
     // Crear el usuario (el hash de contraseña se maneja en el modelo)
     const newUsuario = await Usuario.create({
       nombre,
@@ -144,7 +157,8 @@ export const createUsuario = async (req: Request, res: Response) => {
       participacionMensual: participacionMensual || undefined,
       tieneCoche: tieneCoche || false,
       siempreCon: siempreCon || undefined,
-      nuncaCon: nuncaCon || undefined
+      nuncaCon: nuncaCon || undefined,
+      equipoId: usuarioEquipoId
     });
 
     // Excluir la contraseña de la respuesta

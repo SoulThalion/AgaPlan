@@ -11,6 +11,7 @@ export interface LugarAttributes {
   activo?: boolean;
   latitud?: number;
   longitud?: number;
+  equipoId: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -27,6 +28,8 @@ class Lugar extends Model<LugarAttributes, LugarCreationAttributes> implements L
   public activo?: boolean;
   public latitud?: number;
   public longitud?: number;
+  public equipoId!: number;
+  public equipo?: any; // Para la relación con Equipo
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -86,6 +89,14 @@ Lugar.init(
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: true,
+    },
+    equipoId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'equipos',
+        key: 'id',
+      },
     },
   },
   {
