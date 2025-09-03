@@ -17,6 +17,8 @@ const UserManagement: React.FC = (): JSX.Element => {
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
   const [isDisponibilidadModalOpen, setIsDisponibilidadModalOpen] = useState(false);
   const [selectedUserForDisponibilidad, setSelectedUserForDisponibilidad] = useState<Usuario | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -36,10 +38,10 @@ const UserManagement: React.FC = (): JSX.Element => {
 
   // Obtener usuarios
   const { data: usuarios, isLoading, error } = useQuery({
-    queryKey: ['usuarios', currentEquipoId],
+    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage],
     queryFn: () => {
-      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId);
-      return apiService.getUsuarios();
+      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage);
+      return apiService.getUsuarios(currentPage, itemsPerPage);
     }
   });
 
@@ -495,6 +497,19 @@ const UserManagement: React.FC = (): JSX.Element => {
     resetForm();
     setIsModalOpen(true);
   };
+
+  // Funciones de paginación
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset a la primera página
+  };
+
+  // Obtener información de paginación
+  const pagination = usuarios?.pagination;
 
 
 
@@ -1207,6 +1222,101 @@ const UserManagement: React.FC = (): JSX.Element => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Controles de Paginación */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            {/* Información de paginación */}
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              Mostrando {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} a {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} de {pagination.totalItems} usuarios
+            </div>
+
+            {/* Selector de elementos por página */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-700 dark:text-gray-300">
+                Mostrar:
+              </label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="text-sm text-gray-700 dark:text-gray-300">por página</span>
+            </div>
+
+            {/* Navegación de páginas */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handlePageChange(1)}
+                disabled={!pagination.hasPrevPage}
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-white"
+              >
+                Primera
+              </button>
+              
+              <button
+                onClick={() => handlePageChange(pagination.prevPage || 1)}
+                disabled={!pagination.hasPrevPage}
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-white"
+              >
+                Anterior
+              </button>
+
+              {/* Números de página */}
+              <div className="flex space-x-1">
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (pagination.currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNum = pagination.currentPage - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-1 text-sm border rounded-md ${
+                        pageNum === pagination.currentPage
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-700 dark:text-white'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => handlePageChange(pagination.nextPage || pagination.totalPages)}
+                disabled={!pagination.hasNextPage}
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-white"
+              >
+                Siguiente
+              </button>
+              
+              <button
+                onClick={() => handlePageChange(pagination.totalPages)}
+                disabled={!pagination.hasNextPage}
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-white"
+              >
+                Última
+              </button>
+            </div>
           </div>
         </div>
       )}

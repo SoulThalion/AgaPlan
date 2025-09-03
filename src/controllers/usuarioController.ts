@@ -8,9 +8,20 @@ import { buildEquipoWhereClause } from '../middleware/equipoMiddleware';
 
 export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // Obtener parámetros de paginación
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const offset = (page - 1) * limit;
+
     // Determinar si incluir información del equipo (solo para superAdmin)
     const includeEquipo = req.user?.rol === 'superAdmin';
     
+    // Obtener el total de usuarios para calcular la paginación
+    const totalUsuarios = await Usuario.count({
+      where: buildEquipoWhereClause(req)
+    });
+
+    // Obtener usuarios con paginación
     const usuarios = await Usuario.findAll({
       where: buildEquipoWhereClause(req),
       attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'equipoId', 'createdAt'],
@@ -40,12 +51,29 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
           required: false
         }] : [])
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
     });
+
+    // Calcular información de paginación
+    const totalPages = Math.ceil(totalUsuarios / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
 
     res.status(200).json({
       success: true,
-      data: usuarios
+      data: usuarios,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: totalUsuarios,
+        itemsPerPage: limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null
+      }
     });
   } catch (error) {
     console.error('Error obteniendo usuarios:', error);
