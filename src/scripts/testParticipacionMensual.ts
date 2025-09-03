@@ -32,7 +32,8 @@ async function testParticipacionMensual() {
       cargo: 'Voluntario Test',
       rol: 'voluntario',
       participacionMensual: 5,
-      tieneCoche: true
+      tieneCoche: true,
+      equipoId: 1
     });
     
     console.log('✅ Usuario creado exitosamente:', {

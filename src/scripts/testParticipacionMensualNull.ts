@@ -17,7 +17,8 @@ async function testParticipacionMensualNull() {
       cargo: 'Voluntario Sin Límite',
       rol: 'voluntario',
       participacionMensual: null, // Sin límite de participación
-      tieneCoche: false
+      tieneCoche: false,
+      equipoId: 1
     });
     
     console.log('✅ Usuario creado exitosamente:', {
@@ -34,7 +35,8 @@ async function testParticipacionMensualNull() {
       cargo: 'Voluntario Con Límite',
       rol: 'voluntario',
       participacionMensual: 5, // 5 turnos al mes
-      tieneCoche: true
+      tieneCoche: true,
+      equipoId: 1
     });
     
     console.log('✅ Usuario creado exitosamente:', {

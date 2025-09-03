@@ -14,7 +14,8 @@ async function testGrupoRole() {
       cargo: 'Coordinador de Grupo',
       rol: 'grupo',
       participacionMensual: 8,
-      tieneCoche: true
+      tieneCoche: true,
+      equipoId: 1
     });
     
     console.log(`✅ Usuario creado exitosamente con rol: ${testUser.rol}`);
@@ -53,7 +54,8 @@ async function testGrupoRole() {
         sexo: 'F',
         cargo: 'Test',
         rol: 'rolInvalido' as any, // Esto debería fallar
-        participacionMensual: 5
+        participacionMensual: 5,
+        equipoId: 1
       });
       console.log('❌ Error: Se permitió crear usuario con rol inválido');
     } catch (error: any) {

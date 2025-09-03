@@ -18,7 +18,8 @@ async function testGrupoRoleNewLogic() {
       nombre: `Lugar de Prueba Grupo Nuevo ${Date.now()}`,
       direccion: 'Dirección de Prueba',
       capacidad: 5,
-      descripcion: 'Lugar para probar nueva funcionalidad del rol grupo'
+      descripcion: 'Lugar para probar nueva funcionalidad del rol grupo',
+      equipoId: 1
     });
     console.log('✅ Lugar creado:', lugar.nombre);
 
@@ -27,6 +28,7 @@ async function testGrupoRoleNewLogic() {
       fecha: new Date('2024-12-26'),
       hora: '10:00-11:00',
       estado: 'libre',
+      equipoId: 1,
       lugarId: lugar.id
     });
     console.log('✅ Turno creado:', turno.id);
@@ -39,7 +41,8 @@ async function testGrupoRoleNewLogic() {
       sexo: 'M',
       cargo: 'Grupo',
       rol: 'grupo',
-      participacionMensual: 0
+      participacionMensual: 0,
+      equipoId: 1
     });
     console.log('✅ Usuario grupo creado:', usuarioGrupo.nombre);
 

@@ -14,7 +14,8 @@ async function testGrupoRoleComplete() {
       cargo: 'Grupo',
       rol: 'grupo',
       participacionMensual: undefined,
-      tieneCoche: false
+      tieneCoche: false,
+      equipoId: 1
     });
     
     console.log(`✅ Usuario creado exitosamente con rol: ${testUser.rol}`);
@@ -55,7 +56,8 @@ async function testGrupoRoleComplete() {
         sexo: 'F',
         cargo: 'Test',
         rol: 'rolInvalido' as any, // Esto debería fallar
-        participacionMensual: 5
+        participacionMensual: 5,
+        equipoId: 1
       });
       console.log('❌ Error: Se permitió crear usuario con rol inválido');
     } catch (error: any) {
@@ -70,7 +72,8 @@ async function testGrupoRoleComplete() {
       nombre: 'Usuario Grupo Mínimo',
       rol: 'grupo',
       sexo: 'M',
-      cargo: 'Grupo'
+      cargo: 'Grupo',
+      equipoId: 1
       // Sin email, contraseña, participacionMensual, etc.
     });
     

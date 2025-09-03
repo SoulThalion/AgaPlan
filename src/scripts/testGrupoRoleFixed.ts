@@ -17,7 +17,8 @@ async function testGrupoRoleFixed() {
     const lugar = await Lugar.create({
       nombre: `Lugar de Prueba Grupo ${timestamp}`,
       direccion: 'Dirección de Prueba',
-      capacidad: 5
+      capacidad: 5,
+      equipoId: 1
     });
     console.log('✅ Lugar creado:', lugar.nombre);
     
@@ -26,7 +27,8 @@ async function testGrupoRoleFixed() {
       fecha: new Date('2024-12-20'),
       hora: '09:00-13:00',
       lugarId: lugar.id,
-      estado: 'libre'
+      estado: 'libre',
+      equipoId: 1
     });
     console.log('✅ Turno creado:', turno.id, 'Estado inicial:', turno.estado);
     
@@ -37,7 +39,8 @@ async function testGrupoRoleFixed() {
       rol: 'grupo',
       cargo: 'Coordinador',
       sexo: 'M',
-      tieneCoche: true
+      tieneCoche: true,
+      equipoId: 1
     });
     console.log('✅ Usuario grupo creado:', usuarioGrupo.nombre, 'Rol:', usuarioGrupo.rol);
     

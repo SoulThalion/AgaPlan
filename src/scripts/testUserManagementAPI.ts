@@ -26,7 +26,8 @@ async function testUserManagementAPI() {
       cargoId: cargo.id,
       rol: 'voluntario',
       participacionMensual: 3,
-      tieneCoche: false
+      tieneCoche: false,
+      equipoId: 1
     });
     
     console.log(`✅ Usuario creado directamente en BD:`);

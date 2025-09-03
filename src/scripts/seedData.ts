@@ -17,19 +17,23 @@ const seedData = async () => {
     const lugares = await Lugar.bulkCreate([
       {
         nombre: 'Centro Comunitario Norte',
-        direccion: 'Calle Principal 123, Zona Norte'
+        direccion: 'Calle Principal 123, Zona Norte',
+        equipoId: 1
       },
       {
         nombre: 'Centro Comunitario Sur',
-        direccion: 'Avenida Central 456, Zona Sur'
+        direccion: 'Avenida Central 456, Zona Sur',
+        equipoId: 1
       },
       {
         nombre: 'Centro Comunitario Este',
-        direccion: 'Boulevard Este 789, Zona Este'
+        direccion: 'Boulevard Este 789, Zona Este',
+        equipoId: 1
       },
       {
         nombre: 'Centro Comunitario Oeste',
-        direccion: 'Calle Oeste 321, Zona Oeste'
+        direccion: 'Calle Oeste 321, Zona Oeste',
+        equipoId: 1
       }
     ]);
 
@@ -94,17 +98,20 @@ const seedData = async () => {
       {
         nombre: 'Exhibidor Principal',
         descripcion: 'Exhibidor principal del centro',
-        activo: true
+        activo: true,
+        equipoId: 1
       },
       {
         nombre: 'Exhibidor Secundario',
         descripcion: 'Exhibidor secundario del centro',
-        activo: true
+        activo: true,
+        equipoId: 1
       },
       {
         nombre: 'Exhibidor Móvil',
         descripcion: 'Exhibidor móvil para eventos especiales',
-        activo: true
+        activo: true,
+        equipoId: 1
       }
     ]);
 
@@ -138,7 +145,8 @@ const seedData = async () => {
                 fecha: fecha,
                 hora: horaString,
                 lugarId: lugar.id,
-                estado: 'libre'
+                estado: 'libre',
+                equipoId: 1
               });
               
               // Crear la relación en TurnoExhibidor usando el ID real del exhibidor

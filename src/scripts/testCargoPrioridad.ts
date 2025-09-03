@@ -17,25 +17,29 @@ async function testCargoPrioridad() {
         nombre: 'Coordinador',
         descripcion: 'Coordinador del evento',
         prioridad: 1,
-        activo: true
+        activo: true,
+        equipoId: 1
       },
       {
         nombre: 'Supervisor',
         descripcion: 'Supervisor del turno',
         prioridad: 2,
-        activo: true
+        activo: true,
+        equipoId: 1
       },
       {
         nombre: 'Voluntario',
         descripcion: 'Voluntario general',
         prioridad: 5,
-        activo: true
+        activo: true,
+        equipoId: 1
       },
       {
         nombre: 'Auxiliar',
         descripcion: 'Auxiliar de apoyo',
         prioridad: 10,
-        activo: true
+        activo: true,
+        equipoId: 1
       }
     ]);
     

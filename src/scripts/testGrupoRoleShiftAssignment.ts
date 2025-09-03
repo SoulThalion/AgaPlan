@@ -19,7 +19,8 @@ async function testGrupoRoleShiftAssignment() {
       nombre: `Lugar de Prueba Grupo ${Date.now()}`,
       direccion: 'Dirección de Prueba',
       capacidad: 5,
-      descripcion: 'Lugar para probar funcionalidad del rol grupo'
+      descripcion: 'Lugar para probar funcionalidad del rol grupo',
+      equipoId: 1
     });
     console.log('✅ Lugar creado:', lugar.nombre);
 
@@ -28,7 +29,8 @@ async function testGrupoRoleShiftAssignment() {
       fecha: new Date('2024-12-25'),
       hora: '09:00-10:00',
       estado: 'libre',
-      lugarId: lugar.id
+      lugarId: lugar.id,
+      equipoId: 1
     });
     console.log('✅ Turno creado:', turno.id);
 
@@ -41,7 +43,8 @@ async function testGrupoRoleShiftAssignment() {
       cargo: 'Grupo',
       rol: 'grupo',
       tieneCoche: false,
-      participacionMensual: 0
+      participacionMensual: 0,
+      equipoId: 1
     });
     console.log('✅ Usuario grupo creado:', usuarioGrupo.nombre);
 
@@ -92,7 +95,8 @@ async function testGrupoRoleShiftAssignment() {
             cargo: 'Grupo',
             rol: 'voluntario' as const, // Rol temporal
             tieneCoche: true, // Con coche para cumplir requisito
-            participacionMensual: 0
+            participacionMensual: 0,
+            equipoId: 1
           });
           
           // Asignar el usuario ficticio al turno

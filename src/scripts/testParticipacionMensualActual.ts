@@ -19,7 +19,8 @@ async function testParticipacionMensualActual() {
     const lugar = await Lugar.create({
       nombre: `Lugar de Prueba ${Date.now()}`,
       direccion: 'Dirección de Prueba',
-      capacidad: 5
+      capacidad: 5,
+      equipoId: 1
     });
     
     // Crear usuario de prueba con participación mensual definida
@@ -30,7 +31,8 @@ async function testParticipacionMensualActual() {
       cargo: 'Voluntario de Prueba',
       rol: 'voluntario',
       participacionMensual: 3, // 3 turnos al mes
-      tieneCoche: false
+      tieneCoche: false,
+      equipoId: 1
     });
     
     console.log('✅ Usuario creado exitosamente:', {
@@ -51,7 +53,8 @@ async function testParticipacionMensualActual() {
         fecha: new Date(añoActual, mesActual, 15 + i), // Días 15 y 16 del mes
         hora: '09:00-11:00',
         lugarId: lugar.id,
-        estado: 'ocupado'
+        estado: 'ocupado',
+        equipoId: 1
       });
       
       // Asignar el usuario al turno usando la tabla intermedia
@@ -72,7 +75,8 @@ async function testParticipacionMensualActual() {
       fecha: new Date(añoActual, mesActual - 1, 15),
       hora: '09:00-11:00',
       lugarId: lugar.id,
-      estado: 'ocupado'
+      estado: 'ocupado',
+      equipoId: 1
     });
     await TurnoUsuario.create({
       turnoId: turnoMesAnterior.id,
