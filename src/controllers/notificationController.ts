@@ -254,7 +254,14 @@ export class NotificationController {
    */
   async smartCronJob(req: Request, res: Response): Promise<void> {
     const startTime = new Date();
-    console.log(`🚀 [SMART-CRON] Iniciando evaluación inteligente de notificaciones - ${startTime.toISOString()}`);
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('User-Agent') || 'unknown';
+    
+    console.log(`🚀 [SMART-CRON] ===== NUEVA LLAMADA AL ENDPOINT =====`);
+    console.log(`📅 [SMART-CRON] Timestamp: ${startTime.toISOString()}`);
+    console.log(`🌐 [SMART-CRON] IP del cliente: ${clientIP}`);
+    console.log(`🔧 [SMART-CRON] User-Agent: ${userAgent}`);
+    console.log(`📊 [SMART-CRON] Iniciando evaluación inteligente de notificaciones...`);
     
     const results = {
       notifications: {
@@ -345,7 +352,7 @@ export class NotificationController {
 
       console.log(`✅ [SMART-CRON] Completado en ${results.executionTime}ms - ${message}`);
 
-      res.json({
+      const responseData = {
         success: true,
         message,
         data: {
@@ -353,16 +360,38 @@ export class NotificationController {
           executedActions,
           timestamp: endTime.toISOString()
         }
-      });
+      };
+
+      // Log detallado del resultado
+      console.log(`📋 [SMART-CRON] ===== RESULTADO DEL ENDPOINT =====`);
+      console.log(`✅ [SMART-CRON] Éxito: ${responseData.success}`);
+      console.log(`💬 [SMART-CRON] Mensaje: ${responseData.message}`);
+      console.log(`📊 [SMART-CRON] Notificaciones enviadas: ${results.totalSent}`);
+      console.log(`❌ [SMART-CRON] Notificaciones fallidas: ${results.totalFailed}`);
+      console.log(`⏱️ [SMART-CRON] Tiempo de ejecución: ${results.executionTime}ms`);
+      console.log(`🎯 [SMART-CRON] Acciones ejecutadas: ${executedActions.length > 0 ? executedActions.join(', ') : 'Ninguna'}`);
+      console.log(`📅 [SMART-CRON] Timestamp de respuesta: ${endTime.toISOString()}`);
+      console.log(`🔚 [SMART-CRON] ===== FIN DE LA LLAMADA =====`);
+
+      res.json(responseData);
 
     } catch (error) {
-      console.error('❌ [SMART-CRON] Error general:', error);
-      res.status(500).json({
+      const errorTime = new Date();
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
+      console.error('❌ [SMART-CRON] ===== ERROR EN EL ENDPOINT =====');
+      console.error(`❌ [SMART-CRON] Error: ${errorMessage}`);
+      console.error(`📅 [SMART-CRON] Timestamp del error: ${errorTime.toISOString()}`);
+      console.error(`🔚 [SMART-CRON] ===== FIN DE LA LLAMADA CON ERROR =====`);
+      
+      const errorResponse = {
         success: false,
         message: 'Error en cron job inteligente',
-        error: error instanceof Error ? error.message : 'Error desconocido',
-        timestamp: new Date().toISOString()
-      });
+        error: errorMessage,
+        timestamp: errorTime.toISOString()
+      };
+      
+      res.status(500).json(errorResponse);
     }
   }
 
