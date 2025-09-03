@@ -1379,17 +1379,10 @@ export default function DashboardOverview() {
     if (_user?.rol === 'admin' || _user?.rol === 'superAdmin') {
       setLoadingUsuarios(true);
       try {
-        const response = await apiService.getUsuarios();
-        if (response.data) {
-          console.log('🔍 Usuarios obtenidos del backend:', response.data);
-          console.log('🔍 Primer usuario ejemplo:', response.data[0]);
-          console.log('🔍 Campos del primer usuario del backend:', Object.keys(response.data[0]));
-          // Filtrar usuarios por disponibilidad para este turno
-          const usuariosFiltrados = await filtrarUsuariosPorDisponibilidad(response.data, turno);
-          console.log('🔍 Usuarios filtrados:', usuariosFiltrados);
-          console.log('🔍 Primer usuario filtrado ejemplo:', usuariosFiltrados[0]);
-          setUsuariosDisponibles(usuariosFiltrados);
-        }
+        // Usar el nuevo endpoint optimizado directamente
+        const usuariosFiltrados = await filtrarUsuariosPorDisponibilidad([], turno);
+        console.log('🔍 Usuarios disponibles obtenidos:', usuariosFiltrados);
+        setUsuariosDisponibles(usuariosFiltrados);
       } catch (error) {
         console.error('Error cargando usuarios:', error);
       } finally {
@@ -1398,155 +1391,55 @@ export default function DashboardOverview() {
     }
   };
 
-  // Función para filtrar usuarios por disponibilidad
-  const filtrarUsuariosPorDisponibilidad = async (usuarios: Usuario[], turno: Turno): Promise<Usuario[]> => {
-    const usuariosFiltrados: Usuario[] = [];
-    
-    for (const usuario of usuarios) {
-      try {
-        // Obtener la configuración de disponibilidad del usuario específico para el mes del turno
-        const mesTurno = `${new Date(turno.fecha).getFullYear()}-${(new Date(turno.fecha).getMonth() + 1).toString().padStart(2, '0')}`;
-        const disponibilidadResponse = await apiService.getUserDisponibilidadConfig(usuario.id, mesTurno);
-        const configuraciones = disponibilidadResponse?.data || [];
+  // Función optimizada para filtrar usuarios por disponibilidad usando el nuevo endpoint
+  const filtrarUsuariosPorDisponibilidad = async (_usuarios: Usuario[], turno: Turno): Promise<Usuario[]> => {
+    try {
+      // Extraer hora de inicio y fin del turno
+      const [horaInicio, horaFin] = turno.hora.includes('-') 
+        ? turno.hora.split('-') 
+        : [turno.hora, turno.hora];
+      
+      // Usar el nuevo endpoint optimizado que obtiene todos los usuarios disponibles en una sola petición
+      const response = await apiService.getUsuariosDisponiblesParaFecha(turno.fecha, horaInicio, horaFin);
+      
+      if (response.success && response.data) {
+        // El backend ya filtra por disponibilidad, solo necesitamos verificar participación mensual
+        const usuariosDisponibles = response.data;
         
-        // Verificar si el usuario tiene disponibilidad para este turno
-        if (await verificarDisponibilidadParaTurno(configuraciones, turno, usuario)) {
-          usuariosFiltrados.push(usuario);
+        // Verificar participación mensual para cada usuario (esto se puede optimizar más en el futuro)
+        const usuariosConParticipacionVerificada: Usuario[] = [];
+        
+        for (const usuario of usuariosDisponibles) {
+          // Verificar participación mensual actual antes de incluir al usuario
+          if (usuario.participacionMensual !== null && usuario.participacionMensual !== undefined) {
+            try {
+              const { mes, año } = getMesYAñoDelCalendario();
+              const participacionActual = await apiService.getParticipacionMensualActual(usuario.id, mes, año);
+              if (participacionActual.turnosOcupados >= usuario.participacionMensual) {
+                console.log(`❌ Usuario ${usuario.nombre} ya alcanzó su límite mensual (${participacionActual.turnosOcupados}/${usuario.participacionMensual})`);
+                continue; // Saltar este usuario
+              }
+            } catch (error) {
+              console.error(`Error verificando participación mensual de usuario ${usuario.nombre}:`, error);
+              // En caso de error, continuar con el usuario
+            }
+          }
+          
+          usuariosConParticipacionVerificada.push(usuario);
         }
-      } catch (error) {
-        console.error(`Error verificando disponibilidad para usuario ${usuario.id}:`, error);
-        // Si no se puede verificar, no incluir al usuario
+        
+        return usuariosConParticipacionVerificada;
       }
+      
+      return [];
+    } catch (error) {
+      console.error('Error obteniendo usuarios disponibles:', error);
+      // En caso de error, retornar array vacío
+      return [];
     }
-    
-    return usuariosFiltrados;
   };
 
-  // Función para verificar si un usuario tiene disponibilidad para un turno específico
-  const verificarDisponibilidadParaTurno = async (configuraciones: any[], turno: Turno, usuario: Usuario): Promise<boolean> => {
-    const fechaTurno = new Date(turno.fecha);
-    const diaSemana = fechaTurno.getDay();
-    const [horaInicioTurno, horaFinTurno] = turno.hora.split('-');
-    
-    // Verificar si el usuario tiene restricción "nuncaCon" y esa persona ya está en el turno
-    if (usuario.nuncaCon && turno.usuarios) {
-      const usuarioNuncaCon = turno.usuarios.find(u => u.id === usuario.nuncaCon);
-      if (usuarioNuncaCon) {
-        return false; // El usuario no está disponible porque no quiere trabajar con alguien que ya está en el turno
-      }
-    }
-    
-    // Verificar participación mensual actual antes de verificar disponibilidad
-    if (usuario.participacionMensual !== null && usuario.participacionMensual !== undefined) {
-      try {
-        const { mes, año } = getMesYAñoDelCalendario();
-        const participacionActual = await apiService.getParticipacionMensualActual(usuario.id, mes, año);
-        if (participacionActual.turnosOcupados >= usuario.participacionMensual) {
-          console.log(`❌ Usuario ${usuario.nombre} ya alcanzó su límite mensual (${participacionActual.turnosOcupados}/${usuario.participacionMensual})`);
-          return false; // El usuario ya alcanzó su límite mensual
-        }
-      } catch (error) {
-        console.error(`Error verificando participación mensual de usuario ${usuario.nombre}:`, error);
-        // En caso de error, continuar con la verificación de disponibilidad
-      }
-    }
-    
-    for (const config of configuraciones) {
-      switch (config.tipo_disponibilidad) {
-                 case 'todasTardes':
-           // Verificar si es tarde (a partir de las 14:00)
-           if (horaInicioTurno >= '14:00') {
-             // Si tiene hora personalizada, verificar que coincida
-             if (config.configuracion.hora_inicio && config.configuracion.hora_fin) {
-               if (horaInicioTurno >= config.configuracion.hora_inicio && horaFinTurno <= config.configuracion.hora_fin) {
-                 return true;
-               }
-             } else {
-               // Sin hora personalizada, cualquier tarde
-               return true;
-             }
-           }
-           break;
-           
-         case 'todasMananas':
-           // Verificar si es mañana (hasta las 14:00)
-           if (horaFinTurno <= '14:00') {
-             // Si tiene hora personalizada, verificar que coincida
-             if (config.configuracion.hora_inicio && config.configuracion.hora_fin) {
-               if (horaInicioTurno >= config.configuracion.hora_inicio && horaFinTurno <= config.configuracion.hora_fin) {
-                 return true;
-               }
-             } else {
-               // Sin hora personalizada, cualquier mañana
-               return true;
-             }
-           }
-           break;
-          
-        case 'diasSemana':
-          // Verificar si el día del turno está en los días configurados
-          if (config.configuracion.dias && config.configuracion.dias.includes(diaSemana)) {
-            const periodo = config.configuracion.periodo;
-            
-            if (periodo === 'manana' && horaFinTurno <= '14:00') {
-              return true;
-            } else if (periodo === 'tarde' && horaInicioTurno >= '14:00') {
-              return true;
-            } else if (periodo === 'todoElDia') {
-              // Si es "Todo el día", está disponible sin importar la hora
-              return true;
-            } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_personalizado && config.configuracion.hora_fin_personalizado) {
-              if (horaInicioTurno >= config.configuracion.hora_inicio_personalizado && horaFinTurno <= config.configuracion.hora_fin_personalizado) {
-                return true;
-              }
-            }
-          }
-          break;
-          
-        case 'fechaConcreta':
-          // Verificar si la fecha del turno coincide
-          if (config.configuracion.fecha === turno.fecha) {
-            const periodo = config.configuracion.periodo_fecha;
-            
-            if (periodo === 'manana' && horaFinTurno <= '14:00') {
-              return true;
-            } else if (periodo === 'tarde' && horaInicioTurno >= '14:00') {
-              return true;
-            } else if (periodo === 'todoElDia') {
-              // Si es "Todo el día", está disponible sin importar la hora
-              return true;
-            } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_fecha && config.configuracion.hora_fin_fecha) {
-              if (horaInicioTurno >= config.configuracion.hora_inicio_fecha && horaFinTurno <= config.configuracion.hora_fin_fecha) {
-                return true;
-              }
-            }
-          }
-          break;
-          
-        case 'noDisponibleFecha':
-          // Si el usuario NO está disponible en esta fecha, no incluirlo
-          if (config.configuracion.fecha === turno.fecha) {
-            const periodo = config.configuracion.periodo_fecha;
-            
-            if (periodo === 'manana' && horaFinTurno <= '14:00') {
-              return false; // No disponible en la mañana
-            } else if (periodo === 'tarde' && horaInicioTurno >= '14:00') {
-              return false; // No disponible en la tarde
-            } else if (periodo === 'todoElDia') {
-              return false; // No disponible todo el día
-            } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_fecha && config.configuracion.hora_fin_fecha) {
-              if (horaInicioTurno >= config.configuracion.hora_inicio_fecha && horaFinTurno <= config.configuracion.hora_fin_fecha) {
-                return false; // No disponible en el horario personalizado
-              }
-            }
-          }
-          break;
-      }
-    }
-    
-    // Si no hay configuraciones específicas, el usuario no está disponible
-    return false;
-  };
+
 
 
   /**
@@ -1737,12 +1630,9 @@ export default function DashboardOverview() {
       if (_user?.siempreCon && usuariosDisponibles.length === 0) {
         setLoadingUsuarios(true);
         try {
-          const response = await apiService.getUsuarios();
-          if (response.data) {
-            // Filtrar usuarios por disponibilidad para este turno
-            const usuariosFiltrados = await filtrarUsuariosPorDisponibilidad(response.data, turno);
-            setUsuariosDisponibles(usuariosFiltrados);
-          }
+          // Usar el nuevo endpoint optimizado directamente
+          const usuariosFiltrados = await filtrarUsuariosPorDisponibilidad([], turno);
+          setUsuariosDisponibles(usuariosFiltrados);
         } catch (error) {
           console.error('Error cargando usuarios:', error);
         } finally {

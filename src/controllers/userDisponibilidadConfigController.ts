@@ -273,3 +273,197 @@ export const getConfiguracionesUsuarioAutenticado = async (req: Request, res: Re
     });
   }
 };
+
+// Nuevo endpoint optimizado: Obtener usuarios disponibles para una fecha específica
+export const getUsuariosDisponiblesParaFecha = async (req: Request, res: Response) => {
+  try {
+    const { fecha, horaInicio, horaFin } = req.query;
+    const equipoId = (req as any).user?.equipoId; // Obtener equipo del usuario autenticado
+
+    if (!fecha || !horaInicio || !horaFin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Los parámetros fecha, horaInicio y horaFin son requeridos',
+      });
+    }
+
+    // Validar formato de fecha
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha as string)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Formato de fecha inválido. Debe ser YYYY-MM-DD',
+      });
+    }
+
+    const fechaTurno = new Date(fecha as string);
+    const diaSemana = fechaTurno.getDay();
+    const mesTurno = `${fechaTurno.getFullYear()}-${(fechaTurno.getMonth() + 1).toString().padStart(2, '0')}`;
+
+    // Obtener todos los usuarios del equipo
+    const usuarios = await Usuario.findAll({
+      where: { 
+        equipoId,
+        activo: true 
+      },
+      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon'],
+      include: [
+        {
+          model: require('../models/Cargo').default,
+          as: 'cargoInfo',
+          attributes: ['id', 'nombre', 'descripcion', 'prioridad', 'activo'],
+          required: false
+        }
+      ]
+    });
+
+    // Obtener todas las configuraciones de disponibilidad para el mes en una sola consulta
+    const configuraciones = await UserDisponibilidadConfig.findAll({
+      where: { 
+        mes: mesTurno,
+        activo: true 
+      },
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: ['id'],
+          where: { equipoId }
+        }
+      ]
+    });
+
+    // Crear un mapa de configuraciones por usuario para acceso rápido
+    const configuracionesPorUsuario = new Map();
+    configuraciones.forEach(config => {
+      const usuarioId = config.usuarioId;
+      if (!configuracionesPorUsuario.has(usuarioId)) {
+        configuracionesPorUsuario.set(usuarioId, []);
+      }
+      configuracionesPorUsuario.get(usuarioId).push(config);
+    });
+
+    // Filtrar usuarios que tienen disponibilidad para el turno
+    const usuariosDisponibles = usuarios.filter(usuario => {
+      const configsUsuario = configuracionesPorUsuario.get(usuario.id) || [];
+      
+      // Verificar si el usuario tiene disponibilidad para este turno específico
+      return verificarDisponibilidadParaTurno(configsUsuario, {
+        fecha: fecha as string,
+        hora: `${horaInicio}-${horaFin}`,
+        diaSemana
+      });
+    });
+
+    res.json({
+      success: true,
+      data: usuariosDisponibles,
+    });
+  } catch (error) {
+    console.error('Error al obtener usuarios disponibles para fecha:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+    });
+  }
+};
+
+// Función helper para verificar disponibilidad (replicada del frontend)
+const verificarDisponibilidadParaTurno = (configuraciones: any[], turno: any): boolean => {
+  const [horaInicioTurno, horaFinTurno] = turno.hora.split('-');
+  
+  for (const config of configuraciones) {
+    switch (config.tipo_disponibilidad) {
+      case 'todasTardes':
+        // Verificar si es tarde (a partir de las 14:00)
+        if (horaInicioTurno >= '14:00') {
+          // Si tiene hora personalizada, verificar que coincida
+          if (config.configuracion.hora_inicio && config.configuracion.hora_fin) {
+            if (horaInicioTurno >= config.configuracion.hora_inicio && horaFinTurno <= config.configuracion.hora_fin) {
+              return true;
+            }
+          } else {
+            // Sin hora personalizada, cualquier tarde
+            return true;
+          }
+        }
+        break;
+        
+      case 'todasMananas':
+        // Verificar si es mañana (hasta las 14:00)
+        if (horaFinTurno <= '14:00') {
+          // Si tiene hora personalizada, verificar que coincida
+          if (config.configuracion.hora_inicio && config.configuracion.hora_fin) {
+            if (horaInicioTurno >= config.configuracion.hora_inicio && horaFinTurno <= config.configuracion.hora_fin) {
+              return true;
+            }
+          } else {
+            // Sin hora personalizada, cualquier mañana
+            return true;
+          }
+        }
+        break;
+       
+      case 'diasSemana':
+        // Verificar si el día del turno está en los días configurados
+        if (config.configuracion.dias && config.configuracion.dias.includes(turno.diaSemana)) {
+          const periodo = config.configuracion.periodo;
+          
+          if (periodo === 'manana' && horaFinTurno <= '14:00') {
+            return true;
+          } else if (periodo === 'tarde' && horaInicioTurno >= '14:00') {
+            return true;
+          } else if (periodo === 'todoElDia') {
+            // Si es "Todo el día", está disponible sin importar la hora
+            return true;
+          } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_personalizado && config.configuracion.hora_fin_personalizado) {
+            if (horaInicioTurno >= config.configuracion.hora_inicio_personalizado && horaFinTurno <= config.configuracion.hora_fin_personalizado) {
+              return true;
+            }
+          }
+        }
+        break;
+        
+      case 'fechaConcreta':
+        // Verificar si la fecha del turno coincide
+        if (config.configuracion.fecha === turno.fecha) {
+          const periodo = config.configuracion.periodo_fecha;
+          
+          if (periodo === 'manana' && horaFinTurno <= '14:00') {
+            return true;
+          } else if (periodo === 'tarde' && horaInicioTurno >= '14:00') {
+            return true;
+          } else if (periodo === 'todoElDia') {
+            // Si es "Todo el día", está disponible sin importar la hora
+            return true;
+          } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_fecha && config.configuracion.hora_fin_fecha) {
+            if (horaInicioTurno >= config.configuracion.hora_inicio_fecha && horaFinTurno <= config.configuracion.hora_fin_fecha) {
+              return true;
+            }
+          }
+        }
+        break;
+        
+      case 'noDisponibleFecha':
+        // Si el usuario NO está disponible en esta fecha, no incluirlo
+        if (config.configuracion.fecha === turno.fecha) {
+          const periodo = config.configuracion.periodo_fecha;
+          
+          if (periodo === 'manana' && horaFinTurno <= '14:00') {
+            return false; // No disponible en la mañana
+          } else if (periodo === 'tarde' && horaInicioTurno >= '14:00') {
+            return false; // No disponible en la tarde
+          } else if (periodo === 'todoElDia') {
+            return false; // No disponible todo el día
+          } else if (periodo === 'personalizado' && config.configuracion.hora_inicio_fecha && config.configuracion.hora_fin_fecha) {
+            if (horaInicioTurno >= config.configuracion.hora_inicio_fecha && horaFinTurno <= config.configuracion.hora_fin_fecha) {
+              return false; // No disponible en el horario personalizado
+            }
+          }
+        }
+        break;
+    }
+  }
+  
+  // Si no hay configuraciones específicas, el usuario no está disponible
+  return false;
+};

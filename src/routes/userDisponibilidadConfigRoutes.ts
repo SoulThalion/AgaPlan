@@ -7,6 +7,7 @@ import {
   deleteConfiguracion,
   getConfiguracionesByMes,
   getConfiguracionesUsuarioAutenticado,
+  getUsuariosDisponiblesParaFecha,
 } from '../controllers/userDisponibilidadConfigController';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { requireAdmin } from '../middleware/roleMiddleware';
@@ -24,6 +25,9 @@ router.get('/mes/:mes', getConfiguracionesByMes);
 
 // Obtener configuraciones del usuario autenticado por mes
 router.get('/usuario-autenticado/:mes', getConfiguracionesUsuarioAutenticado);
+
+// Nuevo endpoint optimizado: Obtener usuarios disponibles para una fecha específica
+router.get('/usuarios-disponibles-para-fecha', getUsuariosDisponiblesParaFecha);
 
 // Obtener una configuración específica por ID
 router.get('/:id', getConfiguracionById);

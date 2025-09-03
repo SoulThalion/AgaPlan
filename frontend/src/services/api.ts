@@ -348,6 +348,13 @@ class ApiService {
     return response.data;
   }
 
+  // Nuevo método optimizado para obtener usuarios disponibles para una fecha específica
+  async getUsuariosDisponiblesParaFecha(fecha: string, horaInicio: string, horaFin: string): Promise<any> {
+    const params = { fecha, horaInicio, horaFin };
+    const response = await this.api.get('/user-disponibilidad-config/usuarios-disponibles-para-fecha', { params });
+    return response.data;
+  }
+
   async updateUserDisponibilidadConfig(id: number, data: {
     configuracion?: any;
     activo?: boolean;
