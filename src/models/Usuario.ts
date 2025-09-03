@@ -179,8 +179,4 @@ Usuario.init(
 Usuario.belongsTo(Usuario, { as: 'siempreConUsuario', foreignKey: 'siempreCon' });
 Usuario.belongsTo(Usuario, { as: 'nuncaConUsuario', foreignKey: 'nuncaCon' });
 
-// Importar y definir la relación con Equipo
-import Equipo from './Equipo';
-Usuario.belongsTo(Equipo, { as: 'equipo', foreignKey: 'equipoId' });
-
 export default Usuario;
