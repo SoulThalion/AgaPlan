@@ -15,7 +15,7 @@ import { filterByEquipo } from '../middleware';
 const router = Router();
 
 // Rutas públicas (solo para registro inicial)
-router.post('/', createUsuario);
+router.post('/', authMiddleware, createUsuario);
 
 // Rutas protegidas
 router.get('/', authMiddleware, filterByEquipo, requireAdmin, getAllUsuarios);
