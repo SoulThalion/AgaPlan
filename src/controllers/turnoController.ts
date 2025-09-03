@@ -1064,6 +1064,7 @@ export const createTurnosRecurrentes = async (req: AuthenticatedRequest, res: Re
 export const getTurnos = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const turnos = await Turno.findAll({
+      where: buildEquipoWhereClause(req),
       include: [
         {
           model: Lugar,
