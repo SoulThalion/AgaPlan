@@ -13,17 +13,28 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = (page - 1) * limit;
 
+    // Obtener parámetro de filtro por equipo (solo para superAdmin)
+    const equipoId = req.query.equipoId ? parseInt(req.query.equipoId as string) : null;
+    
     // Determinar si incluir información del equipo (solo para superAdmin)
     const includeEquipo = req.user?.rol === 'superAdmin';
     
+    // Construir where clause
+    let whereClause = buildEquipoWhereClause(req);
+    
+    // Si es superAdmin y se especifica un equipoId, filtrar por ese equipo
+    if (req.user?.rol === 'superAdmin' && equipoId) {
+      whereClause = { ...whereClause, equipoId };
+    }
+    
     // Obtener el total de usuarios para calcular la paginación
     const totalUsuarios = await Usuario.count({
-      where: buildEquipoWhereClause(req)
+      where: whereClause
     });
 
     // Obtener usuarios con paginación
     const usuarios = await Usuario.findAll({
-      where: buildEquipoWhereClause(req),
+      where: whereClause,
       attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'equipoId', 'createdAt'],
       include: [
         {

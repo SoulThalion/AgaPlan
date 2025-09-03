@@ -98,10 +98,12 @@ class ApiService {
   }
 
   // Usuarios
-  async getUsuarios(page: number = 1, limit: number = 10): Promise<ApiResponse<Usuario[]>> {
-    const response = await this.api.get<ApiResponse<Usuario[]>>('/usuarios', {
-      params: { page, limit }
-    });
+  async getUsuarios(page: number = 1, limit: number = 10, equipoId?: number): Promise<ApiResponse<Usuario[]>> {
+    const params: any = { page, limit };
+    if (equipoId) {
+      params.equipoId = equipoId;
+    }
+    const response = await this.api.get<ApiResponse<Usuario[]>>('/usuarios', { params });
     return response.data;
   }
 

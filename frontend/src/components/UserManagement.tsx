@@ -19,6 +19,7 @@ const UserManagement: React.FC = (): JSX.Element => {
   const [selectedUserForDisponibilidad, setSelectedUserForDisponibilidad] = useState<Usuario | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedEquipoId, setSelectedEquipoId] = useState<number | null>(currentEquipo?.id || null);
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -38,10 +39,10 @@ const UserManagement: React.FC = (): JSX.Element => {
 
   // Obtener usuarios
   const { data: usuarios, isLoading, error } = useQuery({
-    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage],
+    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId],
     queryFn: () => {
-      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage);
-      return apiService.getUsuarios(currentPage, itemsPerPage);
+      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage, 'selectedEquipoId:', selectedEquipoId);
+      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId || undefined);
     }
   });
 
@@ -508,6 +509,12 @@ const UserManagement: React.FC = (): JSX.Element => {
     setCurrentPage(1); // Reset a la primera página
   };
 
+  // Función para manejar cambio de equipo
+  const handleEquipoChange = (equipoId: number | null) => {
+    setSelectedEquipoId(equipoId);
+    setCurrentPage(1); // Reset a la primera página
+  };
+
   // Obtener información de paginación
   const pagination = usuarios?.pagination;
 
@@ -665,6 +672,32 @@ const UserManagement: React.FC = (): JSX.Element => {
           </button>
         </div>
       </div>
+
+      {/* Selector de Equipo - Solo para superAdmin */}
+      {currentUser?.rol === 'superAdmin' && (
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Filtrar por Equipo:
+            </label>
+            <select
+              value={selectedEquipoId || ''}
+              onChange={(e) => handleEquipoChange(e.target.value ? parseInt(e.target.value) : null)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white min-w-[200px]"
+            >
+              <option value="">Todos los equipos</option>
+              {equipos?.map((equipo) => (
+                <option key={equipo.id} value={equipo.id}>
+                  {equipo.nombre}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {selectedEquipoId ? `Mostrando usuarios del equipo seleccionado` : `Mostrando usuarios de todos los equipos`}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Vista de escritorio - Tabla */}
       <div className="hidden lg:block bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
