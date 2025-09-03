@@ -4,11 +4,12 @@ import morgan from 'morgan';
 import { authMiddleware } from './authMiddleware';
 import { requireAdmin, requireSuperAdmin, requireVoluntario } from './roleMiddleware';
 import { filterByEquipo, verifyEquipoAccess, buildEquipoWhereClause, requireSuperAdmin as requireSuperAdminEquipo } from './equipoMiddleware';
+import { AuthenticatedRequest } from '../types/auth';
 
 // Exportar funciones de autenticación y roles para uso en las rutas
 export const authenticateToken = authMiddleware;
 export const requireRole = (roles: string[]) => {
-  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  return (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
     if (roles.includes('admin')) {
       return requireAdmin(req, res, next);
     } else if (roles.includes('superAdmin')) {
