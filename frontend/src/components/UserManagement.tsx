@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Usuario } from '../types';
@@ -23,6 +23,7 @@ const UserManagement: React.FC = (): JSX.Element => {
   const [sortBy, setSortBy] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -40,12 +41,26 @@ const UserManagement: React.FC = (): JSX.Element => {
 
   const queryClient = useQueryClient();
 
+  // Debounce para el término de búsqueda
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Esperar 500ms después de que el usuario deje de escribir
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Resetear página cuando cambie el término de búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
   // Obtener usuarios
   const { data: usuarios, isLoading, error } = useQuery({
-    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId, sortBy, sortOrder, searchTerm],
+    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId, sortBy, sortOrder, debouncedSearchTerm],
     queryFn: () => {
-      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage, 'selectedEquipoId:', selectedEquipoId, 'sortBy:', sortBy, 'sortOrder:', sortOrder, 'searchTerm:', searchTerm);
-      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId || undefined, sortBy, sortOrder, searchTerm);
+      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage, 'selectedEquipoId:', selectedEquipoId, 'sortBy:', sortBy, 'sortOrder:', sortOrder, 'searchTerm:', debouncedSearchTerm);
+      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId || undefined, sortBy, sortOrder, debouncedSearchTerm);
     }
   });
 
@@ -572,7 +587,7 @@ const UserManagement: React.FC = (): JSX.Element => {
   // Función para manejar búsqueda
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset a la primera página
+    // El reset de página se maneja en el useEffect cuando cambia debouncedSearchTerm
   };
 
   // Obtener información de paginación
