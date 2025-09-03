@@ -34,22 +34,30 @@ class ApiService {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // Agregar equipoId para superAdmin
+        // Agregar equipoId para superAdmin, pero no para peticiones de usuarios con equipoId null
         const userStr = localStorage.getItem('user');
         if (userStr) {
           try {
             const user = JSON.parse(userStr);
             console.log('ApiService - user.rol:', user.rol);
             if (user.rol === 'superAdmin') {
-              const currentEquipoStr = localStorage.getItem('currentEquipo');
-              console.log('ApiService - currentEquipoStr from localStorage:', currentEquipoStr);
-              if (currentEquipoStr) {
-                const currentEquipo = JSON.parse(currentEquipoStr);
-                console.log('ApiService - parsed currentEquipo:', currentEquipo);
-                config.headers['X-Current-Equipo-Id'] = currentEquipo.id;
-                console.log('ApiService - setting header X-Current-Equipo-Id to:', currentEquipo.id);
+              // Verificar si es una petición a /usuarios con equipoId null
+              const isUsuariosRequest = config.url?.includes('/usuarios');
+              const hasEquipoIdNull = config.params?.equipoId === null;
+              
+              if (isUsuariosRequest && hasEquipoIdNull) {
+                console.log('ApiService - Skipping X-Current-Equipo-Id header for "Todos los equipos" request');
               } else {
-                console.log('ApiService - no currentEquipo in localStorage');
+                const currentEquipoStr = localStorage.getItem('currentEquipo');
+                console.log('ApiService - currentEquipoStr from localStorage:', currentEquipoStr);
+                if (currentEquipoStr) {
+                  const currentEquipo = JSON.parse(currentEquipoStr);
+                  console.log('ApiService - parsed currentEquipo:', currentEquipo);
+                  config.headers['X-Current-Equipo-Id'] = currentEquipo.id;
+                  console.log('ApiService - setting header X-Current-Equipo-Id to:', currentEquipo.id);
+                } else {
+                  console.log('ApiService - no currentEquipo in localStorage');
+                }
               }
             }
           } catch (error) {
@@ -98,9 +106,9 @@ class ApiService {
   }
 
   // Usuarios
-  async getUsuarios(page: number = 1, limit: number = 10, equipoId?: number, sortBy?: string, sortOrder?: string, searchTerm?: string): Promise<ApiResponse<Usuario[]>> {
+  async getUsuarios(page: number = 1, limit: number = 10, equipoId?: number | null, sortBy?: string, sortOrder?: string, searchTerm?: string): Promise<ApiResponse<Usuario[]>> {
     const params: any = { page, limit };
-    if (equipoId) {
+    if (equipoId !== undefined) {
       params.equipoId = equipoId;
     }
     if (sortBy) {

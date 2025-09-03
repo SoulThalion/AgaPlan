@@ -70,7 +70,7 @@ const UserManagement: React.FC = (): JSX.Element => {
     queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId, sortBy, sortOrder, debouncedSearchTerm],
     queryFn: () => {
       console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage, 'selectedEquipoId:', selectedEquipoId, 'sortBy:', sortBy, 'sortOrder:', sortOrder, 'searchTerm:', debouncedSearchTerm);
-      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId || undefined, sortBy, sortOrder, debouncedSearchTerm);
+      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId, sortBy, sortOrder, debouncedSearchTerm);
     }
   });
 
