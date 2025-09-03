@@ -98,7 +98,7 @@ class ApiService {
   }
 
   // Usuarios
-  async getUsuarios(page: number = 1, limit: number = 10, equipoId?: number, sortBy?: string, sortOrder?: string): Promise<ApiResponse<Usuario[]>> {
+  async getUsuarios(page: number = 1, limit: number = 10, equipoId?: number, sortBy?: string, sortOrder?: string, searchTerm?: string): Promise<ApiResponse<Usuario[]>> {
     const params: any = { page, limit };
     if (equipoId) {
       params.equipoId = equipoId;
@@ -108,6 +108,9 @@ class ApiService {
     }
     if (sortOrder) {
       params.sortOrder = sortOrder;
+    }
+    if (searchTerm) {
+      params.search = searchTerm;
     }
     const response = await this.api.get<ApiResponse<Usuario[]>>('/usuarios', { params });
     return response.data;

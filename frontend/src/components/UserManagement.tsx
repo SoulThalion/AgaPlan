@@ -22,6 +22,7 @@ const UserManagement: React.FC = (): JSX.Element => {
   const [selectedEquipoId, setSelectedEquipoId] = useState<number | null>(currentEquipo?.id || null);
   const [sortBy, setSortBy] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -41,10 +42,10 @@ const UserManagement: React.FC = (): JSX.Element => {
 
   // Obtener usuarios
   const { data: usuarios, isLoading, error } = useQuery({
-    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId, sortBy, sortOrder],
+    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId, sortBy, sortOrder, searchTerm],
     queryFn: () => {
-      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage, 'selectedEquipoId:', selectedEquipoId, 'sortBy:', sortBy, 'sortOrder:', sortOrder);
-      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId || undefined, sortBy, sortOrder);
+      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage, 'selectedEquipoId:', selectedEquipoId, 'sortBy:', sortBy, 'sortOrder:', sortOrder, 'searchTerm:', searchTerm);
+      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId || undefined, sortBy, sortOrder, searchTerm);
     }
   });
 
@@ -568,6 +569,12 @@ const UserManagement: React.FC = (): JSX.Element => {
     }
   };
 
+  // Función para manejar búsqueda
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset a la primera página
+  };
+
   // Obtener información de paginación
   const pagination = usuarios?.pagination;
 
@@ -726,19 +733,50 @@ const UserManagement: React.FC = (): JSX.Element => {
         </div>
       </div>
 
-      {/* Selector de Equipo - Solo para superAdmin */}
-      {currentUser?.rol === 'superAdmin' && (
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Filtrar por Equipo:
+      {/* Filtros y Búsqueda */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
+          {/* Campo de Búsqueda */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 flex-1">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              Buscar:
             </label>
-            <select
-              value={selectedEquipoId || ''}
-              onChange={(e) => handleEquipoChange(e.target.value ? parseInt(e.target.value) : null)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white min-w-[200px]"
-            >
-              <option value="">Todos los equipos</option>
+            <div className="relative flex-1 max-w-md">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Buscar por nombre, email, cargo, rol..."
+                className="w-full px-3 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            {searchTerm && (
+              <button
+                onClick={() => handleSearch('')}
+                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 whitespace-nowrap"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+
+          {/* Selector de Equipo - Solo para superAdmin */}
+          {currentUser?.rol === 'superAdmin' && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                Filtrar por Equipo:
+              </label>
+              <select
+                value={selectedEquipoId || ''}
+                onChange={(e) => handleEquipoChange(e.target.value ? parseInt(e.target.value) : null)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white min-w-[200px]"
+              >
+                <option value="">Todos los equipos</option>
               {equipos?.map((equipo) => (
                 <option key={equipo.id} value={equipo.id}>
                   {equipo.nombre}
@@ -746,11 +784,12 @@ const UserManagement: React.FC = (): JSX.Element => {
               ))}
             </select>
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              {selectedEquipoId ? `Mostrando usuarios del equipo seleccionado` : `Mostrando usuarios de todos los equipos`}
+              {selectedEquipoId ? `Mostrando usuarios del equipo seleccionado` : ''}
             </span>
-          </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Vista de escritorio - Tabla */}
       <div className="hidden lg:block bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">

@@ -35,6 +35,9 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
       });
     }
 
+    // Obtener parámetro de búsqueda
+    const searchTerm = req.query.search as string || '';
+    
     // Obtener parámetro de filtro por equipo (solo para superAdmin)
     const equipoId = req.query.equipoId ? parseInt(req.query.equipoId as string) : null;
     
@@ -44,18 +47,38 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
     // Construir where clause base
     let whereClause: any = {};
     
+    // Agregar búsqueda si se proporciona un término de búsqueda
+    if (searchTerm.trim()) {
+      const searchConditions: any[] = [
+        { nombre: { [Op.like]: `%${searchTerm}%` } },
+        { email: { [Op.like]: `%${searchTerm}%` } },
+        { cargo: { [Op.like]: `%${searchTerm}%` } },
+        { rol: { [Op.like]: `%${searchTerm}%` } }
+      ];
+      
+      // Agregar búsqueda por participación mensual solo si el término es un número
+      if (!isNaN(Number(searchTerm))) {
+        searchConditions.push({ participacionMensual: Number(searchTerm) });
+      }
+      
+      whereClause = {
+        [Op.or]: searchConditions
+      };
+    }
+    
     // Si es superAdmin
     if (req.user?.rol === 'superAdmin') {
       if (equipoId) {
         // Si se especifica un equipoId, filtrar por ese equipo
-        whereClause = { equipoId };
+        whereClause = { ...whereClause, equipoId };
       } else {
         // Si no se especifica equipoId, mostrar todos los equipos (sin filtro)
-        whereClause = {};
+        // whereClause ya está configurado arriba
       }
     } else {
       // Para otros roles, usar el filtro normal de equipo
-      whereClause = buildEquipoWhereClause(req);
+      const equipoWhereClause = buildEquipoWhereClause(req);
+      whereClause = { ...whereClause, ...equipoWhereClause };
     }
     
     // Obtener el total de usuarios para calcular la paginación
