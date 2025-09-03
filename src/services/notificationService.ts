@@ -71,6 +71,8 @@ class NotificationService {
     return existing !== null;
   }
 
+
+
   /**
    * Registra que se envió una notificación
    */
@@ -121,6 +123,7 @@ class NotificationService {
 
   /**
    * Obtiene turnos que necesitan notificación para un tipo específico
+   * NUEVA LÓGICA: Busca notificaciones atrasadas también
    */
   private async getTurnosForNotification(now: Date, tipo: 'una_semana' | 'un_dia' | 'una_hora'): Promise<NotificationJob[]> {
     const jobs: NotificationJob[] = [];
@@ -130,21 +133,19 @@ class NotificationService {
       return await this.getTurnosForOneHourNotification(now);
     }
     
-    // Calcular la fecha objetivo según el tipo de notificación
-    let fechaObjetivo: Date;
-    switch (tipo) {
-      case 'una_semana':
-        fechaObjetivo = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // +7 días
-        break;
-      case 'un_dia':
-        fechaObjetivo = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +1 día
-        break;
-    }
+    // NUEVA LÓGICA: Buscar turnos que necesitan notificación (incluyendo atrasadas)
+    // En lugar de buscar solo la fecha exacta, buscamos un rango de fechas
+    const fechaInicio = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +1 día (mínimo)
+    const fechaFin = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000); // +8 días (máximo)
+    
+    console.log(`🔍 [${tipo.toUpperCase()}] Buscando turnos entre ${fechaInicio.toISOString().split('T')[0]} y ${fechaFin.toISOString().split('T')[0]}`);
 
-    // Obtener turnos para la fecha objetivo
+    // Obtener turnos en el rango de fechas
     const turnos = await Turno.findAll({
       where: {
-        fecha: fechaObjetivo.toISOString().split('T')[0], // Formato YYYY-MM-DD
+        fecha: {
+          [Op.between]: [fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]]
+        },
         estado: 'ocupado' // Solo turnos ocupados
       },
       include: [
@@ -169,25 +170,57 @@ class NotificationService {
       ]
     });
 
-    // Para cada turno, verificar la configuración de notificaciones de cada usuario
+    // Para cada turno, verificar si necesita notificación basándose en los días restantes
     for (const turno of turnos) {
       if (turno.usuarios) {
-        for (const usuario of turno.usuarios) {
-        // Obtener configuración de notificaciones del usuario
-        const config = await UsuarioNotificacionConfig.findOne({
-          where: { usuarioId: usuario.id }
-        });
-
-        // Si no hay configuración, crear una por defecto
-        if (!config) {
-          await UsuarioNotificacionConfig.create({
-            usuarioId: usuario.id,
-            notificarUnaSemanaAntes: true,
-            notificarUnDiaAntes: true,
-            notificarUnaHoraAntes: true,
-            activo: true
-          });
+        // Calcular días restantes hasta el turno
+        const fechaTurno = new Date(turno.fecha);
+        const diasRestantes = Math.ceil((fechaTurno.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        console.log(`   📅 Turno ${turno.id} en ${diasRestantes} días (${turno.fecha})`);
+        
+        // Determinar qué tipo de notificación necesita este turno
+        let necesitaNotificacion = false;
+        let tipoNecesario: 'una_semana' | 'un_dia' | 'una_hora' | null = null;
+        
+        // LÓGICA MEJORADA: Solo enviar una notificación por tipo (igual que una_hora)
+        if (tipo === 'una_semana') {
+          // Para notificaciones de "una semana": solo si quedan entre 1-7 días
+          if (diasRestantes <= 7 && diasRestantes >= 1) {
+            necesitaNotificacion = true;
+            tipoNecesario = 'una_semana';
+          }
         }
+        
+        if (tipo === 'un_dia') {
+          // Para notificaciones de "un día": solo si quedan entre 0-1 días
+          if (diasRestantes <= 1 && diasRestantes >= 0) {
+            necesitaNotificacion = true;
+            tipoNecesario = 'un_dia';
+          }
+        }
+        
+        if (!necesitaNotificacion) {
+          console.log(`   ⏭️  Turno ${turno.id} no necesita notificación ${tipo} (${diasRestantes} días restantes)`);
+          continue;
+        }
+        
+        for (const usuario of turno.usuarios) {
+          // Obtener configuración de notificaciones del usuario
+          const config = await UsuarioNotificacionConfig.findOne({
+            where: { usuarioId: usuario.id }
+          });
+
+          // Si no hay configuración, crear una por defecto
+          if (!config) {
+            await UsuarioNotificacionConfig.create({
+              usuarioId: usuario.id,
+              notificarUnaSemanaAntes: true,
+              notificarUnDiaAntes: true,
+              notificarUnaHoraAntes: true,
+              activo: true
+            });
+          }
 
           // Verificar si el usuario quiere recibir este tipo de notificación
           const shouldNotify = this.shouldSendNotification(config, tipo);
@@ -203,6 +236,7 @@ class NotificationService {
                 tipoNotificacion: tipo,
                 fechaEnvio: now
               });
+              console.log(`   ✅ Agregado: Notificación ${tipo} para turno ${turno.id}, usuario ${usuario.id} (${diasRestantes} días restantes)`);
             } else {
               console.log(`   ⏭️  Notificación ${tipo} ya enviada para turno ${turno.id}, usuario ${usuario.id}`);
             }

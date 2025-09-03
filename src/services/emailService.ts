@@ -41,6 +41,51 @@ class EmailService {
     this.initializeTransporter();
   }
 
+  /**
+   * Calcula el tiempo restante hasta el turno en formato legible
+   */
+  private calcularTiempoRestante(fechaTurno: string, horaTurno: string): string {
+    const [horas, minutos] = horaTurno.split(':').map(Number);
+    
+    // Crear fecha completa del turno en zona horaria de Canarias
+    const fechaCompletaTurno = new Date(fechaTurno);
+    fechaCompletaTurno.setHours(horas, minutos, 0, 0);
+    
+    // Obtener hora actual en zona horaria de Canarias
+    const ahora = new Date().toLocaleString("en-US", {timeZone: "Atlantic/Canary"});
+    const ahoraCanarias = new Date(ahora);
+    
+    const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
+    const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
+    const diferenciaDias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
+    
+    // Si es más de un día, mostrar días
+    if (diferenciaDias > 0) {
+      return `${diferenciaDias} día${diferenciaDias > 1 ? 's' : ''}`;
+    }
+    
+    // Si es menos de un día, mostrar horas y minutos
+    if (diferenciaMinutos < 60) {
+      return `${diferenciaMinutos} minutos`;
+    } else if (diferenciaMinutos < 120) {
+      const horas = Math.floor(diferenciaMinutos / 60);
+      const minutosRestantes = diferenciaMinutos % 60;
+      if (minutosRestantes === 0) {
+        return `${horas} hora${horas > 1 ? 's' : ''}`;
+      } else {
+        return `${horas} hora${horas > 1 ? 's' : ''} y ${minutosRestantes} minutos`;
+      }
+    } else {
+      const horas = Math.floor(diferenciaMinutos / 60);
+      const minutosRestantes = diferenciaMinutos % 60;
+      if (minutosRestantes === 0) {
+        return `${horas} horas`;
+      } else {
+        return `${horas} horas y ${minutosRestantes} minutos`;
+      }
+    }
+  }
+
   private initializeTransporter() {
     // Configuración desde variables de entorno
     const emailConfig = {
@@ -111,18 +156,34 @@ class EmailService {
     let subject = '';
     let tiempoRestante = '';
     
+    // Calcular tiempo exacto restante para todas las notificaciones
+    const tiempoExacto = this.calcularTiempoRestante(fecha, horaInicio);
+    
     switch (tipoNotificacion) {
       case 'una_semana':
-        subject = `Recordatorio: Tu turno en AgaPlan es en una semana`;
-        tiempoRestante = 'una semana';
+        // Para notificaciones de "una semana", mostrar días exactos
+        const diasRestantes = Math.ceil((new Date(fecha).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        if (diasRestantes === 7) {
+          subject = `Recordatorio: Tu turno en AgaPlan es en una semana`;
+          tiempoRestante = 'una semana';
+        } else {
+          subject = `Recordatorio: Tu turno en AgaPlan es en ${diasRestantes} días`;
+          tiempoRestante = `${diasRestantes} días`;
+        }
         break;
       case 'un_dia':
-        subject = `Recordatorio: Tu turno en AgaPlan es mañana`;
-        tiempoRestante = 'un día';
+        // Para notificaciones de "un día", mostrar tiempo exacto
+        if (tiempoExacto.includes('día') || tiempoExacto.includes('días')) {
+          subject = `Recordatorio: Tu turno en AgaPlan es ${tiempoExacto}`;
+          tiempoRestante = tiempoExacto;
+        } else {
+          subject = `Recordatorio: Tu turno en AgaPlan es mañana`;
+          tiempoRestante = 'un día';
+        }
         break;
       case 'una_hora':
         // Usar el tiempo calculado si está disponible, sino usar el genérico
-        tiempoRestante = tiempoCalculado || 'una hora';
+        tiempoRestante = tiempoCalculado || tiempoExacto || 'una hora';
         subject = `Recordatorio: Tu turno en AgaPlan es en ${tiempoRestante}`;
         break;
       case 'manual':
