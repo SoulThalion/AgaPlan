@@ -281,41 +281,36 @@ export class NotificationController {
       const minute = now.getMinutes();
       
       console.log(`⏰ [SMART-CRON] Hora actual: ${hour}:${minute.toString().padStart(2, '0')}`);
+      console.log(`🔄 [SMART-CRON] Verificando TODAS las notificaciones pendientes (semana, día, hora)...`);
 
-      // 1. Verificar si es hora de notificaciones diarias (9:00 AM)
-      if (hour === 9 && minute === 0) {
-        console.log('📅 [SMART-CRON] Ejecutando notificaciones de una semana y un día antes...');
-        
-        // Ejecutar notificaciones de una semana antes
-        try {
-          const weekResult = await notificationService.processAllPendingNotifications();
-          results.notifications.week = { ...weekResult, executed: true };
-          console.log(`📊 [SMART-CRON] Notificaciones semana: ${weekResult.sent} enviadas, ${weekResult.failed} fallidas`);
-        } catch (error) {
-          console.error('❌ [SMART-CRON] Error en notificaciones semana:', error);
-        }
-
-        // Ejecutar notificaciones de un día antes
-        try {
-          const dayResult = await notificationService.processAllPendingNotifications();
-          results.notifications.day = { ...dayResult, executed: true };
-          console.log(`📊 [SMART-CRON] Notificaciones día: ${dayResult.sent} enviadas, ${dayResult.failed} fallidas`);
-        } catch (error) {
-          console.error('❌ [SMART-CRON] Error en notificaciones día:', error);
-        }
+      // 1. SIEMPRE verificar notificaciones de una semana antes
+      console.log('📅 [SMART-CRON] Verificando notificaciones de una semana antes...');
+      try {
+        const weekResult = await notificationService.processAllPendingNotifications();
+        results.notifications.week = { ...weekResult, executed: true };
+        console.log(`📊 [SMART-CRON] Notificaciones semana: ${weekResult.sent} enviadas, ${weekResult.failed} fallidas`);
+      } catch (error) {
+        console.error('❌ [SMART-CRON] Error en notificaciones semana:', error);
       }
 
-      // 2. Verificar si es hora de notificaciones de una hora antes (cada 10 minutos)
-      if (minute % 10 === 0) {
-        console.log('⏰ [SMART-CRON] Ejecutando notificaciones de una hora antes...');
-        
-        try {
-          const hourResult = await notificationService.processAllPendingNotifications();
-          results.notifications.hour = { ...hourResult, executed: true };
-          console.log(`📊 [SMART-CRON] Notificaciones hora: ${hourResult.sent} enviadas, ${hourResult.failed} fallidas`);
-        } catch (error) {
-          console.error('❌ [SMART-CRON] Error en notificaciones hora:', error);
-        }
+      // 2. SIEMPRE verificar notificaciones de un día antes
+      console.log('📅 [SMART-CRON] Verificando notificaciones de un día antes...');
+      try {
+        const dayResult = await notificationService.processAllPendingNotifications();
+        results.notifications.day = { ...dayResult, executed: true };
+        console.log(`📊 [SMART-CRON] Notificaciones día: ${dayResult.sent} enviadas, ${dayResult.failed} fallidas`);
+      } catch (error) {
+        console.error('❌ [SMART-CRON] Error en notificaciones día:', error);
+      }
+
+      // 3. SIEMPRE verificar notificaciones de una hora antes
+      console.log('⏰ [SMART-CRON] Verificando notificaciones de una hora antes...');
+      try {
+        const hourResult = await notificationService.processAllPendingNotifications();
+        results.notifications.hour = { ...hourResult, executed: true };
+        console.log(`📊 [SMART-CRON] Notificaciones hora: ${hourResult.sent} enviadas, ${hourResult.failed} fallidas`);
+      } catch (error) {
+        console.error('❌ [SMART-CRON] Error en notificaciones hora:', error);
       }
 
       // 3. Verificar si es hora de mantenimiento (2:00 AM)
