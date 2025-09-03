@@ -1164,12 +1164,13 @@ export const limpiarTodosLosUsuariosDeTurnos = async (req: AuthenticatedRequest,
 
     console.log(`🧹 Limpiando usuarios de turnos del mes ${mesNum + 1}/${añoNum} (${fechaInicio.toISOString()} - ${fechaFin.toISOString()})`);
 
-    // Obtener los IDs de los turnos del mes y año especificados
+    // Obtener los IDs de los turnos del mes y año especificados, filtrando por equipo
     const turnosDelMes = await Turno.findAll({
       where: {
         fecha: {
           [Op.between]: [fechaInicio.toISOString().split('T')[0], fechaFin.toISOString().split('T')[0]]
-        }
+        },
+        ...buildEquipoWhereClause(req) // Agregar filtro de equipo
       },
       attributes: ['id']
     });
