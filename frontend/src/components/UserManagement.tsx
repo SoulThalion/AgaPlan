@@ -6,9 +6,11 @@ import Swal from 'sweetalert2';
 import DisponibilidadModal from './DisponibilidadModal';
 import ParticipacionMensualDisplay from './ParticipacionMensualDisplay';
 import { useAuth } from '../contexts/AuthContext';
+import { useEquipo } from '../contexts/EquipoContext';
 
 const UserManagement: React.FC = (): JSX.Element => {
   const { user: currentUser } = useAuth();
+  const { equipos, currentEquipo } = useEquipo();
   console.log('Current user role:', currentUser?.rol);
   console.log('LocalStorage user:', localStorage.getItem('user'));
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,7 +28,8 @@ const UserManagement: React.FC = (): JSX.Element => {
     participacionMensual: undefined as number | null | undefined,
     tieneCoche: false,
     siempreCon: undefined as number | undefined,
-    nuncaCon: undefined as number | undefined
+    nuncaCon: undefined as number | undefined,
+    equipoId: currentEquipo?.id || 1
   });
 
   const queryClient = useQueryClient();
@@ -48,8 +51,7 @@ const UserManagement: React.FC = (): JSX.Element => {
     mutationFn: (data: Partial<Usuario>) => apiService.createUsuario(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
-      setIsModalOpen(false);
-      resetForm();
+      handleCloseModal();
       Swal.fire({
         icon: 'success',
         title: 'Usuario creado',
@@ -72,9 +74,7 @@ const UserManagement: React.FC = (): JSX.Element => {
       apiService.updateUsuario(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
-      setIsModalOpen(false);
-      setEditingUser(null);
-      resetForm();
+      handleCloseModal();
       Swal.fire({
         icon: 'success',
         title: 'Usuario actualizado',
@@ -125,7 +125,8 @@ const UserManagement: React.FC = (): JSX.Element => {
       participacionMensual: null,
       tieneCoche: false,
       siempreCon: undefined,
-      nuncaCon: undefined
+      nuncaCon: undefined,
+      equipoId: currentEquipo?.id || 1
     });
   };
 
@@ -204,7 +205,8 @@ const UserManagement: React.FC = (): JSX.Element => {
       participacionMensual: user.participacionMensual,
       tieneCoche: user.tieneCoche || false,
       siempreCon: user.siempreCon,
-      nuncaCon: user.nuncaCon
+      nuncaCon: user.nuncaCon,
+      equipoId: user.equipoId || currentEquipo?.id || 1
     });
     setIsModalOpen(true);
   };
@@ -212,6 +214,12 @@ const UserManagement: React.FC = (): JSX.Element => {
   const handleDisponibilidad = (user: Usuario) => {
     setSelectedUserForDisponibilidad(user);
     setIsDisponibilidadModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingUser(null);
+    resetForm();
   };
 
   const handleDelete = (userId: number) => {
@@ -871,9 +879,26 @@ const UserManagement: React.FC = (): JSX.Element => {
 
       {/* Modal para crear/editar usuario */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={handleCloseModal}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Botón X para cerrar */}
+            <button
+              onClick={handleCloseModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              aria-label="Cerrar modal"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 pr-8">
               {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
             </h3>
             
@@ -946,6 +971,28 @@ const UserManagement: React.FC = (): JSX.Element => {
                   </p>
                 )}
               </div>
+
+              {/* Campo Equipo - Solo visible para superAdmin */}
+              {currentUser?.rol === 'superAdmin' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Equipo <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="equipoId"
+                    value={formData.equipoId}
+                    onChange={(e) => setFormData({...formData, equipoId: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    required
+                  >
+                    {equipos?.map((equipo) => (
+                      <option key={equipo.id} value={equipo.id}>
+                        {equipo.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Resto de campos - Solo visibles si NO es rol grupo */}
               {formData.rol !== 'grupo' && (
@@ -1127,7 +1174,7 @@ const UserManagement: React.FC = (): JSX.Element => {
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                 >
                   Cancelar

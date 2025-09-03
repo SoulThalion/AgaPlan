@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useEquipo } from '../contexts/EquipoContext';
 import { useAuth } from '../contexts/AuthContext';
-import type { Equipo, EquipoCreationRequest, Usuario } from '../types';
+import type { Equipo, EquipoCreationRequest } from '../types';
 import Swal from 'sweetalert2';
 import apiService from '../services/api';
 
@@ -10,33 +10,14 @@ const EquipoManagement: React.FC = () => {
   const { token, isSuperAdmin } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
+
   const [selectedEquipo, setSelectedEquipo] = useState<Equipo | null>(null);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [formData, setFormData] = useState<EquipoCreationRequest>({
     nombre: '',
     descripcion: ''
   });
 
-  // Cargar usuarios para asignación
-  useEffect(() => {
-    const fetchUsuarios = async () => {
-      if (!token) return;
 
-      try {
-        const response = await apiService.getUsuarios();
-        if (response.success) {
-          setUsuarios(response.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching usuarios:', error);
-      }
-    };
-
-    if (showAssignModal) {
-      fetchUsuarios();
-    }
-  }, [token, showAssignModal]);
 
   // Verificar permisos
   if (!isSuperAdmin) {
@@ -161,35 +142,7 @@ const EquipoManagement: React.FC = () => {
     }
   };
 
-  const handleAssignUser = async (usuarioId: number, equipoId: number) => {
-    if (!token) return;
 
-    try {
-      const response = await apiService.assignUserToEquipo(usuarioId, equipoId);
-
-      if (response.success) {
-        await Swal.fire({
-          title: 'Éxito',
-          text: response.message || 'Usuario asignado correctamente',
-          icon: 'success',
-          confirmButtonText: 'OK'
-        });
-        setShowAssignModal(false);
-        await refreshEquipos();
-        await refreshStats();
-      } else {
-        throw new Error(response.message || 'Error al asignar usuario');
-      }
-    } catch (error) {
-      console.error('Error assigning user:', error);
-      await Swal.fire({
-        title: 'Error',
-        text: error instanceof Error ? error.message : 'Error al asignar usuario',
-        icon: 'error',
-        confirmButtonText: 'OK'
-      });
-    }
-  };
 
   const openEditModal = (equipo: Equipo) => {
     setSelectedEquipo(equipo);
@@ -239,16 +192,10 @@ const EquipoManagement: React.FC = () => {
                 Gestión de Equipos
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Administra los equipos y asigna usuarios
+                Administra los equipos del sistema
               </p>
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowAssignModal(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Asignar Usuario
-              </button>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -492,54 +439,7 @@ const EquipoManagement: React.FC = () => {
           </div>
         )}
 
-        {/* Modal Asignar Usuario */}
-        {showAssignModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-2xl">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Asignar Usuario a Equipo
-              </h2>
-              <div className="space-y-4">
-                {usuarios.map((usuario) => (
-                  <div key={usuario.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{usuario.nombre}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {usuario.email} • {usuario.rol}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <select
-                        onChange={(e) => {
-                          const equipoId = parseInt(e.target.value);
-                          if (equipoId !== usuario.equipoId) {
-                            handleAssignUser(usuario.id, equipoId);
-                          }
-                        }}
-                        defaultValue={usuario.equipoId}
-                        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                      >
-                        {equipos.map((equipo) => (
-                          <option key={equipo.id} value={equipo.id}>
-                            {equipo.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={() => setShowAssignModal(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );
