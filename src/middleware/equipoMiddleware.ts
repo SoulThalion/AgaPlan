@@ -16,8 +16,8 @@ export const filterByEquipo = (req: AuthenticatedRequest, res: Response, next: N
       
       if (currentEquipoId) {
         equipoId = parseInt(currentEquipoId as string);
-        // IMPORTANTE: Modificar temporalmente el equipoId del usuario para que los controladores lo usen
-        req.user.equipoId = equipoId;
+        // NO modificar req.user.equipoId para evitar interferir con operaciones de creación/edición
+        // En su lugar, almacenar el equipoId temporal en req.query
       } else {
         // Si no hay header, no aplicar filtro (ver todos los equipos)
         return next();
@@ -91,9 +91,10 @@ export const verifyEquipoAccess = (req: AuthenticatedRequest, res: Response, nex
 export const buildEquipoWhereClause = (req: AuthenticatedRequest, additionalWhere: any = {}) => {
   console.log('buildEquipoWhereClause - req.user.rol:', req.user?.rol);
   console.log('buildEquipoWhereClause - req.user.equipoId:', req.user?.equipoId);
+  console.log('buildEquipoWhereClause - req.query.equipoId:', req.query.equipoId);
   
-  // Obtener el equipoId (puede ser modificado por el middleware para superAdmin)
-  const equipoId = req.user?.equipoId || 1;
+  // Obtener el equipoId desde req.query (establecido por el middleware) o usar el original del usuario
+  const equipoId = req.query.equipoId ? parseInt(req.query.equipoId as string) : (req.user?.equipoId || 1);
   console.log('buildEquipoWhereClause - using equipoId:', equipoId);
   
   // Siempre aplicar filtro de equipo (incluso para superAdmin con equipo seleccionado)
