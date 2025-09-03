@@ -760,25 +760,7 @@ const ShiftManagement: React.FC = () => {
     });
   };
 
-  const handleDeleteAll = () => {
-    if (!turnos?.data || turnos.data.length === 0) return;
 
-    Swal.fire({
-      title: '¿Eliminar TODOS los turnos?',
-      text: `Se eliminarán ${turnos.data.length} turnos. Esta acción no se puede deshacer.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar todos',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed && turnos?.data) {
-        const allIds = turnos.data.map(turno => turno.id);
-        deleteMultipleTurnosMutation.mutate(allIds);
-      }
-    });
-  };
 
   const isLoading = turnosLoading || lugaresLoading || usuariosLoading;
 
@@ -812,13 +794,7 @@ const ShiftManagement: React.FC = () => {
               >
                 {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : `Eliminar ${selectedTurnos.length} Seleccionados`}
               </button>
-              <button
-                onClick={handleDeleteAll}
-                disabled={deleteMultipleTurnosMutation.isPending}
-                className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {deleteMultipleTurnosMutation.isPending ? 'Eliminando...' : 'Eliminar Todos'}
-              </button>
+
             </>
           )}
           <button
