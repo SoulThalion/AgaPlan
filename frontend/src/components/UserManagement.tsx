@@ -726,7 +726,7 @@ const UserManagement: React.FC = (): JSX.Element => {
                       </td>
                       {currentUser?.rol === 'superAdmin' && (
                         <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
-                          {user.equipo?.nombre || '-'}
+                          {user.equipo?.nombre || 'Sin equipo'}
                         </td>
                       )}
                                              <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
@@ -830,7 +830,7 @@ const UserManagement: React.FC = (): JSX.Element => {
                 {currentUser?.rol === 'superAdmin' && (
                   <div>
                     <span className="text-gray-400 dark:text-gray-400">Equipo:</span>
-                    <p className="text-gray-900 dark:text-white font-medium">{user.equipo?.nombre || '-'}</p>
+                    <p className="text-gray-900 dark:text-white font-medium">{user.equipo?.nombre || 'Sin equipo'}</p>
                   </div>
                 )}
                 <div>

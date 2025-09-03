@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../types/auth';
 import Usuario from '../models/Usuario';
+import Equipo from '../models/Equipo';
 import { Op } from 'sequelize';
 import Turno from '../models/Turno';
 import { buildEquipoWhereClause } from '../middleware/equipoMiddleware';
@@ -33,7 +34,7 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
           required: false
         },
         ...(includeEquipo ? [{
-          model: require('../models/Equipo').default,
+          model: Equipo,
           as: 'equipo',
           attributes: ['id', 'nombre', 'descripcion', 'activo'],
           required: false
