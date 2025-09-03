@@ -621,6 +621,10 @@ class NotificationService {
           as: 'exhibidores',
           through: { attributes: [] }
         }
+      ],
+      order: [
+        ['fecha', 'ASC'], // Ordenar por fecha ascendente
+        ['hora', 'ASC']   // Luego por hora ascendente
       ]
     });
 
