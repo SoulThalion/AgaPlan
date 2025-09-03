@@ -2219,12 +2219,14 @@ export default function DashboardOverview() {
           getEventColor={getEventColor}
         />
 
-               {/* Debug: Información de lugares y turnos */}
-        <DebugInfo
-          lugares={lugares}
-          turnos={turnos}
-          getTurnoEstado={getTurnoEstado}
-        />
+               {/* Debug: Información de lugares y turnos - Solo visible para superAdmin */}
+        {_user?.rol === 'superAdmin' && (
+          <DebugInfo
+            lugares={lugares}
+            turnos={turnos}
+            getTurnoEstado={getTurnoEstado}
+          />
+        )}
 
       {/* Modal de Turno */}
       <TurnoModal
