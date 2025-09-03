@@ -20,6 +20,8 @@ const UserManagement: React.FC = (): JSX.Element => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedEquipoId, setSelectedEquipoId] = useState<number | null>(currentEquipo?.id || null);
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortOrder, setSortOrder] = useState<string>('DESC');
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -39,10 +41,10 @@ const UserManagement: React.FC = (): JSX.Element => {
 
   // Obtener usuarios
   const { data: usuarios, isLoading, error } = useQuery({
-    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId],
+    queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId, sortBy, sortOrder],
     queryFn: () => {
-      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage, 'selectedEquipoId:', selectedEquipoId);
-      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId || undefined);
+      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId, 'page:', currentPage, 'limit:', itemsPerPage, 'selectedEquipoId:', selectedEquipoId, 'sortBy:', sortBy, 'sortOrder:', sortOrder);
+      return apiService.getUsuarios(currentPage, itemsPerPage, selectedEquipoId || undefined, sortBy, sortOrder);
     }
   });
 
@@ -515,6 +517,44 @@ const UserManagement: React.FC = (): JSX.Element => {
     setCurrentPage(1); // Reset a la primera página
   };
 
+  // Función para manejar ordenamiento
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      // Si ya está ordenando por este campo, cambiar el orden
+      setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
+    } else {
+      // Si es un campo nuevo, ordenar ascendente por defecto
+      setSortBy(field);
+      setSortOrder('ASC');
+    }
+    setCurrentPage(1); // Reset a la primera página
+  };
+
+  // Función para obtener el ícono de ordenamiento
+  const getSortIcon = (field: string) => {
+    if (sortBy !== field) {
+      return (
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    
+    if (sortOrder === 'ASC') {
+      return (
+        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      );
+    }
+  };
+
   // Obtener información de paginación
   const pagination = usuarios?.pagination;
 
@@ -707,28 +747,58 @@ const UserManagement: React.FC = (): JSX.Element => {
             scrollbarColor: 'rgb(156 163 175) transparent'
           }}>
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Usuario
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Cargo
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Rol
-                  </th>
+                             <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
+                 <tr>
+                   <th 
+                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                     onClick={() => handleSort('nombre')}
+                   >
+                     <div className="flex items-center space-x-1">
+                       <span>Usuario</span>
+                       {getSortIcon('nombre')}
+                     </div>
+                   </th>
+                                     <th 
+                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                     onClick={() => handleSort('cargo')}
+                   >
+                     <div className="flex items-center space-x-1">
+                       <span>Cargo</span>
+                       {getSortIcon('cargo')}
+                     </div>
+                   </th>
+                                     <th 
+                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                     onClick={() => handleSort('rol')}
+                   >
+                     <div className="flex items-center space-x-1">
+                       <span>Rol</span>
+                       {getSortIcon('rol')}
+                     </div>
+                   </th>
                   {currentUser?.rol === 'superAdmin' && (
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Equipo
                     </th>
                   )}
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Participación
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Coche
-                  </th>
+                                     <th 
+                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                     onClick={() => handleSort('participacionMensual')}
+                   >
+                     <div className="flex items-center space-x-1">
+                       <span>Participación</span>
+                       {getSortIcon('participacionMensual')}
+                     </div>
+                   </th>
+                                     <th 
+                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                     onClick={() => handleSort('tieneCoche')}
+                   >
+                     <div className="flex items-center space-x-1">
+                       <span>Coche</span>
+                       {getSortIcon('tieneCoche')}
+                     </div>
+                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Siempre Con
                   </th>

@@ -13,6 +13,28 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = (page - 1) * limit;
 
+    // Obtener parámetros de ordenamiento
+    const sortBy = req.query.sortBy as string || 'createdAt';
+    const sortOrder = req.query.sortOrder as string || 'DESC';
+    
+    // Validar campos de ordenamiento permitidos
+    const allowedSortFields = ['nombre', 'email', 'cargo', 'rol', 'participacionMensual', 'tieneCoche', 'createdAt'];
+    const allowedSortOrders = ['ASC', 'DESC'];
+    
+    if (!allowedSortFields.includes(sortBy)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Campo de ordenamiento no válido'
+      });
+    }
+    
+    if (!allowedSortOrders.includes(sortOrder.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Orden de ordenamiento no válido'
+      });
+    }
+
     // Obtener parámetro de filtro por equipo (solo para superAdmin)
     const equipoId = req.query.equipoId ? parseInt(req.query.equipoId as string) : null;
     
@@ -71,7 +93,7 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
           required: false
         }] : [])
       ],
-      order: [['createdAt', 'DESC']],
+      order: [[sortBy, sortOrder.toUpperCase()]],
       limit,
       offset
     });
