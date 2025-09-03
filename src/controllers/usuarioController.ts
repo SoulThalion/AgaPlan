@@ -14,21 +14,21 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
     const offset = (page - 1) * limit;
 
     // Obtener parámetros de ordenamiento
-    const sortBy = req.query.sortBy as string || 'createdAt';
-    const sortOrder = req.query.sortOrder as string || 'DESC';
+    const sortBy = req.query.sortBy as string || '';
+    const sortOrder = req.query.sortOrder as string || '';
     
-    // Validar campos de ordenamiento permitidos
+    // Validar campos de ordenamiento permitidos solo si se proporcionan
     const allowedSortFields = ['nombre', 'email', 'cargo', 'rol', 'participacionMensual', 'tieneCoche', 'createdAt'];
     const allowedSortOrders = ['ASC', 'DESC'];
     
-    if (!allowedSortFields.includes(sortBy)) {
+    if (sortBy && !allowedSortFields.includes(sortBy)) {
       return res.status(400).json({
         success: false,
         message: 'Campo de ordenamiento no válido'
       });
     }
     
-    if (!allowedSortOrders.includes(sortOrder.toUpperCase())) {
+    if (sortOrder && !allowedSortOrders.includes(sortOrder.toUpperCase())) {
       return res.status(400).json({
         success: false,
         message: 'Orden de ordenamiento no válido'
@@ -93,7 +93,7 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
           required: false
         }] : [])
       ],
-      order: [[sortBy, sortOrder.toUpperCase()]],
+      order: sortBy && sortOrder ? [[sortBy, sortOrder.toUpperCase()]] : [['createdAt', 'DESC']],
       limit,
       offset
     });

@@ -20,8 +20,8 @@ const UserManagement: React.FC = (): JSX.Element => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedEquipoId, setSelectedEquipoId] = useState<number | null>(currentEquipo?.id || null);
-  const [sortBy, setSortBy] = useState<string>('createdAt');
-  const [sortOrder, setSortOrder] = useState<string>('DESC');
+  const [sortBy, setSortBy] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<string>('');
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -521,7 +521,13 @@ const UserManagement: React.FC = (): JSX.Element => {
   const handleSort = (field: string) => {
     if (sortBy === field) {
       // Si ya está ordenando por este campo, cambiar el orden
-      setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
+      if (sortOrder === 'ASC') {
+        setSortOrder('DESC');
+      } else if (sortOrder === 'DESC') {
+        // Tercer clic: quitar ordenamiento
+        setSortBy('');
+        setSortOrder('');
+      }
     } else {
       // Si es un campo nuevo, ordenar ascendente por defecto
       setSortBy(field);
@@ -546,10 +552,17 @@ const UserManagement: React.FC = (): JSX.Element => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
         </svg>
       );
-    } else {
+    } else if (sortOrder === 'DESC') {
       return (
         <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      );
+    } else {
+      // Sin ordenamiento
+      return (
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
         </svg>
       );
     }
