@@ -24,8 +24,8 @@ class NotificationService {
     fechaCompletaTurno.setHours(horas, minutos, 0, 0);
     
     // Obtener hora actual en zona horaria de Canarias
-    const ahora = new Date().toLocaleString("en-US", {timeZone: "Atlantic/Canary"});
-    const ahoraCanarias = new Date(ahora);
+    const ahora = new Date();
+    const ahoraCanarias = new Date(ahora.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
     
     const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
     const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
@@ -102,8 +102,8 @@ class NotificationService {
    */
   async getPendingNotifications(): Promise<NotificationJob[]> {
     // Obtener hora actual en zona horaria de Canarias
-    const now = new Date().toLocaleString("en-US", {timeZone: "Atlantic/Canary"});
-    const nowCanarias = new Date(now);
+    const now = new Date();
+    const nowCanarias = new Date(now.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
     const jobs: NotificationJob[] = [];
 
     // Obtener turnos que necesitan notificación de una semana antes
@@ -194,7 +194,8 @@ class NotificationService {
         
         if (tipo === 'un_dia') {
           // Para notificaciones de "un día": solo si quedan entre 0-1 días
-          if (diasRestantes <= 1 && diasRestantes >= 0) {
+          // Y NO es el mismo día del turno (diasRestantes > 0)
+          if (diasRestantes <= 1 && diasRestantes > 0) {
             necesitaNotificacion = true;
             tipoNecesario = 'un_dia';
           }
@@ -255,7 +256,7 @@ class NotificationService {
   private async getTurnosForOneHourNotification(now: Date): Promise<NotificationJob[]> {
     const jobs: NotificationJob[] = [];
     
-    // Calcular la hora objetivo (una hora desde ahora)
+    // Calcular la hora objetivo (una hora desde ahora) en zona horaria de Canarias
     const horaObjetivo = new Date(now.getTime() + 60 * 60 * 1000);
     
     // Obtener todos los turnos del día actual y del día siguiente
@@ -471,24 +472,49 @@ class NotificationService {
   /**
    * Procesa todas las notificaciones pendientes
    */
-  async processAllPendingNotifications(): Promise<{ sent: number; failed: number }> {
-    const jobs = await this.getPendingNotifications();
-    let sent = 0;
-    let failed = 0;
+  async processAllPendingNotifications(tipo?: 'una_semana' | 'un_dia' | 'una_hora'): Promise<{ sent: number; failed: number }> {
+    if (tipo) {
+      // Procesar notificaciones de un tipo específico
+      const now = new Date();
+      const nowCanarias = new Date(now.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
+      
+      const jobs = await this.getTurnosForNotification(nowCanarias, tipo);
+      let sent = 0;
+      let failed = 0;
 
-    console.log(`📧 Procesando ${jobs.length} notificaciones pendientes...`);
+      console.log(`📧 Procesando ${jobs.length} notificaciones de ${tipo}...`);
 
-    for (const job of jobs) {
-      const success = await this.processNotification(job);
-      if (success) {
-        sent++;
-      } else {
-        failed++;
+      for (const job of jobs) {
+        const success = await this.processNotification(job);
+        if (success) {
+          sent++;
+        } else {
+          failed++;
+        }
       }
-    }
 
-    console.log(`📊 Notificaciones procesadas: ${sent} enviadas, ${failed} fallidas`);
-    return { sent, failed };
+      console.log(`📊 Notificaciones ${tipo} procesadas: ${sent} enviadas, ${failed} fallidas`);
+      return { sent, failed };
+    } else {
+      // Procesar todas las notificaciones pendientes
+      const jobs = await this.getPendingNotifications();
+      let sent = 0;
+      let failed = 0;
+
+      console.log(`📧 Procesando ${jobs.length} notificaciones pendientes...`);
+
+      for (const job of jobs) {
+        const success = await this.processNotification(job);
+        if (success) {
+          sent++;
+        } else {
+          failed++;
+        }
+      }
+
+      console.log(`📊 Notificaciones procesadas: ${sent} enviadas, ${failed} fallidas`);
+      return { sent, failed };
+    }
   }
 
   /**
@@ -530,9 +556,9 @@ class NotificationService {
     console.log('🧪 Probando notificaciones de una hora antes...');
     
     // Obtener hora actual en zona horaria de Canarias
-    const now = new Date().toLocaleString("en-US", {timeZone: "Atlantic/Canary"});
-    const nowCanarias = new Date(now);
-    
+    const now = new Date();
+    const nowCanarias = new Date(now.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
+
     const jobs = await this.getTurnosForOneHourNotification(nowCanarias);
     let sent = 0;
     let failed = 0;

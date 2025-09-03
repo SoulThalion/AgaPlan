@@ -52,8 +52,8 @@ class EmailService {
     fechaCompletaTurno.setHours(horas, minutos, 0, 0);
     
     // Obtener hora actual en zona horaria de Canarias
-    const ahora = new Date().toLocaleString("en-US", {timeZone: "Atlantic/Canary"});
-    const ahoraCanarias = new Date(ahora);
+    const ahora = new Date();
+    const ahoraCanarias = new Date(ahora.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
     
     const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
     const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
@@ -161,25 +161,20 @@ class EmailService {
     
     switch (tipoNotificacion) {
       case 'una_semana':
-        // Para notificaciones de "una semana", mostrar días exactos
-        const diasRestantes = Math.ceil((new Date(fecha).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-        if (diasRestantes === 7) {
+        // Para notificaciones de "una semana", usar el tiempo calculado
+        tiempoRestante = tiempoExacto;
+        if (tiempoExacto === '7 días') {
           subject = `Recordatorio: Tu turno en AgaPlan es en una semana`;
           tiempoRestante = 'una semana';
         } else {
-          subject = `Recordatorio: Tu turno en AgaPlan es en ${diasRestantes} días`;
-          tiempoRestante = `${diasRestantes} días`;
+          subject = `Recordatorio: Tu turno en AgaPlan es en ${tiempoExacto}`;
         }
         break;
       case 'un_dia':
-        // Para notificaciones de "un día", mostrar tiempo exacto
-        if (tiempoExacto.includes('día') || tiempoExacto.includes('días')) {
-          subject = `Recordatorio: Tu turno en AgaPlan es ${tiempoExacto}`;
-          tiempoRestante = tiempoExacto;
-        } else {
-          subject = `Recordatorio: Tu turno en AgaPlan es mañana`;
-          tiempoRestante = 'un día';
-        }
+        // Para notificaciones de "un día", SIEMPRE decir "mañana"
+        // (aunque sea atrasada, el usuario debe entender que es el día anterior)
+        subject = `Recordatorio: Tu turno en AgaPlan es mañana`;
+        tiempoRestante = 'un día';
         break;
       case 'una_hora':
         // Usar el tiempo calculado si está disponible, sino usar el genérico
