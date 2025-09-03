@@ -19,12 +19,21 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
     // Determinar si incluir información del equipo (solo para superAdmin)
     const includeEquipo = req.user?.rol === 'superAdmin';
     
-    // Construir where clause
-    let whereClause = buildEquipoWhereClause(req);
+    // Construir where clause base
+    let whereClause: any = {};
     
-    // Si es superAdmin y se especifica un equipoId, filtrar por ese equipo
-    if (req.user?.rol === 'superAdmin' && equipoId) {
-      whereClause = { ...whereClause, equipoId };
+    // Si es superAdmin
+    if (req.user?.rol === 'superAdmin') {
+      if (equipoId) {
+        // Si se especifica un equipoId, filtrar por ese equipo
+        whereClause = { equipoId };
+      } else {
+        // Si no se especifica equipoId, mostrar todos los equipos (sin filtro)
+        whereClause = {};
+      }
+    } else {
+      // Para otros roles, usar el filtro normal de equipo
+      whereClause = buildEquipoWhereClause(req);
     }
     
     // Obtener el total de usuarios para calcular la paginación
