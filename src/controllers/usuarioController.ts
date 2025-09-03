@@ -7,9 +7,12 @@ import { buildEquipoWhereClause } from '../middleware/equipoMiddleware';
 
 export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // Determinar si incluir información del equipo (solo para superAdmin)
+    const includeEquipo = req.user?.rol === 'superAdmin';
+    
     const usuarios = await Usuario.findAll({
       where: buildEquipoWhereClause(req),
-      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt'],
+      attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'equipoId', 'createdAt'],
       include: [
         {
           model: Usuario,
@@ -28,7 +31,13 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
           as: 'cargoInfo',
           attributes: ['id', 'nombre', 'descripcion', 'prioridad', 'activo'],
           required: false
-        }
+        },
+        ...(includeEquipo ? [{
+          model: require('../models/Equipo').default,
+          as: 'equipo',
+          attributes: ['id', 'nombre', 'descripcion', 'activo'],
+          required: false
+        }] : [])
       ],
       order: [['createdAt', 'DESC']]
     });

@@ -670,6 +670,11 @@ const UserManagement: React.FC = (): JSX.Element => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Rol
                   </th>
+                  {currentUser?.rol === 'superAdmin' && (
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Equipo
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Participación
                   </th>
@@ -719,6 +724,11 @@ const UserManagement: React.FC = (): JSX.Element => {
                           {user.rol}
                         </span>
                       </td>
+                      {currentUser?.rol === 'superAdmin' && (
+                        <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
+                          {user.equipo?.nombre || '-'}
+                        </td>
+                      )}
                                              <td className="px-4 py-4 text-sm text-gray-900 dark:text-white">
                          <ParticipacionMensualDisplay
                            userId={user.id}
@@ -771,7 +781,7 @@ const UserManagement: React.FC = (): JSX.Element => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-4 py-6 text-center text-gray-500 dark:text-gray-300">
+                    <td colSpan={currentUser?.rol === 'superAdmin' ? 9 : 8} className="px-4 py-6 text-center text-gray-500 dark:text-gray-300">
                       No hay usuarios registrados.
                     </td>
                   </tr>
@@ -817,6 +827,12 @@ const UserManagement: React.FC = (): JSX.Element => {
                   <span className="text-gray-400 dark:text-gray-400">Cargo:</span>
                   <p className="text-gray-900 dark:text-white font-medium">{user.cargo || '-'}</p>
                 </div>
+                {currentUser?.rol === 'superAdmin' && (
+                  <div>
+                    <span className="text-gray-400 dark:text-gray-400">Equipo:</span>
+                    <p className="text-gray-900 dark:text-white font-medium">{user.equipo?.nombre || '-'}</p>
+                  </div>
+                )}
                 <div>
                                      <span className="text-gray-400 dark:text-gray-400">Participación:</span>
                    <div className="text-gray-900 dark:text-white font-medium">
