@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { EquipoProvider } from './contexts/EquipoContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 // import Register from './components/Register'; // Temporalmente deshabilitado
@@ -99,6 +100,15 @@ const AppContent: React.FC = () => {
             } 
           />
           
+          <Route 
+            path="/equipos" 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          
           {/* Redirigir la ruta raíz basado en autenticación */}
           <Route 
             path="/" 
@@ -124,7 +134,9 @@ function App(): ReactElement {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <AppContent />
+          <EquipoProvider>
+            <AppContent />
+          </EquipoProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

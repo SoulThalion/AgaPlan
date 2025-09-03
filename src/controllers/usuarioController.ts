@@ -3,10 +3,12 @@ import { AuthenticatedRequest } from '../types/auth';
 import Usuario from '../models/Usuario';
 import { Op } from 'sequelize';
 import Turno from '../models/Turno';
+import { buildEquipoWhereClause } from '../middleware/equipoMiddleware';
 
-export const getAllUsuarios = async (req: Request, res: Response) => {
+export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const usuarios = await Usuario.findAll({
+      where: buildEquipoWhereClause(req),
       attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt'],
       include: [
         {
@@ -44,10 +46,14 @@ export const getAllUsuarios = async (req: Request, res: Response) => {
   }
 };
 
-export const getUsuarioById = async (req: Request, res: Response) => {
+export const getUsuarioById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const usuario = await Usuario.findByPk(id, {
+    const usuario = await Usuario.findOne({
+      where: {
+        id,
+        ...buildEquipoWhereClause(req)
+      },
       attributes: ['id', 'nombre', 'email', 'sexo', 'cargo', 'cargoId', 'rol', 'participacionMensual', 'tieneCoche', 'siempreCon', 'nuncaCon', 'createdAt', 'updatedAt'],
       include: [
         {

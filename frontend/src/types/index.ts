@@ -1,3 +1,13 @@
+export interface Equipo {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  usuarios?: Usuario[];
+}
+
 export interface Usuario {
   id: number;
   nombre: string;
@@ -14,6 +24,8 @@ export interface Usuario {
   nuncaCon?: number; // ID del usuario que nunca debe acompañar a este usuario
   siempreConUsuario?: Usuario; // Usuario que siempre debe acompañar
   nuncaConUsuario?: Usuario; // Usuario que nunca debe acompañar
+  equipoId: number; // ID del equipo al que pertenece el usuario
+  equipo?: Equipo; // Información del equipo
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -120,4 +132,31 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data?: T;
+}
+
+// Tipos para gestión de equipos
+export interface EquipoCreationRequest {
+  nombre: string;
+  descripcion?: string;
+}
+
+export interface EquipoUpdateRequest {
+  nombre?: string;
+  descripcion?: string;
+  activo?: boolean;
+}
+
+export interface EquipoStats {
+  id: number;
+  nombre: string;
+  activo: boolean;
+  totalUsuarios: number;
+  admins: number;
+  voluntarios: number;
+  grupos: number;
+}
+
+export interface AssignUserToEquipoRequest {
+  usuarioId: number;
+  equipoId: number;
 }

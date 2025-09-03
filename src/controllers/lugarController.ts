@@ -4,6 +4,7 @@ import Lugar from '../models/Lugar';
 import Turno from '../models/Turno';
 import { Op } from 'sequelize';
 import sequelize from '../config/database';
+import { buildEquipoWhereClause } from '../middleware/equipoMiddleware';
 
 // Endpoint de prueba para verificar la conexión
 export const testLugarConnection = async (req: Request, res: Response) => {
@@ -92,7 +93,7 @@ export const testLugarModel = async (req: Request, res: Response) => {
 };
 
 // Obtener todos los lugares
-export const getAllLugares = async (req: Request, res: Response) => {
+export const getAllLugares = async (req: AuthenticatedRequest, res: Response) => {
   try {
     console.log('🔍 getAllLugares: Iniciando búsqueda de lugares...');
     console.log('🔍 getAllLugares: Modelo Lugar importado:', !!Lugar);
@@ -102,6 +103,7 @@ export const getAllLugares = async (req: Request, res: Response) => {
     console.log('🔍 getAllLugares: Probando conexión a la base de datos...');
     
     const lugares = await Lugar.findAll({
+      where: buildEquipoWhereClause(req),
       order: [['nombre', 'ASC']]
     });
 

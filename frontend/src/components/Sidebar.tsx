@@ -12,6 +12,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { user, logout } = useAuth();
   const isAdmin = user?.rol === 'admin' || user?.rol === 'superAdmin';
+  const isSuperAdmin = user?.rol === 'superAdmin';
 
   // Detectar si estamos en móvil
   useEffect(() => {
@@ -34,6 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'cargos', label: 'Cargos', icon: '🎯', adminOnly: true },
     { id: 'exhibidores', label: 'Exhibidores', icon: '🎪', adminOnly: true },
     { id: 'turnos', label: 'Turnos', icon: '⏰', adminOnly: true },
+    { id: 'equipos', label: 'Equipos', icon: '🏢', adminOnly: true, superAdminOnly: true },
   ];
 
   const toggleSidebar = () => {
@@ -113,6 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
             <ul className="space-y-2 px-3">
               {menuItems.map((item) => {
                 if (item.adminOnly && !isAdmin) return null;
+                if (item.superAdminOnly && !isSuperAdmin) return null;
 
                 const isActive = activeTab === item.id;
                 
@@ -213,6 +216,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         <ul className="space-y-2 px-3">
           {menuItems.map((item) => {
             if (item.adminOnly && !isAdmin) return null;
+            if (item.superAdminOnly && !isSuperAdmin) return null;
 
             const isActive = activeTab === item.id;
             

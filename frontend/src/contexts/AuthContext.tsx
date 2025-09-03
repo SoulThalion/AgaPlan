@@ -8,6 +8,8 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isSuperAdmin: boolean;
+  currentEquipoId: number | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,6 +72,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isAuthenticated: !!token && !!user,
     isLoading,
+    isSuperAdmin: user?.rol === 'superAdmin',
+    currentEquipoId: user?.equipoId || null,
   };
 
   return (

@@ -347,6 +347,45 @@ class ApiService {
     const response = await this.api.post('/notifications/send-to-all', { month });
     return response.data;
   }
+
+  // Equipos
+  async getEquipos(): Promise<ApiResponse<any[]>> {
+    const response = await this.api.get<ApiResponse<any[]>>('/equipos');
+    return response.data;
+  }
+
+  async getEquipoById(id: number): Promise<ApiResponse<any>> {
+    const response = await this.api.get<ApiResponse<any>>(`/equipos/${id}`);
+    return response.data;
+  }
+
+  async createEquipo(data: any): Promise<ApiResponse<any>> {
+    const response = await this.api.post<ApiResponse<any>>('/equipos', data);
+    return response.data;
+  }
+
+  async updateEquipo(id: number, data: any): Promise<ApiResponse<any>> {
+    const response = await this.api.put<ApiResponse<any>>(`/equipos/${id}`, data);
+    return response.data;
+  }
+
+  async deleteEquipo(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete<ApiResponse<void>>(`/equipos/${id}`);
+    return response.data;
+  }
+
+  async assignUserToEquipo(usuarioId: number, equipoId: number): Promise<ApiResponse<any>> {
+    const response = await this.api.post<ApiResponse<any>>('/equipos/assign-user', {
+      usuarioId,
+      equipoId
+    });
+    return response.data;
+  }
+
+  async getEquipoStats(): Promise<ApiResponse<any[]>> {
+    const response = await this.api.get<ApiResponse<any[]>>('/equipos/stats');
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

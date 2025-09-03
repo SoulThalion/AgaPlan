@@ -3,6 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { authMiddleware } from './authMiddleware';
 import { requireAdmin, requireSuperAdmin, requireVoluntario } from './roleMiddleware';
+import { filterByEquipo, verifyEquipoAccess, buildEquipoWhereClause, requireSuperAdmin as requireSuperAdminEquipo } from './equipoMiddleware';
 
 // Exportar funciones de autenticación y roles para uso en las rutas
 export const authenticateToken = authMiddleware;
@@ -19,6 +20,9 @@ export const requireRole = (roles: string[]) => {
     return requireAdmin(req, res, next);
   };
 };
+
+// Exportar funciones de middleware de equipos
+export { filterByEquipo, verifyEquipoAccess, buildEquipoWhereClause, requireSuperAdminEquipo };
 
 export const setupMiddleware = (app: express.Application) => {
   // CORS

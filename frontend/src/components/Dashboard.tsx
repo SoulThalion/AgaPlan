@@ -8,6 +8,7 @@ import ShiftManagement from './ShiftManagement';
 import DashboardOverview from './DashboardOverview';
 import CargoManagement from './CargoManagement';
 import ExhibidorManagement from './ExhibidorManagement';
+import EquipoManagement from './EquipoManagement';
 
 const Dashboard: React.FC = () => {
   const location = useLocation();
@@ -23,6 +24,7 @@ const Dashboard: React.FC = () => {
     if (path === '/cargos') return 'cargos';
     if (path === '/exhibidores') return 'exhibidores';
     if (path === '/turnos') return 'turnos';
+    if (path === '/equipos') return 'equipos';
     return 'overview';
   };
 
@@ -59,6 +61,8 @@ const Dashboard: React.FC = () => {
         return isAdmin ? <CargoManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
       case 'exhibidores':
         return isAdmin ? <ExhibidorManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
+      case 'equipos':
+        return user?.rol === 'superAdmin' ? <EquipoManagement /> : <div className="text-center py-12"><p className="text-red-500">Acceso denegado</p></div>;
       default:
         return <DashboardOverview />;
     }
