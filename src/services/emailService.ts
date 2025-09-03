@@ -44,7 +44,7 @@ class EmailService {
   /**
    * Calcula el tiempo restante hasta el turno en formato legible
    */
-  private calcularTiempoRestante(fechaTurno: string, horaTurno: string): string {
+  private calcularTiempoRestante(fechaTurno: string, horaTurno: string, tipoNotificacion?: 'una_semana' | 'un_dia' | 'una_hora' | 'manual'): string {
     const [horas, minutos] = horaTurno.split(':').map(Number);
     
     // Crear fecha completa del turno en zona horaria de Canarias
@@ -53,12 +53,43 @@ class EmailService {
     
     // Obtener hora actual en zona horaria de Canarias
     const ahora = new Date();
-    const ahoraCanarias = new Date(ahora.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
+    
+    // Crear fecha en zona horaria de Canarias
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Atlantic/Canary',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    const partes = formatter.formatToParts(ahora);
+    const ahoraCanarias = new Date(
+      parseInt(partes.find(p => p.type === 'year')!.value),
+      parseInt(partes.find(p => p.type === 'month')!.value) - 1,
+      parseInt(partes.find(p => p.type === 'day')!.value),
+      parseInt(partes.find(p => p.type === 'hour')!.value),
+      parseInt(partes.find(p => p.type === 'minute')!.value),
+      parseInt(partes.find(p => p.type === 'second')!.value)
+    );
     
     const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
     const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
     const diferenciaDias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
     
+    // Para notificaciones de "una semana antes", siempre mostrar días
+    if (tipoNotificacion === 'una_semana') {
+      if (diferenciaDias > 0) {
+        return `${diferenciaDias} día${diferenciaDias > 1 ? 's' : ''}`;
+      } else {
+        return "hoy";
+      }
+    }
+    
+    // Para otros tipos de notificación, usar la lógica normal
     // Si es más de un día, mostrar días
     if (diferenciaDias > 0) {
       return `${diferenciaDias} día${diferenciaDias > 1 ? 's' : ''}`;
@@ -157,7 +188,7 @@ class EmailService {
     let tiempoRestante = '';
     
     // Calcular tiempo exacto restante para todas las notificaciones
-    const tiempoExacto = this.calcularTiempoRestante(fecha, horaInicio);
+    const tiempoExacto = this.calcularTiempoRestante(fecha, horaInicio, tipoNotificacion);
     
     switch (tipoNotificacion) {
       case 'una_semana':

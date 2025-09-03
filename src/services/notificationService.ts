@@ -13,6 +13,35 @@ export interface NotificationJob {
 class NotificationService {
   
   /**
+   * Obtiene la fecha actual en zona horaria de Canarias
+   */
+  private getCurrentTimeInCanarias(): Date {
+    const ahora = new Date();
+    
+    // Crear fecha en zona horaria de Canarias
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Atlantic/Canary',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    const partes = formatter.formatToParts(ahora);
+    return new Date(
+      parseInt(partes.find(p => p.type === 'year')!.value),
+      parseInt(partes.find(p => p.type === 'month')!.value) - 1,
+      parseInt(partes.find(p => p.type === 'day')!.value),
+      parseInt(partes.find(p => p.type === 'hour')!.value),
+      parseInt(partes.find(p => p.type === 'minute')!.value),
+      parseInt(partes.find(p => p.type === 'second')!.value)
+    );
+  }
+  
+  /**
    * Calcula el tiempo restante hasta el turno en formato legible
    */
   private calcularTiempoRestante(fechaTurno: Date, horaTurno: string): string {
@@ -24,8 +53,7 @@ class NotificationService {
     fechaCompletaTurno.setHours(horas, minutos, 0, 0);
     
     // Obtener hora actual en zona horaria de Canarias
-    const ahora = new Date();
-    const ahoraCanarias = new Date(ahora.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
+    const ahoraCanarias = this.getCurrentTimeInCanarias();
     
     const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
     const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
@@ -102,8 +130,7 @@ class NotificationService {
    */
   async getPendingNotifications(): Promise<NotificationJob[]> {
     // Obtener hora actual en zona horaria de Canarias
-    const now = new Date();
-    const nowCanarias = new Date(now.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
+    const nowCanarias = this.getCurrentTimeInCanarias();
     const jobs: NotificationJob[] = [];
 
     // Obtener turnos que necesitan notificación de una semana antes
@@ -475,8 +502,7 @@ class NotificationService {
   async processAllPendingNotifications(tipo?: 'una_semana' | 'un_dia' | 'una_hora'): Promise<{ sent: number; failed: number }> {
     if (tipo) {
       // Procesar notificaciones de un tipo específico
-      const now = new Date();
-      const nowCanarias = new Date(now.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
+      const nowCanarias = this.getCurrentTimeInCanarias();
       
       const jobs = await this.getTurnosForNotification(nowCanarias, tipo);
       let sent = 0;
@@ -556,8 +582,7 @@ class NotificationService {
     console.log('🧪 Probando notificaciones de una hora antes...');
     
     // Obtener hora actual en zona horaria de Canarias
-    const now = new Date();
-    const nowCanarias = new Date(now.toLocaleString("en-US", {timeZone: "Atlantic/Canary"}));
+    const nowCanarias = this.getCurrentTimeInCanarias();
 
     const jobs = await this.getTurnosForOneHourNotification(nowCanarias);
     let sent = 0;
