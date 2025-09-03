@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import type { Cargo } from '../types';
 import { toast } from 'react-hot-toast';
+import { useEquipo } from '../contexts/EquipoContext';
 
 const CargoManagement: React.FC = () => {
+  const { currentEquipoId } = useEquipo();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCargo, setEditingCargo] = useState<Cargo | null>(null);
   const [formData, setFormData] = useState({
@@ -18,7 +20,7 @@ const CargoManagement: React.FC = () => {
 
   // Obtener cargos
   const { data: cargos, isLoading, error } = useQuery({
-    queryKey: ['cargos'],
+    queryKey: ['cargos', currentEquipoId],
     queryFn: () => apiService.getCargos(),
   });
 

@@ -5,8 +5,10 @@ import type { Lugar } from '../types';
 import Swal from 'sweetalert2';
 import GoogleMapsInput from './GoogleMapsInput';
 import PlaceMapModal from './PlaceMapModal';
+import { useEquipo } from '../contexts/EquipoContext';
 
 const PlaceManagement: React.FC = () => {
+  const { currentEquipoId } = useEquipo();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPlace, setEditingPlace] = useState<Lugar | null>(null);
   const [mapModalOpen, setMapModalOpen] = useState(false);
@@ -26,7 +28,7 @@ const PlaceManagement: React.FC = () => {
 
   // Obtener lugares
   const { data: lugares, isLoading, error } = useQuery({
-    queryKey: ['lugares'],
+    queryKey: ['lugares', currentEquipoId],
     queryFn: () => apiService.getLugares()
   });
 

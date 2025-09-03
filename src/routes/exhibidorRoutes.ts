@@ -8,6 +8,7 @@ import {
 } from '../controllers/exhibidorController';
 import { requireAdmin } from '../middleware/roleMiddleware';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { filterByEquipo } from '../middleware';
 
 const router = Router();
 
@@ -16,8 +17,8 @@ router.get('/', getAllExhibidores);
 router.get('/:id', getExhibidorById);
 
 // Rutas protegidas (requieren autenticación y rol de admin o superior)
-router.post('/', authMiddleware, requireAdmin, createExhibidor);
-router.put('/:id', authMiddleware, requireAdmin, updateExhibidor);
-router.delete('/:id', authMiddleware, requireAdmin, deleteExhibidor);
+router.post('/', authMiddleware, filterByEquipo, requireAdmin, createExhibidor);
+router.put('/:id', authMiddleware, filterByEquipo, requireAdmin, updateExhibidor);
+router.delete('/:id', authMiddleware, filterByEquipo, requireAdmin, deleteExhibidor);
 
 export default router;

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import type { Exhibidor } from '../types';
 import Swal from 'sweetalert2';
+import { useEquipo } from '../contexts/EquipoContext';
 
 const ExhibidorManagement: React.FC = () => {
+  const { currentEquipoId } = useEquipo();
   const [exhibidores, setExhibidores] = useState<Exhibidor[]>([]);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -15,7 +17,7 @@ const ExhibidorManagement: React.FC = () => {
 
   useEffect(() => {
     loadExhibidores();
-  }, []);
+  }, [currentEquipoId]);
 
   const loadExhibidores = async () => {
     try {

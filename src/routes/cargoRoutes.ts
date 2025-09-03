@@ -8,11 +8,13 @@ import {
 } from '../controllers/cargoController';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { requireAdmin } from '../middleware/roleMiddleware';
+import { filterByEquipo } from '../middleware';
 
 const router = Router();
 
 // Aplicar middleware de autenticación a todas las rutas
 router.use(authMiddleware);
+router.use(filterByEquipo);
 
 // Rutas para cargos
 router.get('/', getAllCargos);

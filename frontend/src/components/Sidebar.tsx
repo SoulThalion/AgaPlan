@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import EquipoSelector from './EquipoSelector';
 
 interface SidebarProps {
   activeTab: string;
@@ -210,6 +211,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
           )}
         </button>
       </div>
+
+      {/* Selector de Equipo para SuperAdmin */}
+      {!isCollapsed && isSuperAdmin && (
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <EquipoSelector />
+        </div>
+      )}
 
       {/* Menú de navegación */}
       <nav className="mt-4">

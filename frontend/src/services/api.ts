@@ -26,13 +26,31 @@ class ApiService {
       },
     });
 
-    // Interceptor para agregar token a todas las peticiones
+    // Interceptor para agregar token y equipoId a todas las peticiones
     this.api.interceptors.request.use(
       (config) => {
         const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        // Agregar equipoId para superAdmin
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            if (user.rol === 'superAdmin') {
+              const currentEquipoStr = localStorage.getItem('currentEquipo');
+              if (currentEquipoStr) {
+                const currentEquipo = JSON.parse(currentEquipoStr);
+                config.headers['X-Current-Equipo-Id'] = currentEquipo.id;
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing user from localStorage:', error);
+          }
+        }
+        
         return config;
       },
       (error) => {

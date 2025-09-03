@@ -5,8 +5,10 @@ import type { Turno, Lugar, Usuario, Exhibidor, TurnoCreationRequest, TurnoRecur
 import Swal from 'sweetalert2';
 import DatePicker from './DatePicker';
 import TimeRangePicker from './TimeRangePicker';
+import { useEquipo } from '../contexts/EquipoContext';
 
 const ShiftManagement: React.FC = () => {
+  const { currentEquipoId } = useEquipo();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Turno | null>(null);
   const [formData, setFormData] = useState({
@@ -29,22 +31,22 @@ const ShiftManagement: React.FC = () => {
 
   // Obtener datos necesarios
   const { data: turnos, isLoading: turnosLoading, error: turnosError } = useQuery({
-    queryKey: ['turnos'],
+    queryKey: ['turnos', currentEquipoId],
     queryFn: () => apiService.getTurnos()
   });
 
   const { data: lugares, isLoading: lugaresLoading } = useQuery({
-    queryKey: ['lugares'],
+    queryKey: ['lugares', currentEquipoId],
     queryFn: () => apiService.getLugares()
   });
 
   const { data: usuarios, isLoading: usuariosLoading } = useQuery({
-    queryKey: ['usuarios'],
+    queryKey: ['usuarios', currentEquipoId],
     queryFn: () => apiService.getUsuarios()
   });
 
   const { data: exhibidores } = useQuery({
-    queryKey: ['exhibidores'],
+    queryKey: ['exhibidores', currentEquipoId],
     queryFn: () => apiService.getExhibidores()
   });
 

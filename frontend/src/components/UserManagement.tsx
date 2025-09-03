@@ -10,7 +10,7 @@ import { useEquipo } from '../contexts/EquipoContext';
 
 const UserManagement: React.FC = (): JSX.Element => {
   const { user: currentUser } = useAuth();
-  const { equipos, currentEquipo } = useEquipo();
+  const { equipos, currentEquipo, currentEquipoId } = useEquipo();
   console.log('Current user role:', currentUser?.rol);
   console.log('LocalStorage user:', localStorage.getItem('user'));
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,13 +36,16 @@ const UserManagement: React.FC = (): JSX.Element => {
 
   // Obtener usuarios
   const { data: usuarios, isLoading, error } = useQuery({
-    queryKey: ['usuarios'],
-    queryFn: () => apiService.getUsuarios()
+    queryKey: ['usuarios', currentEquipoId],
+    queryFn: () => {
+      console.log('UserManagement - fetching usuarios with currentEquipoId:', currentEquipoId);
+      return apiService.getUsuarios();
+    }
   });
 
   // Obtener cargos
   const { data: cargos } = useQuery({
-    queryKey: ['cargos'],
+    queryKey: ['cargos', currentEquipoId],
     queryFn: () => apiService.getCargos(),
   });
 
