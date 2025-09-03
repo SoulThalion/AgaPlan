@@ -33,7 +33,8 @@ export const filterByEquipo = (req: AuthenticatedRequest, res: Response, next: N
     }
 
     // Solo agregar equipoId a la query si no existe ya (para no sobrescribir el del frontend)
-    if (!req.query.equipoId) {
+    // Verificar si equipoId está presente en la query (incluso si es null/undefined)
+    if (!req.query.hasOwnProperty('equipoId')) {
       req.query.equipoId = equipoId.toString();
     }
 

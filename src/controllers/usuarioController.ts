@@ -47,6 +47,28 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
     // Construir where clause base
     let whereClause: any = {};
     
+    // Si es superAdmin
+    if (req.user?.rol === 'superAdmin') {
+      console.log('=== SUPERADMIN FILTER LOGIC ===');
+      console.log('  - equipoId from query:', equipoId);
+      console.log('  - equipoId type:', typeof equipoId);
+      console.log('  - equipoId truthy:', !!equipoId);
+      
+      if (equipoId) {
+        // Si se especifica un equipoId, filtrar por ese equipo
+        whereClause = { ...whereClause, equipoId };
+        console.log('  ✅ Filtering by specific equipoId:', equipoId);
+      } else {
+        // Si no se especifica equipoId, mostrar todos los equipos (sin filtro)
+        console.log('  ✅ Showing all teams (no equipoId filter)');
+      }
+    } else {
+      // Para otros roles, usar el filtro normal de equipo
+      const equipoWhereClause = buildEquipoWhereClause(req);
+      whereClause = { ...whereClause, ...equipoWhereClause };
+      console.log('  ✅ Using normal team filter for non-superAdmin');
+    }
+    
     // Agregar búsqueda si se proporciona un término de búsqueda
     if (searchTerm.trim()) {
       const searchConditions: any[] = [
@@ -61,25 +83,15 @@ export const getAllUsuarios = async (req: AuthenticatedRequest, res: Response) =
         searchConditions.push({ participacionMensual: Number(searchTerm) });
       }
       
+      // Combinar la búsqueda con los filtros existentes
       whereClause = {
+        ...whereClause,
         [Op.or]: searchConditions
       };
     }
     
-    // Si es superAdmin
-    if (req.user?.rol === 'superAdmin') {
-      if (equipoId) {
-        // Si se especifica un equipoId, filtrar por ese equipo
-        whereClause = { ...whereClause, equipoId };
-      } else {
-        // Si no se especifica equipoId, mostrar todos los equipos (sin filtro)
-        // whereClause ya está configurado arriba
-      }
-    } else {
-      // Para otros roles, usar el filtro normal de equipo
-      const equipoWhereClause = buildEquipoWhereClause(req);
-      whereClause = { ...whereClause, ...equipoWhereClause };
-    }
+    console.log('=== FINAL WHERE CLAUSE ===');
+    console.log('  - whereClause:', JSON.stringify(whereClause, null, 2));
     
     // Obtener el total de usuarios para calcular la paginación
     const totalUsuarios = await Usuario.count({
