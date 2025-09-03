@@ -2,6 +2,7 @@ import { Router } from 'express';
 import notificationController from '../controllers/notificationController';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { requireAdmin, requireSuperAdmin } from '../middleware/roleMiddleware';
+import { cronAuthMiddleware } from '../middleware/cronAuthMiddleware';
 
 const router = Router();
 
@@ -13,35 +14,35 @@ const router = Router();
  * @desc Endpoint para Cloudflare Workers - Notificaciones de una semana antes
  * @access Public (llamado por Cloudflare Workers)
  */
-router.get('/cron/week', notificationController.cronWeekNotifications);
+router.get('/cron/week', cronAuthMiddleware, notificationController.cronWeekNotifications);
 
 /**
  * @route GET /api/notifications/cron/day
  * @desc Endpoint para Cloudflare Workers - Notificaciones de un día antes
  * @access Public (llamado por Cloudflare Workers)
  */
-router.get('/cron/day', notificationController.cronDayNotifications);
+router.get('/cron/day', cronAuthMiddleware, notificationController.cronDayNotifications);
 
 /**
  * @route GET /api/notifications/cron/hour
  * @desc Endpoint para Cloudflare Workers - Notificaciones de una hora antes
  * @access Public (llamado por Cloudflare Workers)
  */
-router.get('/cron/hour', notificationController.cronHourNotifications);
+router.get('/cron/hour', cronAuthMiddleware, notificationController.cronHourNotifications);
 
 /**
  * @route GET /api/notifications/cron/maintenance
  * @desc Endpoint para Cloudflare Workers - Mantenimiento diario
  * @access Public (llamado por Cloudflare Workers)
  */
-router.get('/cron/maintenance', notificationController.cronMaintenance);
+router.get('/cron/maintenance', cronAuthMiddleware, notificationController.cronMaintenance);
 
 /**
  * @route GET /api/notifications/cron/smart
  * @desc Endpoint inteligente para Cloudflare Workers - Evalúa y ejecuta todas las notificaciones necesarias
  * @access Public (llamado por Cloudflare Workers)
  */
-router.get('/cron/smart', notificationController.smartCronJob);
+router.get('/cron/smart', cronAuthMiddleware, notificationController.smartCronJob);
 
 // ===== ENDPOINTS PRIVADOS =====
 // Todas las rutas siguientes requieren autenticación
