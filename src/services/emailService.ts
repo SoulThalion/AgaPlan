@@ -45,15 +45,10 @@ class EmailService {
    * Calcula el tiempo restante hasta el turno en formato legible
    */
   public calcularTiempoRestante(fechaTurno: string, horaTurno: string, tipoNotificacion?: 'una_semana' | 'un_dia' | 'una_hora' | 'manual'): string {
-    const [horas, minutos] = horaTurno.split(':').map(Number);
-    
-    // Crear fecha completa del turno en zona horaria de Canarias
-    const fechaCompletaTurno = new Date(fechaTurno + 'T' + horaTurno + ':00+02:00'); // UTC+2 para Canarias (horario de verano)
-    
     // Obtener hora actual en zona horaria de Canarias
     const ahora = new Date();
     
-    // Crear fecha en zona horaria de Canarias
+    // Crear fecha en zona horaria de Canarias usando el mismo método que notificationService
     const formatter = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Atlantic/Canary',
       year: 'numeric',
@@ -75,13 +70,16 @@ class EmailService {
       parseInt(partes.find(p => p.type === 'second')!.value)
     );
     
-    const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
-    const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
+    // Crear fecha del turno en zona horaria de Canarias (sin hora específica para cálculo de días)
+    const fechaTurnoObj = new Date(fechaTurno + 'T00:00:00');
     
-    // Calcular días de forma más precisa
-    const diferenciaDias = Math.round(diferenciaMs / (1000 * 60 * 60 * 24));
+    // Calcular diferencia en días usando solo las fechas (sin horas)
+    const fechaActual = new Date(ahoraCanarias.getFullYear(), ahoraCanarias.getMonth(), ahoraCanarias.getDate());
+    const fechaTurnoDate = new Date(fechaTurnoObj.getFullYear(), fechaTurnoObj.getMonth(), fechaTurnoObj.getDate());
     
-    // Para notificaciones de "una semana antes", siempre mostrar días
+    const diferenciaDias = Math.ceil((fechaTurnoDate.getTime() - fechaActual.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Para notificaciones de "una semana antes", mostrar días de forma más precisa
     if (tipoNotificacion === 'una_semana') {
       if (diferenciaDias > 1) {
         return `${diferenciaDias} días`;
@@ -101,26 +99,39 @@ class EmailService {
       return `${diferenciaDias} día${diferenciaDias > 1 ? 's' : ''}`;
     }
     
-    // Si es menos de un día, mostrar horas y minutos
-    if (diferenciaMinutos < 60) {
-      return `${diferenciaMinutos} minutos`;
-    } else if (diferenciaMinutos < 120) {
-      const horas = Math.floor(diferenciaMinutos / 60);
-      const minutosRestantes = diferenciaMinutos % 60;
-      if (minutosRestantes === 0) {
-        return `${horas} hora${horas > 1 ? 's' : ''}`;
+    // Si es el mismo día, calcular horas y minutos restantes
+    if (diferenciaDias === 0) {
+      // Crear fecha completa del turno con hora específica
+      const [horas, minutos] = horaTurno.split(':').map(Number);
+      const fechaCompletaTurno = new Date(fechaTurnoObj);
+      fechaCompletaTurno.setHours(horas, minutos, 0, 0);
+      
+      const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
+      const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
+      
+      if (diferenciaMinutos < 60) {
+        return `${diferenciaMinutos} minutos`;
+      } else if (diferenciaMinutos < 120) {
+        const horas = Math.floor(diferenciaMinutos / 60);
+        const minutosRestantes = diferenciaMinutos % 60;
+        if (minutosRestantes === 0) {
+          return `${horas} hora${horas > 1 ? 's' : ''}`;
+        } else {
+          return `${horas} hora${horas > 1 ? 's' : ''} y ${minutosRestantes} minutos`;
+        }
       } else {
-        return `${horas} hora${horas > 1 ? 's' : ''} y ${minutosRestantes} minutos`;
-      }
-    } else {
-      const horas = Math.floor(diferenciaMinutos / 60);
-      const minutosRestantes = diferenciaMinutos % 60;
-      if (minutosRestantes === 0) {
-        return `${horas} horas`;
-      } else {
-        return `${horas} horas y ${minutosRestantes} minutos`;
+        const horas = Math.floor(diferenciaMinutos / 60);
+        const minutosRestantes = diferenciaMinutos % 60;
+        if (minutosRestantes === 0) {
+          return `${horas} horas`;
+        } else {
+          return `${horas} horas y ${minutosRestantes} minutos`;
+        }
       }
     }
+    
+    // Si es negativo, significa que ya pasó
+    return "hoy";
   }
 
   private initializeTransporter() {
@@ -179,7 +190,9 @@ class EmailService {
     const { turno, usuario, lugar, exhibidores, companeros, tipoNotificacion, tiempoRestante: tiempoCalculado } = data;
     
     // Formatear fecha y hora
-    const fecha = new Date(turno.fecha).toLocaleDateString('es-ES', {
+    // turno.fecha puede ser string (DATEONLY) o Date, manejamos ambos casos
+    const fechaTurnoParaFormateo = typeof turno.fecha === 'string' ? new Date(turno.fecha) : turno.fecha;
+    const fecha = fechaTurnoParaFormateo.toLocaleDateString('es-ES', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -194,7 +207,9 @@ class EmailService {
     let tiempoRestante = '';
     
     // Calcular tiempo exacto restante para todas las notificaciones
-    const tiempoExacto = this.calcularTiempoRestante(turno.fecha.toISOString().split('T')[0], horaInicio, tipoNotificacion);
+    // turno.fecha es un string en formato 'YYYY-MM-DD' (DATEONLY de Sequelize)
+    const fechaTurno = typeof turno.fecha === 'string' ? turno.fecha : turno.fecha.toISOString().split('T')[0];
+    const tiempoExacto = this.calcularTiempoRestante(fechaTurno, horaInicio, tipoNotificacion);
     
     switch (tipoNotificacion) {
       case 'una_semana':
