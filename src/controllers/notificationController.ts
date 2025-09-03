@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { UsuarioNotificacionConfig } from '../models';
 import notificationService from '../services/notificationService';
 import cronService from '../services/cronService';
+import EmailService from '../services/emailService';
 
 export class NotificationController {
   
@@ -129,6 +130,47 @@ export class NotificationController {
       });
     } catch (error) {
       console.error('Error probando notificaciones de una hora antes:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  /**
+   * Prueba el cálculo de tiempo para notificaciones
+   */
+  async testTimeCalculation(req: Request, res: Response): Promise<void> {
+    try {
+      const { fecha, hora, tipo } = req.query;
+      
+      if (!fecha || !hora || !tipo) {
+        res.status(400).json({
+          success: false,
+          message: 'Se requieren fecha, hora y tipo de notificación como query parameters'
+        });
+        return;
+      }
+
+      // Simular el cálculo de tiempo
+      const tiempoRestante = EmailService.calcularTiempoRestante(
+        fecha as string, 
+        hora as string, 
+        tipo as 'una_semana' | 'un_dia' | 'una_hora' | 'manual'
+      );
+      
+      res.json({
+        success: true,
+        message: 'Cálculo de tiempo completado',
+        data: {
+          fecha,
+          hora,
+          tipo,
+          tiempoRestante
+        }
+      });
+    } catch (error) {
+      console.error('Error probando cálculo de tiempo:', error);
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'

@@ -44,12 +44,11 @@ class EmailService {
   /**
    * Calcula el tiempo restante hasta el turno en formato legible
    */
-  private calcularTiempoRestante(fechaTurno: string, horaTurno: string, tipoNotificacion?: 'una_semana' | 'un_dia' | 'una_hora' | 'manual'): string {
+  public calcularTiempoRestante(fechaTurno: string, horaTurno: string, tipoNotificacion?: 'una_semana' | 'un_dia' | 'una_hora' | 'manual'): string {
     const [horas, minutos] = horaTurno.split(':').map(Number);
     
     // Crear fecha completa del turno en zona horaria de Canarias
-    const fechaCompletaTurno = new Date(fechaTurno);
-    fechaCompletaTurno.setHours(horas, minutos, 0, 0);
+    const fechaCompletaTurno = new Date(fechaTurno + 'T' + horaTurno + ':00+02:00'); // UTC+2 para Canarias (horario de verano)
     
     // Obtener hora actual en zona horaria de Canarias
     const ahora = new Date();
@@ -78,13 +77,20 @@ class EmailService {
     
     const diferenciaMs = fechaCompletaTurno.getTime() - ahoraCanarias.getTime();
     const diferenciaMinutos = Math.round(diferenciaMs / (1000 * 60));
-    const diferenciaDias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
+    
+    // Calcular días de forma más precisa
+    const diferenciaDias = Math.round(diferenciaMs / (1000 * 60 * 60 * 24));
     
     // Para notificaciones de "una semana antes", siempre mostrar días
     if (tipoNotificacion === 'una_semana') {
-      if (diferenciaDias > 0) {
-        return `${diferenciaDias} día${diferenciaDias > 1 ? 's' : ''}`;
+      if (diferenciaDias > 1) {
+        return `${diferenciaDias} días`;
+      } else if (diferenciaDias === 1) {
+        return "mañana";
+      } else if (diferenciaDias === 0) {
+        return "hoy";
       } else {
+        // Si es negativo, significa que ya pasó
         return "hoy";
       }
     }

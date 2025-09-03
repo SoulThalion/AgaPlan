@@ -90,6 +90,13 @@ router.post('/run-manual', requireAdmin, notificationController.runNotifications
  */
 router.post('/test-one-hour', requireAdmin, notificationController.testOneHourNotifications);
 
+/**
+ * @route GET /api/notifications/test-time-calculation
+ * @desc Prueba el cálculo de tiempo para notificaciones
+ * @access Public (para testing)
+ */
+router.get('/test-time-calculation', notificationController.testTimeCalculation);
+
 
 
 /**
