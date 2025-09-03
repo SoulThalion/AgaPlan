@@ -35,6 +35,8 @@ import * as addEquipoIdToTurnos from './034-add-equipo-id-to-turnos';
 import * as addEquipoIdToCargos from './035-add-equipo-id-to-cargos';
 import * as addEquipoIdToExhibidores from './036-add-equipo-id-to-exhibidores';
 import * as createDefaultEquipoAndAssignData from './037-create-default-equipo-and-assign-data';
+import * as removeUniqueConstraintFromCargosNombre from './038-remove-unique-constraint-from-cargos-nombre';
+import * as removeAllUniqueConstraintsFromCargosNombre from './039-remove-all-unique-constraints-from-cargos-nombre';
 
 const migrations = [
   { name: '001-create-usuarios', up: createUsuarios.up, down: createUsuarios.down },
@@ -70,6 +72,8 @@ const migrations = [
   { name: '035-add-equipo-id-to-cargos', up: addEquipoIdToCargos.up, down: addEquipoIdToCargos.down },
   { name: '036-add-equipo-id-to-exhibidores', up: addEquipoIdToExhibidores.up, down: addEquipoIdToExhibidores.down },
   { name: '037-create-default-equipo-and-assign-data', up: createDefaultEquipoAndAssignData.up, down: createDefaultEquipoAndAssignData.down },
+  { name: '038-remove-unique-constraint-from-cargos-nombre', up: removeUniqueConstraintFromCargosNombre.up, down: removeUniqueConstraintFromCargosNombre.down },
+  { name: '039-remove-all-unique-constraints-from-cargos-nombre', up: removeAllUniqueConstraintsFromCargosNombre.up, down: removeAllUniqueConstraintsFromCargosNombre.down },
 ];
 
 // Función para crear la tabla de migraciones si no existe

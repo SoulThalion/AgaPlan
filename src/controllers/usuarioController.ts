@@ -243,15 +243,23 @@ export const createUsuario = async (req: AuthenticatedRequest, res: Response) =>
 
     // Determinar el equipoId para el nuevo usuario
     let usuarioEquipoId: number;
+    console.log('createUsuario - Determining equipoId:');
+    console.log('  - req.user?.rol:', req.user?.rol);
+    console.log('  - equipoId from body:', equipoId);
+    console.log('  - req.user?.equipoId:', req.user?.equipoId);
+    
     if (req.user?.rol === 'superAdmin' && equipoId) {
       // SuperAdmin puede elegir el equipo
       usuarioEquipoId = equipoId;
+      console.log('  - Using equipoId from body (superAdmin):', usuarioEquipoId);
     } else if (req.user?.equipoId) {
       // Admin usa su propio equipo
       usuarioEquipoId = req.user.equipoId;
+      console.log('  - Using req.user.equipoId (admin):', usuarioEquipoId);
     } else {
       // Fallback al equipo principal (ID: 1)
       usuarioEquipoId = 1;
+      console.log('  - Using fallback equipoId (1):', usuarioEquipoId);
     }
 
     // Crear el usuario (el hash de contraseña se maneja en el modelo)

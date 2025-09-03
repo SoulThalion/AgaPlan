@@ -55,6 +55,16 @@ const UserManagement: React.FC = (): JSX.Element => {
     setCurrentPage(1);
   }, [debouncedSearchTerm]);
 
+  // Actualizar formData.equipoId cuando cambie selectedEquipoId (para superAdmin)
+  useEffect(() => {
+    if (currentUser?.rol === 'superAdmin' && selectedEquipoId) {
+      setFormData(prev => ({
+        ...prev,
+        equipoId: selectedEquipoId
+      }));
+    }
+  }, [selectedEquipoId, currentUser?.rol]);
+
   // Obtener usuarios
   const { data: usuarios, isLoading, error } = useQuery({
     queryKey: ['usuarios', currentEquipoId, currentPage, itemsPerPage, selectedEquipoId, sortBy, sortOrder, debouncedSearchTerm],
@@ -72,7 +82,10 @@ const UserManagement: React.FC = (): JSX.Element => {
 
   // Mutaciones
   const createUserMutation = useMutation({
-    mutationFn: (data: Partial<Usuario>) => apiService.createUsuario(data),
+    mutationFn: (data: Partial<Usuario>) => {
+      console.log('UserManagement - Creating user with data:', data);
+      return apiService.createUsuario(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] });
       handleCloseModal();

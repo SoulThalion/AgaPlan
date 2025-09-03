@@ -77,17 +77,7 @@ export const createCargo = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
     
-    // Verificar si ya existe un cargo con el mismo nombre
-    const cargoExistente = await Cargo.findOne({
-      where: { nombre: nombre.trim() }
-    });
-    
-    if (cargoExistente) {
-      return res.status(400).json({
-        success: false,
-        message: 'Ya existe un cargo con ese nombre'
-      });
-    }
+
     
     const cargo = await Cargo.create({
       nombre: nombre.trim(),
@@ -141,22 +131,7 @@ export const updateCargo = async (req: Request, res: Response) => {
       });
     }
     
-    // Verificar si ya existe otro cargo con el mismo nombre (excluyendo el actual)
-    if (nombre && nombre.trim() !== cargo.nombre) {
-      const cargoExistente = await Cargo.findOne({
-        where: { 
-          nombre: nombre.trim(),
-          id: { [require('sequelize').Op.ne]: id }
-        }
-      });
-      
-      if (cargoExistente) {
-        return res.status(400).json({
-          success: false,
-          message: 'Ya existe un cargo con ese nombre'
-        });
-      }
-    }
+
     
     await cargo.update({
       nombre: nombre?.trim() || cargo.nombre,

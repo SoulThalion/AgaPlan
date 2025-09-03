@@ -36,7 +36,6 @@ Cargo.init(
     nombre: {
       type: DataTypes.STRING(100),
       allowNull: false,
-      unique: true,
     },
     descripcion: {
       type: DataTypes.TEXT,
@@ -71,10 +70,6 @@ Cargo.init(
     tableName: 'cargos',
     timestamps: true,
     indexes: [
-      {
-        unique: true,
-        fields: ['nombre']
-      },
       {
         fields: ['prioridad']
       },
