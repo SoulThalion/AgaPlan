@@ -10,30 +10,21 @@ export const filterByEquipo = (req: AuthenticatedRequest, res: Response, next: N
   try {
     let equipoId: number;
 
-    console.log('filterByEquipo - req.user.rol:', req.user?.rol);
-    console.log('filterByEquipo - req.user.equipoId:', req.user?.equipoId);
-    console.log('filterByEquipo - headers:', req.headers);
-
     // Si es superAdmin, verificar si hay un equipo específico en el header
     if (req.user?.rol === 'superAdmin') {
       const currentEquipoId = req.headers['x-current-equipo-id'];
-      console.log('filterByEquipo - currentEquipoId from header:', currentEquipoId);
       
       if (currentEquipoId) {
         equipoId = parseInt(currentEquipoId as string);
-        console.log('filterByEquipo - parsed equipoId:', equipoId);
         // IMPORTANTE: Modificar temporalmente el equipoId del usuario para que los controladores lo usen
         req.user.equipoId = equipoId;
-        console.log('filterByEquipo - modified req.user.equipoId to:', req.user.equipoId);
       } else {
-        console.log('filterByEquipo - no header found, skipping filter');
         // Si no hay header, no aplicar filtro (ver todos los equipos)
         return next();
       }
     } else {
       // Si no es superAdmin, usar su equipo
       equipoId = req.user?.equipoId || 1;
-      console.log('filterByEquipo - using user equipoId:', equipoId);
     }
 
     // Agregar el filtro de equipo a la query
@@ -41,8 +32,10 @@ export const filterByEquipo = (req: AuthenticatedRequest, res: Response, next: N
       req.query = {};
     }
 
-    // Agregar equipoId a la query para que los controladores lo usen
-    req.query.equipoId = equipoId.toString();
+    // Solo agregar equipoId a la query si no existe ya (para no sobrescribir el del frontend)
+    if (!req.query.equipoId) {
+      req.query.equipoId = equipoId.toString();
+    }
 
     next();
   } catch (error) {
