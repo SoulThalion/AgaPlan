@@ -1,12 +1,16 @@
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../types/auth';
 import Exhibidor from '../models/Exhibidor';
+import { buildEquipoWhereClause } from '../middleware/equipoMiddleware';
 
 // Obtener todos los exhibidores
-export const getAllExhibidores = async (req: Request, res: Response): Promise<void> => {
+export const getAllExhibidores = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const exhibidores = await Exhibidor.findAll({
-      where: { activo: true },
+      where: {
+        activo: true,
+        ...buildEquipoWhereClause(req)
+      },
       order: [['nombre', 'ASC']],
     });
 
@@ -24,10 +28,15 @@ export const getAllExhibidores = async (req: Request, res: Response): Promise<vo
 };
 
 // Obtener un exhibidor por ID
-export const getExhibidorById = async (req: Request, res: Response): Promise<void> => {
+export const getExhibidorById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const exhibidor = await Exhibidor.findByPk(id);
+    const exhibidor = await Exhibidor.findOne({
+      where: {
+        id,
+        ...buildEquipoWhereClause(req)
+      }
+    });
 
     if (!exhibidor) {
       res.status(404).json({

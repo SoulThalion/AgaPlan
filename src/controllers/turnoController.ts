@@ -8,6 +8,7 @@ import Disponibilidad from '../models/Disponibilidad';
 import { AuthenticatedRequest } from '../types/auth';
 import { Op } from 'sequelize';
 import TurnoUsuario from '../models/TurnoUsuario';
+import { buildEquipoWhereClause } from '../middleware/equipoMiddleware';
 
 // Función helper para verificar si se cumplen los requisitos del turno
 export const verificarRequisitosTurno = (usuarios: any[], lugar: any) => {
@@ -27,9 +28,10 @@ export const verificarRequisitosTurno = (usuarios: any[], lugar: any) => {
 };
 
 // Obtener todos los turnos
-export const getAllTurnos = async (req: Request, res: Response) => {
+export const getAllTurnos = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const turnos = await Turno.findAll({
+      where: buildEquipoWhereClause(req),
       include: [
         {
           model: Lugar,
@@ -66,11 +68,15 @@ export const getAllTurnos = async (req: Request, res: Response) => {
 };
 
 // Obtener un turno por ID
-export const getTurnoById = async (req: Request, res: Response) => {
+export const getTurnoById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     
-    const turno = await Turno.findByPk(id, {
+    const turno = await Turno.findOne({
+      where: {
+        id,
+        ...buildEquipoWhereClause(req)
+      },
       include: [
         {
           model: Lugar,

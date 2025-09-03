@@ -96,13 +96,14 @@ export const verifyEquipoAccess = (req: AuthenticatedRequest, res: Response, nex
  * Útil en controladores para agregar automáticamente el filtro de equipo
  */
 export const buildEquipoWhereClause = (req: AuthenticatedRequest, additionalWhere: any = {}) => {
-  // Si es superAdmin, no aplicar filtro
-  if (req.user?.rol === 'superAdmin') {
-    return additionalWhere;
-  }
-
-  // Agregar filtro de equipo
+  console.log('buildEquipoWhereClause - req.user.rol:', req.user?.rol);
+  console.log('buildEquipoWhereClause - req.user.equipoId:', req.user?.equipoId);
+  
+  // Obtener el equipoId (puede ser modificado por el middleware para superAdmin)
   const equipoId = req.user?.equipoId || 1;
+  console.log('buildEquipoWhereClause - using equipoId:', equipoId);
+  
+  // Siempre aplicar filtro de equipo (incluso para superAdmin con equipo seleccionado)
   return {
     ...additionalWhere,
     equipoId

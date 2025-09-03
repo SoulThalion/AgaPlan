@@ -1,11 +1,13 @@
 import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../types/auth';
 import Cargo from '../models/Cargo';
+import { buildEquipoWhereClause } from '../middleware/equipoMiddleware';
 
 // Obtener todos los cargos
-export const getAllCargos = async (req: Request, res: Response) => {
+export const getAllCargos = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const cargos = await Cargo.findAll({
+      where: buildEquipoWhereClause(req),
       order: [['prioridad', 'ASC'], ['nombre', 'ASC']]
     });
     
@@ -24,10 +26,15 @@ export const getAllCargos = async (req: Request, res: Response) => {
 };
 
 // Obtener un cargo por ID
-export const getCargoById = async (req: Request, res: Response) => {
+export const getCargoById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const cargo = await Cargo.findByPk(id);
+    const cargo = await Cargo.findOne({
+      where: {
+        id,
+        ...buildEquipoWhereClause(req)
+      }
+    });
     
     if (!cargo) {
       return res.status(404).json({
