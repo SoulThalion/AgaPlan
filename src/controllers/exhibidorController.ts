@@ -71,20 +71,7 @@ export const createExhibidor = async (req: AuthenticatedRequest, res: Response):
       });
       return;
     }
-
-    // Verificar si ya existe un exhibidor con ese nombre
-    const existingExhibidor = await Exhibidor.findOne({
-      where: { nombre: nombre.trim() },
-    });
-
-    if (existingExhibidor) {
-      res.status(400).json({
-        success: false,
-        message: 'Ya existe un exhibidor con ese nombre',
-      });
-      return;
-    }
-
+    
     const exhibidor = await Exhibidor.create({
       nombre: nombre.trim(),
       descripcion: descripcion?.trim() || null,
