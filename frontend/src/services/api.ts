@@ -39,11 +39,17 @@ class ApiService {
         if (userStr) {
           try {
             const user = JSON.parse(userStr);
+            console.log('ApiService - user.rol:', user.rol);
             if (user.rol === 'superAdmin') {
               const currentEquipoStr = localStorage.getItem('currentEquipo');
+              console.log('ApiService - currentEquipoStr from localStorage:', currentEquipoStr);
               if (currentEquipoStr) {
                 const currentEquipo = JSON.parse(currentEquipoStr);
+                console.log('ApiService - parsed currentEquipo:', currentEquipo);
                 config.headers['X-Current-Equipo-Id'] = currentEquipo.id;
+                console.log('ApiService - setting header X-Current-Equipo-Id to:', currentEquipo.id);
+              } else {
+                console.log('ApiService - no currentEquipo in localStorage');
               }
             }
           } catch (error) {

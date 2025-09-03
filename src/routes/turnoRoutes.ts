@@ -20,7 +20,7 @@ import { filterByEquipo } from '../middleware';
 const router = Router();
 
 // Rutas públicas (solo lectura)
-router.get('/', getTurnos);
+router.get('/', authMiddleware, filterByEquipo, getTurnos);
 
 // Ruta para limpiar todos los usuarios de todos los turnos (admin o superior)
 router.delete('/limpiar-usuarios', authMiddleware, filterByEquipo, requireAdmin, limpiarTodosLosUsuariosDeTurnos);
@@ -29,7 +29,7 @@ router.delete('/limpiar-usuarios', authMiddleware, filterByEquipo, requireAdmin,
 router.post('/generar-automaticos', authMiddleware, filterByEquipo, requireAdmin, generarTurnosAutomaticos);
 
 // Rutas con parámetros dinámicos (DEBEN IR DESPUÉS de las rutas específicas)
-router.get('/:id', getTurnoById);
+router.get('/:id', authMiddleware, filterByEquipo, getTurnoById);
 router.post('/', authMiddleware, filterByEquipo, requireAdmin, createTurno);
 router.post('/recurrentes', authMiddleware, filterByEquipo, requireAdmin, createTurnosRecurrentes);
 router.put('/:id', authMiddleware, filterByEquipo, requireAdmin, updateTurno);

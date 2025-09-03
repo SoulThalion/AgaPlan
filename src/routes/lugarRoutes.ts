@@ -19,8 +19,8 @@ router.get('/test', testLugarConnection);
 router.get('/test-model', testLugarModel);
 
 // Rutas públicas (solo lectura)
-router.get('/', getAllLugares);
-router.get('/:id', getLugarById);
+router.get('/', authMiddleware, filterByEquipo, getAllLugares);
+router.get('/:id', authMiddleware, filterByEquipo, getLugarById);
 
 // Rutas protegidas (primero autenticación, luego verificación de rol)
 // Permite acceso a admin y superAdmin
