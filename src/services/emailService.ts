@@ -361,7 +361,7 @@ class EmailService {
             </div>
             
             <div class="info-row">
-              <span class="info-label">🎪 Exhibidores:</span>
+              <span class="info-label">📚 Exhibidores:</span>
               <span class="info-value">${exhibidoresText}</span>
             </div>
             
@@ -478,7 +478,7 @@ class EmailService {
               </td>
               <td style="padding: 8px 15px; vertical-align: top; width: 33.33%;">
                 <div style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                  <span style="font-size: 16px; min-width: 20px;">🎪</span>
+                  <span style="font-size: 16px; min-width: 20px;">📚</span>
                   <span style="color: #333;">${exhibidoresText}</span>
                 </div>
               </td>
@@ -566,7 +566,7 @@ class EmailService {
       
       📍 ${lugar.nombre}
       
-      🎪 ${exhibidoresText}
+      📚 ${exhibidoresText}
       
       👥 ${companerosText}
       `;

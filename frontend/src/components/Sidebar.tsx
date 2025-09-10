@@ -34,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     { id: 'usuarios', label: 'Usuarios', icon: '👥', adminOnly: true },
     { id: 'lugares', label: 'Lugares', icon: '📍', adminOnly: true },
     { id: 'cargos', label: 'Cargos', icon: '🎯', adminOnly: true },
-    { id: 'exhibidores', label: 'Exhibidores', icon: '🎪', adminOnly: true },
+    { id: 'exhibidores', label: 'Exhibidores', icon: '📚', adminOnly: true },
     { id: 'turnos', label: 'Turnos', icon: '⏰', adminOnly: true },
     { id: 'equipos', label: 'Equipos', icon: '🏢', adminOnly: true, superAdminOnly: true },
   ];
