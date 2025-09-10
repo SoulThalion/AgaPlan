@@ -5,6 +5,7 @@ import type { Lugar } from '../types';
 import Swal from 'sweetalert2';
 import GoogleMapsInput from './GoogleMapsInput';
 import PlaceMapModal from './PlaceMapModal';
+import LeafletViewer from './LeafletViewer';
 import { useEquipo } from '../contexts/EquipoContext';
 
 const PlaceManagement: React.FC = () => {
@@ -13,6 +14,7 @@ const PlaceManagement: React.FC = () => {
   const [editingPlace, setEditingPlace] = useState<Lugar | null>(null);
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const [selectedPlaceForMap, setSelectedPlaceForMap] = useState<Lugar | null>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'map'>('cards');
   const [formData, setFormData] = useState({
     nombre: '',
     direccion: '',
@@ -213,18 +215,46 @@ const PlaceManagement: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
           Gestión de Lugares
         </h2>
-        <button
-          onClick={openCreateModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-        >
-          + Nuevo Lugar
-        </button>
+        <div className="flex gap-3">
+          {/* Botones de vista */}
+          <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                viewMode === 'cards'
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              📋 Lista
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                viewMode === 'map'
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              🗺️ Mapa
+            </button>
+          </div>
+          
+          <button
+            onClick={openCreateModal}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+          >
+            + Nuevo Lugar
+          </button>
+        </div>
       </div>
 
-      {/* Grid de lugares */}
+      {/* Contenido según el modo de vista */}
       {lugares?.data && lugares.data.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {lugares.data.map((lugar: Lugar) => (
+        <>
+          {viewMode === 'cards' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {lugares.data.map((lugar: Lugar) => (
             <div key={lugar.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -285,8 +315,29 @@ const PlaceManagement: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+              ))}
+            </div>
+          ) : (
+            /* Vista de mapa con Leaflet */
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  🗺️ Vista de Mapa
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Haz click en los marcadores para ver detalles de cada lugar
+                </p>
+              </div>
+              <div className="p-4">
+                <LeafletViewer 
+                  lugares={lugares.data} 
+                  height="500px"
+                  showPopup={true}
+                />
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🏢</div>
@@ -352,6 +403,14 @@ const PlaceManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Dirección
                 </label>
+                <div className="mb-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                    <span className="text-lg">🎯</span>
+                    <span>
+                      <strong>Consejo:</strong> Busca la dirección exacta o usa el modo pin para seleccionar la ubicación precisa en el mapa
+                    </span>
+                  </div>
+                </div>
                 <GoogleMapsInput
                   value={formData.direccion}
                   onChange={handleAddressChange}

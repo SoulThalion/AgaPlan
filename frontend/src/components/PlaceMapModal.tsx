@@ -1,14 +1,17 @@
-import React, { useEffect, useRef } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
-import { LOADER_CONFIG } from '../config/googleMaps';
+import React from 'react';
+import L from 'leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { LEAFLET_CONFIG, TILE_CONFIG } from '../config/leaflet';
 import type { Lugar } from '../types';
+import 'leaflet/dist/leaflet.css';
 
-// Declaración global para Google Maps
-declare global {
-  interface Window {
-    google: typeof google;
-  }
-}
+// Configurar iconos de Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 interface PlaceMapModalProps {
   lugar: Lugar;
@@ -17,112 +20,15 @@ interface PlaceMapModalProps {
 }
 
 const PlaceMapModal: React.FC<PlaceMapModalProps> = ({ lugar, isOpen, onClose }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
-  const loaderRef = useRef<Loader | null>(null);
-
   // Asegurar que las coordenadas sean números válidos
   const latitud = typeof lugar.latitud === 'number' ? lugar.latitud : parseFloat(lugar.latitud as any);
   const longitud = typeof lugar.longitud === 'number' ? lugar.longitud : parseFloat(lugar.longitud as any);
 
-  // Inicializar Google Maps
-  useEffect(() => {
-    if (!loaderRef.current) {
-      loaderRef.current = new Loader(LOADER_CONFIG);
-    }
-  }, []);
-
-  // Inicializar mapa cuando se abra el modal
-  useEffect(() => {
-    if (isOpen && mapRef.current && loaderRef.current && !mapInstanceRef.current) {
-      if (latitud && longitud && !isNaN(latitud) && !isNaN(longitud)) {
-        console.log('Inicializando Google Maps...', { latitud, longitud });
-        
-        loaderRef.current.load().then(() => {
-          console.log('Google Maps cargado exitosamente');
-          
-          if (mapRef.current && window.google && window.google.maps) {
-            const position = { lat: latitud, lng: longitud };
-            
-            try {
-              const map = new google.maps.Map(mapRef.current, {
-                center: position,
-                zoom: 15,
-                mapTypeId: google.maps.MapTypeId.ROADMAP,
-                mapTypeControl: true,
-                streetViewControl: true,
-                fullscreenControl: true,
-                zoomControl: true,
-                styles: [
-                  {
-                    featureType: 'poi',
-                    elementType: 'labels',
-                    stylers: [{ visibility: 'off' }]
-                  }
-                ]
-              });
-
-              mapInstanceRef.current = map;
-              console.log('Mapa creado exitosamente');
-
-              // Agregar marcador
-              const marker = new google.maps.Marker({
-                position: position,
-                map: map,
-                title: lugar.nombre,
-                animation: google.maps.Animation.DROP
-              });
-
-              markerRef.current = marker;
-              console.log('Marcador agregado exitosamente');
-
-              // Agregar InfoWindow
-              const infoWindow = new google.maps.InfoWindow({
-                content: `
-                  <div style="text-align: center; padding: 8px;">
-                    <h4 style="font-weight: 600; margin: 0 0 4px 0; font-size: 14px;">${lugar.nombre}</h4>
-                    <p style="margin: 0; font-size: 12px; color: #666;">${lugar.direccion}</p>
-                  </div>
-                `
-              });
-
-              marker.addListener('click', () => {
-                infoWindow.open(map, marker);
-              });
-            } catch (error) {
-              console.error('Error al crear el mapa:', error);
-            }
-          } else {
-            console.error('Google Maps no está disponible:', {
-              mapRef: !!mapRef.current,
-              google: !!window.google,
-              maps: !!(window.google && window.google.maps)
-            });
-          }
-        }).catch((error) => {
-          console.error('Error al cargar Google Maps:', error);
-        });
-      }
-    }
-  }, [isOpen, latitud, longitud, lugar.nombre, lugar.direccion]);
-
-  // Limpiar mapa cuando se cierre el modal
-  useEffect(() => {
-    if (!isOpen) {
-      if (markerRef.current) {
-        markerRef.current.setMap(null);
-        markerRef.current = null;
-      }
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current = null;
-      }
-    }
-  }, [isOpen]);
-
   if (!isOpen || !latitud || !longitud || isNaN(latitud) || isNaN(longitud)) {
     return null;
   }
+
+  const position: [number, number] = [latitud, longitud];
 
   return (
     <div 
@@ -157,10 +63,39 @@ const PlaceMapModal: React.FC<PlaceMapModalProps> = ({ lugar, isOpen, onClose })
         </div>
 
         <div className="h-96 w-full rounded-lg overflow-hidden border border-neutral-light dark:border-neutral">
-          <div 
-            ref={mapRef} 
-            className="w-full h-full"
-          />
+          <MapContainer
+            center={position}
+            zoom={LEAFLET_CONFIG.DEFAULT_ZOOM}
+            style={{ height: '100%', width: '100%' }}
+            className="z-0"
+          >
+            <TileLayer
+              url={TILE_CONFIG.url}
+              attribution={TILE_CONFIG.attribution}
+              maxZoom={TILE_CONFIG.maxZoom}
+            />
+            
+            <Marker position={position}>
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    {lugar.nombre}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    {lugar.direccion}
+                  </p>
+                  {lugar.descripcion && (
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      {lugar.descripcion}
+                    </p>
+                  )}
+                  <div className="text-xs text-gray-400 dark:text-gray-600 mt-2">
+                    📍 {latitud.toFixed(6)}, {longitud.toFixed(6)}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          </MapContainer>
         </div>
       </div>
     </div>

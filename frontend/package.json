@@ -23,10 +23,12 @@
     "date-fns": "^2.30.0",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-big-calendar": "^1.8.5",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.5.2",
+    "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.20.1",
     "sweetalert2": "^11.22.3"
   },
