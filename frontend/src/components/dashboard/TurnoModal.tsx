@@ -287,8 +287,9 @@ export default function TurnoModal({
      }
    };
 
+
    // Función para asignación automática de usuarios
-   const handleAsignacionAutomatica = async (turno: Turno) => {
+   const handleAsignacionAutomatica = async (turno: Turno): Promise<void> => {
      if (!turno.lugar?.capacidad) return;
      
      const usuariosAsignados = turno.usuarios || [];
@@ -525,174 +526,269 @@ export default function TurnoModal({
        return;
      }
      
-     // Verificar requisitos finales después de la verificación
-     const requisitosFinales = {
-       tieneMasculino: usuariosAAsignar.some(u => u.sexo === 'M') || yaTieneMasculino,
-       tieneCoche: usuariosAAsignar.some(u => u.tieneCoche) || yaTieneCoche,
-       hayUsuariosConCocheDisponibles: hayUsuariosConCocheDisponibles
-     };
     
-         // Crear mensaje de confirmación simplificado con HTML para mejor formato
-     const usuariosLista = usuariosAAsignar.map(usuario => {
-       let info = `• ${usuario.nombre} (${usuario.cargo})`;
-       if (usuario.siempreCon) {
-         const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
-         if (usuarioRelacionado) {
-           info += ` + ${usuarioRelacionado.nombre}`;
+     // Función interna para mostrar selección de usuarios
+     const mostrarSeleccionUsuarios = async (usuariosAAsignar: Usuario[], plazasOcupadas: number, usuariosYaMostrados: Set<number> = new Set()) => {
+       // Crear mensaje de confirmación simplificado con HTML para mejor formato
+       const usuariosLista = usuariosAAsignar.map(usuario => {
+         let info = `• ${usuario.nombre} (${usuario.cargo})`;
+         if (usuario.siempreCon) {
+           const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
+           if (usuarioRelacionado) {
+             info += ` + ${usuarioRelacionado.nombre}`;
+           }
          }
+         return info;
+       }).join('<br>');
+       
+       // Agregar información sobre requisitos de forma más clara
+       const requisitosInfo = [];
+       
+       // Verificar si el turno está completo
+       const turnoCompleto = plazasOcupadas >= (turno.lugar?.capacidad || 0);
+       if (turnoCompleto) {
+         requisitosInfo.push('✅ Turno completo');
        }
-       return info;
-     }).join('<br>');
-     
-     // Agregar información sobre requisitos de forma más clara
-     const requisitosInfo = [];
-     
-     // Verificar si el turno está completo
-     const turnoCompleto = plazasOcupadas >= (selectedTurno.lugar?.capacidad || 0);
-     if (turnoCompleto) {
-       requisitosInfo.push('✅ Turno completo');
-     }
-     
-     if (requisitosFinales.tieneMasculino) requisitosInfo.push('👨 Usuario masculino');
-     if (requisitosFinales.tieneCoche) requisitosInfo.push('🚗 Usuario con coche');
-     
-     // Detectar si está en modo oscuro para ajustar colores
-     const isDarkMode = document.documentElement.classList.contains('dark');
-     
-     const textColor = isDarkMode ? '#e5e7eb' : '#374151';
-     const titleColor = isDarkMode ? '#f9fafb' : '#111827';
-     const listColor = isDarkMode ? '#9ca3af' : '#4b5563';
-     const bgColor = isDarkMode ? '#1e3a8a' : '#eff6ff';
-     const borderColor = isDarkMode ? '#3b82f6' : '#dbeafe';
-     const accentColor = isDarkMode ? '#60a5fa' : '#1e40af';
-     
-     let mensaje = `<div style="text-align: left; color: ${textColor};">
-       <p style="margin-bottom: 15px; font-weight: 600; color: ${titleColor};">Se van a asignar <strong>${usuariosAAsignar.length}</strong> usuarios al turno:</p>
-       <div style="margin-bottom: 15px; padding-left: 10px; color: ${listColor};">
-         ${usuariosLista}
-       </div>`;
-     
-     if (requisitosInfo.length > 0) {
-       mensaje += `<div style="margin-bottom: 15px; padding: 12px; background-color: ${bgColor}; border: 1px solid ${borderColor}; border-left: 4px solid #3b82f6; border-radius: 6px;">
-         <p style="margin: 0 0 8px 0; font-weight: 600; color: ${accentColor}; font-size: 14px;">✅ Requisitos cumplidos:</p>
-         <ul style="margin: 0; padding-left: 18px; color: ${textColor};">
-           ${requisitosInfo.map(req => `<li style="margin: 3px 0; font-size: 14px;">${req}</li>`).join('')}
-         </ul>
-       </div>`;
-     }
-     
-     mensaje += `<p style="margin-bottom: 0; font-weight: 600; color: ${titleColor};">¿Proceder con la asignación?</p></div>`;
-    
-    // Mostrar SweetAlert de confirmación con HTML
-    const result = await Swal.fire({
-      title: 'Confirmar Asignación Automática',
-      html: mensaje,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, asignar usuarios',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#3b82f6',
-      cancelButtonColor: '#6b7280',
-      customClass: {
-        popup: isDarkMode ? 'swal2-dark' : '',
-        title: isDarkMode ? 'swal2-dark' : '',
-        htmlContainer: isDarkMode ? 'swal2-dark' : '',
-        confirmButton: isDarkMode ? 'swal2-dark' : '',
-        cancelButton: isDarkMode ? 'swal2-dark' : ''
-      }
-    });
-    
-    // Si el usuario confirma, proceder con la asignación
-    if (result.isConfirmed) {
-      try {
-        // Importar la API directamente para evitar confirmaciones individuales
-        const { default: api } = await import('../../services/api');
-        
-        // Asignar usuarios uno por uno hasta completar el turno
-        for (const usuario of usuariosAAsignar) {
-          try {
-            // Asignar el usuario principal
-            await api.asignarUsuarioATurno(turno.id, usuario.id);
-            
-            // Si tiene un "siempreCon", asignar también al usuario relacionado
-            if (usuario.siempreCon) {
-              const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
-              if (usuarioRelacionado) {
-                await api.asignarUsuarioATurno(turno.id, usuarioRelacionado.id);
-              }
-            }
-            
-            // Pequeña pausa para evitar sobrecarga
-            await new Promise(resolve => setTimeout(resolve, 100));
-          } catch (error) {
-            console.error('Error al asignar usuario automáticamente:', error);
-            throw error; // Re-lanzar el error para manejarlo en el catch exterior
-          }
-        }
-        
-                 // Invalidar la caché de turnos y participación mensual para forzar una recarga de datos
-         queryClient.invalidateQueries(['turnos']);
+       
+       const requisitosFinales = {
+         tieneMasculino: usuariosAAsignar.some(u => u.sexo === 'M') || yaTieneMasculino,
+         tieneCoche: usuariosAAsignar.some(u => u.tieneCoche) || yaTieneCoche,
+         hayUsuariosConCocheDisponibles: hayUsuariosConCocheDisponibles
+       };
+       
+       if (requisitosFinales.tieneMasculino) requisitosInfo.push('👨 Usuario masculino');
+       if (requisitosFinales.tieneCoche) requisitosInfo.push('🚗 Usuario con coche');
+       
+       // Detectar si está en modo oscuro para ajustar colores
+       const isDarkMode = document.documentElement.classList.contains('dark');
+       
+       const textColor = isDarkMode ? '#e5e7eb' : '#374151';
+       const titleColor = isDarkMode ? '#f9fafb' : '#111827';
+       const listColor = isDarkMode ? '#9ca3af' : '#4b5563';
+       const bgColor = isDarkMode ? '#1e3a8a' : '#eff6ff';
+       const borderColor = isDarkMode ? '#3b82f6' : '#dbeafe';
+       const accentColor = isDarkMode ? '#60a5fa' : '#1e40af';
+       
+       let mensaje = `<div style="text-align: left; color: ${textColor};">
+         <p style="margin-bottom: 15px; font-weight: 600; color: ${titleColor};">Se van a asignar <strong>${usuariosAAsignar.length}</strong> usuarios al turno:</p>
+         <div style="margin-bottom: 15px; padding-left: 10px; color: ${listColor};">
+           ${usuariosLista}
+         </div>`;
+       
+       if (requisitosInfo.length > 0) {
+         mensaje += `<div style="margin-bottom: 15px; padding: 12px; background-color: ${bgColor}; border: 1px solid ${borderColor}; border-left: 4px solid #3b82f6; border-radius: 6px;">
+           <p style="margin: 0 0 8px 0; font-weight: 600; color: ${accentColor}; font-size: 14px;">✅ Requisitos cumplidos:</p>
+           <ul style="margin: 0; padding-left: 18px; color: ${textColor};">
+             ${requisitosInfo.map(req => `<li style="margin: 3px 0; font-size: 14px;">${req}</li>`).join('')}
+           </ul>
+         </div>`;
+       }
+       
+       mensaje += `<p style="margin-bottom: 0; font-weight: 600; color: ${titleColor};">¿Qué prefieres hacer?</p></div>`;
+       
+       // Mostrar SweetAlert de confirmación con HTML y botón adicional
+       const result = await Swal.fire({
+         title: 'Confirmar Asignación Automática',
+         html: mensaje,
+         icon: 'question',
+         showCancelButton: true,
+         showDenyButton: true,
+         confirmButtonText: 'Sí, asignar estos usuarios',
+         denyButtonText: 'Elegir otros usuarios',
+         cancelButtonText: 'Cancelar',
+         confirmButtonColor: '#3b82f6',
+         denyButtonColor: '#10b981',
+         cancelButtonColor: '#6b7280',
+         customClass: {
+           popup: isDarkMode ? 'swal2-dark' : '',
+           title: isDarkMode ? 'swal2-dark' : '',
+           htmlContainer: isDarkMode ? 'swal2-dark' : '',
+           confirmButton: isDarkMode ? 'swal2-dark' : '',
+           denyButton: isDarkMode ? 'swal2-dark' : '',
+           cancelButton: isDarkMode ? 'swal2-dark' : ''
+         }
+       });
+       
+       // Si el usuario elige otros usuarios, generar una nueva selección automática
+       if (result.isDenied) {
+         // Agregar los usuarios actuales a la lista de usuarios ya mostrados
+         usuariosAAsignar.forEach(usuario => {
+           usuariosYaMostrados.add(usuario.id);
+           // También agregar usuarios relacionados si existen
+           if (usuario.siempreCon) {
+             usuariosYaMostrados.add(usuario.siempreCon);
+           }
+         });
          
-         // Invalidar la caché de participación mensual para todos los usuarios asignados
-         const todosLosUsuariosIds = usuariosAAsignar.map(u => u.id);
-         if (usuariosAAsignar.some(u => u.siempreCon)) {
-           // Si hay usuarios con "siempreCon", agregar también esos IDs
-           usuariosAAsignar.forEach(u => {
-             if (u.siempreCon) {
-               todosLosUsuariosIds.push(u.siempreCon);
-             }
+         // Filtrar usuarios disponibles excluyendo todos los ya mostrados
+         const usuariosDisponiblesRestantes = usuariosConRelaciones.filter(
+           usuario => !usuariosYaMostrados.has(usuario.id)
+         );
+         
+         if (usuariosDisponiblesRestantes.length === 0) {
+           Swal.fire({
+             icon: 'info',
+             title: 'No hay más opciones',
+             text: 'No hay más usuarios disponibles para asignar. Se mostrarán los usuarios originales.',
+             confirmButtonText: 'Entendido'
            });
+           // Mostrar la selección original
+           return handleAsignacionAutomatica(turno);
          }
          
-         // Invalidar queries individuales de participación mensual
-         todosLosUsuariosIds.forEach(userId => {
-           queryClient.invalidateQueries(['participacionMensualActual', userId]);
+         // Generar nueva selección con usuarios diferentes
+         const usuariosOrdenadosRestantes = [...usuariosDisponiblesRestantes].sort((a, b) => {
+           const participacionA = a.participacionMensual || 0;
+           const participacionB = b.participacionMensual || 0;
+           
+           if (participacionA === participacionB) {
+             const prioridadA = a.cargoInfo?.prioridad || 999;
+             const prioridadB = b.cargoInfo?.prioridad || 999;
+             
+             if (prioridadA === prioridadB) {
+               const hashA = (a.id * 9301 + 49297) % 233280;
+               const hashB = (b.id * 9301 + 49297) % 233280;
+               return hashA - hashB;
+             }
+             
+             return prioridadA - prioridadB;
+           }
+           
+           return participacionA - participacionB;
          });
-        
-        // Mostrar mensaje de éxito con información de requisitos
-        Swal.fire({
-          icon: 'success',
-          title: 'Turno completado exitosamente',
-          html: `
-            <div class="text-left">
-              <p class="mb-3">Se han asignado <strong>${usuariosAAsignar.length}</strong> usuarios al turno (ocupando <strong>${plazasOcupadas}</strong> plazas)</p>
-              <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
-                <p><strong>Requisitos cumplidos:</strong></p>
-                <ul class="list-disc list-inside mt-2">
-                  <li>Usuario masculino: ${requisitosFinales.tieneMasculino ? '✅ Cumplido' : '❌ Pendiente'}</li>
-                  <li>Usuario con coche: ${requisitosFinales.tieneCoche ? '✅ Cumplido' : requisitosFinales.hayUsuariosConCocheDisponibles ? '❌ Pendiente' : '⚠️ No hay usuarios con coche disponibles'}</li>
-                </ul>
-              </div>
-            </div>
-          `,
-          confirmButtonText: 'Perfecto'
-        });
-             } catch (error) {
-         console.error('Error al completar el turno automáticamente:', error);
          
-         // Manejar errores específicos del backend
-         let mensajeError = 'Ha ocurrido un error al intentar asignar usuarios automáticamente';
+         // Seleccionar usuarios alternativos
+         let usuariosAlternativos: Usuario[] = [];
+         let plazasAlternativas = 0;
+         let usuariosExcluidosAcumulados = new Set<number>();
          
-         if (error && typeof error === 'object' && 'response' in error) {
-           const response = (error as any).response;
-           if (response?.data?.message) {
-             mensajeError = response.data.message;
-           } else if (response?.status === 400) {
-             mensajeError = 'Uno o más usuarios ya están asignados a otros turnos en esta fecha';
-           } else if (response?.status === 409) {
-             mensajeError = 'Conflicto: Los usuarios seleccionados no pueden ser asignados a este turno';
+         for (const usuario of usuariosOrdenadosRestantes) {
+           if (plazasAlternativas >= usuariosNecesarios) break;
+           
+           if (usuariosExcluidosAcumulados.has(usuario.id)) {
+             continue;
+           }
+           
+           const plazasQueOcupa = usuario.siempreCon ? 2 : 1;
+           
+           if (plazasAlternativas + plazasQueOcupa <= usuariosNecesarios) {
+             const exclusionesDelUsuario = obtenerUsuariosExcluidos(usuario);
+             exclusionesDelUsuario.forEach((id: number) => usuariosExcluidosAcumulados.add(id));
+             
+             usuariosAlternativos.push(usuario);
+             plazasAlternativas += plazasQueOcupa;
            }
          }
          
-         // Mostrar mensaje de error
-         Swal.fire({
-           icon: 'error',
-           title: 'Error al completar el turno',
-           text: mensajeError,
-           confirmButtonText: 'Entendido'
-         });
+         if (usuariosAlternativos.length === 0) {
+           Swal.fire({
+             icon: 'warning',
+             title: 'No hay usuarios disponibles',
+             text: 'No se encontraron usuarios alternativos para completar el turno.',
+             confirmButtonText: 'Entendido'
+           });
+           return;
+         }
+         
+         // Mostrar la nueva selección recursivamente, pasando el Set actualizado
+         return mostrarSeleccionUsuarios(usuariosAlternativos, plazasAlternativas, usuariosYaMostrados);
        }
-    }
+       
+       // Si el usuario confirma, proceder con la asignación
+       if (result.isConfirmed) {
+         try {
+           // Importar la API directamente para evitar confirmaciones individuales
+           const { default: api } = await import('../../services/api');
+           
+           // Asignar usuarios uno por uno hasta completar el turno
+           for (const usuario of usuariosAAsignar) {
+             try {
+               // Asignar el usuario principal
+               await api.asignarUsuarioATurno(turno.id, usuario.id);
+               
+               // Si tiene un "siempreCon", asignar también al usuario relacionado
+               if (usuario.siempreCon) {
+                 const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
+                 if (usuarioRelacionado) {
+                   await api.asignarUsuarioATurno(turno.id, usuarioRelacionado.id);
+                 }
+               }
+               
+               // Pequeña pausa para evitar sobrecarga
+               await new Promise(resolve => setTimeout(resolve, 100));
+             } catch (error) {
+               console.error('Error al asignar usuario automáticamente:', error);
+               throw error; // Re-lanzar el error para manejarlo en el catch exterior
+             }
+           }
+           
+           // Invalidar la caché de turnos y participación mensual para forzar una recarga de datos
+           queryClient.invalidateQueries(['turnos']);
+           
+           // Invalidar la caché de participación mensual para todos los usuarios asignados
+           const todosLosUsuariosIds = usuariosAAsignar.map(u => u.id);
+           if (usuariosAAsignar.some(u => u.siempreCon)) {
+             // Si hay usuarios con "siempreCon", agregar también esos IDs
+             usuariosAAsignar.forEach(u => {
+               if (u.siempreCon) {
+                 todosLosUsuariosIds.push(u.siempreCon);
+               }
+             });
+           }
+           
+           // Invalidar queries individuales de participación mensual
+           todosLosUsuariosIds.forEach(userId => {
+             queryClient.invalidateQueries(['participacionMensualActual', userId]);
+           });
+          
+           // Mostrar mensaje de éxito con información de requisitos
+           Swal.fire({
+             icon: 'success',
+             title: 'Turno completado exitosamente',
+             html: `
+               <div class="text-left">
+                 <p class="mb-3">Se han asignado <strong>${usuariosAAsignar.length}</strong> usuarios al turno (ocupando <strong>${plazasOcupadas}</strong> plazas)</p>
+                 <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+                   <p><strong>Requisitos cumplidos:</strong></p>
+                   <ul class="list-disc list-inside mt-2">
+                     <li>Usuario masculino: ${requisitosFinales.tieneMasculino ? '✅ Cumplido' : '❌ Pendiente'}</li>
+                     <li>Usuario con coche: ${requisitosFinales.tieneCoche ? '✅ Cumplido' : requisitosFinales.hayUsuariosConCocheDisponibles ? '❌ Pendiente' : '⚠️ No hay usuarios con coche disponibles'}</li>
+                   </ul>
+                 </div>
+               </div>
+             `,
+             confirmButtonText: 'Perfecto'
+           });
+         } catch (error) {
+           console.error('Error al completar el turno automáticamente:', error);
+           
+           // Manejar errores específicos del backend
+           let mensajeError = 'Ha ocurrido un error al intentar asignar usuarios automáticamente';
+           
+           if (error && typeof error === 'object' && 'response' in error) {
+             const response = (error as any).response;
+             if (response?.data?.message) {
+               mensajeError = response.data.message;
+             } else if (response?.status === 400) {
+               mensajeError = 'Uno o más usuarios ya están asignados a otros turnos en esta fecha';
+             } else if (response?.status === 409) {
+               mensajeError = 'Conflicto: Los usuarios seleccionados no pueden ser asignados a este turno';
+             }
+           }
+           
+           // Mostrar mensaje de error
+           Swal.fire({
+             icon: 'error',
+             title: 'Error al completar el turno',
+             text: mensajeError,
+             confirmButtonText: 'Entendido'
+           });
+         }
+       }
+     };
+     
+     // Mostrar la selección inicial con un Set vacío para usuarios ya mostrados
+     return mostrarSeleccionUsuarios(usuariosAAsignar, plazasOcupadas, new Set());
   };
 
   // Función para vaciar el turno (eliminar todos los usuarios)
