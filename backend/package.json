@@ -1,0 +1,61 @@
+{
+  "name": "agaplan-backend",
+  "version": "1.0.0",
+  "description": "Backend con Node.js, Express, TypeScript y Sequelize",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "migrate": "ts-node src/migrations/runner.ts",
+    "migrate:hora-range": "ts-node src/scripts/runHoraRangeMigration.ts",
+    "migrate:turno-usuarios": "ts-node src/scripts/runTurnoUsuariosMigration.ts",
+    "seed": "ts-node src/scripts/seedData.ts",
+    "test": "ts-node src/scripts/testAPI.ts",
+    "test:participacion": "ts-node src/scripts/ejemploParticipacionMensual.ts"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "typescript",
+    "sequelize",
+    "mysql"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^20.10.5",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^7.0.1",
+    "axios": "^1.11.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.6.5",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.6",
+    "nodemon": "^3.0.2",
+    "sequelize": "^6.35.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^20.10.5",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
