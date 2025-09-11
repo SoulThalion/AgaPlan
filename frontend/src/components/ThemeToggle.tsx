@@ -31,15 +31,13 @@ const ThemeToggle: React.FC = () => {
       aria-label={`Cambiar a modo ${isDarkMode ? 'claro' : 'oscuro'}`}
     >
       <span
-        className={`inline-block h-8 w-8 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+        className={`inline-block h-8 w-8 transform rounded-full bg-white shadow-lg transition-transform duration-300 flex items-center justify-center ${
           isDarkMode ? 'translate-x-10' : 'translate-x-1'
         }`}
-      />
-      
-      {/* Iconos del sol y luna */}
-      <div className="absolute left-2 text-yellow-500">
+      >
+        {/* Icono del sol */}
         <svg
-          className={`h-5 w-5 transition-opacity duration-300 ${
+          className={`h-4 w-4 transition-opacity duration-300 text-yellow-500 ${
             isDarkMode ? 'opacity-0' : 'opacity-100'
           }`}
           fill="currentColor"
@@ -51,11 +49,10 @@ const ThemeToggle: React.FC = () => {
             clipRule="evenodd"
           />
         </svg>
-      </div>
-      
-      <div className="absolute right-2 text-blue-500">
+        
+        {/* Icono de la luna */}
         <svg
-          className={`h-5 w-5 transition-opacity duration-300 ${
+          className={`h-4 w-4 transition-opacity duration-300 text-blue-500 absolute ${
             isDarkMode ? 'opacity-100' : 'opacity-0'
           }`}
           fill="currentColor"
@@ -63,7 +60,7 @@ const ThemeToggle: React.FC = () => {
         >
           <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
         </svg>
-      </div>
+      </span>
     </button>
   );
 };

@@ -2,7 +2,7 @@ import type { Turno, Usuario, Lugar, Exhibidor } from '../../types';
 import { useState } from 'react';
 import PlaceMapModal from '../PlaceMapModal';
 import ParticipacionMensualDisplay from '../ParticipacionMensualDisplay';
-import { confirmAction, confirmDelete } from '../../config/sweetalert';
+import { confirmDelete } from '../../config/sweetalert';
 import { useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { apiService } from '../../services/api';
@@ -532,53 +532,75 @@ export default function TurnoModal({
        hayUsuariosConCocheDisponibles: hayUsuariosConCocheDisponibles
      };
     
-         // Crear mensaje de confirmación con información sobre las relaciones y requisitos
-     const usuariosFiltrados = usuariosDisponibles.length - usuariosDisponiblesParaAsignar.length;
-     
-     let mensaje = `Se van a asignar los siguientes usuarios al turno:\n\n${usuariosAAsignar.map(usuario => {
-       const prioridadCargo = usuario.cargoInfo?.prioridad ? ` - Prioridad: ${usuario.cargoInfo.prioridad}` : '';
-       let info = `• ${usuario.nombre} (${usuario.cargo})${prioridadCargo} - Participación: ${usuario.participacionMensual || 0}`;
+         // Crear mensaje de confirmación simplificado con HTML para mejor formato
+     const usuariosLista = usuariosAAsignar.map(usuario => {
+       let info = `• ${usuario.nombre} (${usuario.cargo})`;
        if (usuario.siempreCon) {
          const usuarioRelacionado = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.siempreCon);
          if (usuarioRelacionado) {
-           const prioridadRelacionado = usuarioRelacionado.cargoInfo?.prioridad ? ` - Prioridad: ${usuarioRelacionado.cargoInfo.prioridad}` : '';
-           info += `\n  └─ Siempre con: ${usuarioRelacionado.nombre} (${usuarioRelacionado.cargo})${prioridadRelacionado}`;
-         }
-       }
-       if (usuario.nuncaCon) {
-         const usuarioExcluido = usuariosDisponiblesParaAsignar.find(u => u.id === usuario.nuncaCon);
-         if (usuarioExcluido) {
-           const prioridadExcluido = usuarioExcluido.cargoInfo?.prioridad ? ` - Prioridad: ${usuarioExcluido.cargoInfo.prioridad}` : '';
-           info += `\n  └─ Nunca con: ${usuarioExcluido.nombre} (${usuarioExcluido.cargo})${prioridadExcluido} - Excluido automáticamente`;
+           info += ` + ${usuarioRelacionado.nombre}`;
          }
        }
        return info;
-     }).join('\n')}\n\nTotal de plazas que ocuparán: ${plazasOcupadas}`;
+     }).join('<br>');
      
-     // Agregar información sobre usuarios filtrados
-     if (usuariosFiltrados > 0) {
-       mensaje += `\n\n📊 Usuarios filtrados automáticamente: ${usuariosFiltrados}`;
-       if (usuariosOcupadosEnFecha.length > 0) {
-         mensaje += `\n   • ${usuariosOcupadosEnFecha.length} ocupados en otros turnos de esta fecha`;
-       }
-       if (usuariosAsignados.length > 0) {
-         mensaje += `\n   • ${usuariosAsignados.length} ya asignados a este turno`;
-       }
+     // Agregar información sobre requisitos de forma más clara
+     const requisitosInfo = [];
+     
+     // Verificar si el turno está completo
+     const turnoCompleto = plazasOcupadas >= (selectedTurno.lugar?.capacidad || 0);
+     if (turnoCompleto) {
+       requisitosInfo.push('✅ Turno completo');
      }
      
-     mensaje += `\n\nRequisitos del turno:\n• Usuario masculino: ${requisitosFinales.tieneMasculino ? '✅ Cumplido' : '❌ Pendiente'}\n• Usuario con coche: ${requisitosFinales.tieneCoche ? '✅ Cumplido' : requisitosFinales.hayUsuariosConCocheDisponibles ? '❌ Pendiente' : '⚠️ No hay usuarios con coche disponibles'}`;
+     if (requisitosFinales.tieneMasculino) requisitosInfo.push('👨 Usuario masculino');
+     if (requisitosFinales.tieneCoche) requisitosInfo.push('🚗 Usuario con coche');
      
-     // Agregar información sobre el sistema de desempate
-     mensaje += `\n\n📋 Sistema de priorización:\n• 1º Prioridad: Participación mensual más baja\n• 2º Prioridad: Prioridad del cargo (menor número = mayor prioridad)\n• 3º Desempate: Aleatorio determinístico basado en ID del usuario`;
+     // Detectar si está en modo oscuro para ajustar colores
+     const isDarkMode = document.documentElement.classList.contains('dark');
      
-     mensaje += `\n\n¿Quieres proceder con la asignación automática?`;
+     const textColor = isDarkMode ? '#e5e7eb' : '#374151';
+     const titleColor = isDarkMode ? '#f9fafb' : '#111827';
+     const listColor = isDarkMode ? '#9ca3af' : '#4b5563';
+     const bgColor = isDarkMode ? '#1e3a8a' : '#eff6ff';
+     const borderColor = isDarkMode ? '#3b82f6' : '#dbeafe';
+     const accentColor = isDarkMode ? '#60a5fa' : '#1e40af';
+     
+     let mensaje = `<div style="text-align: left; color: ${textColor};">
+       <p style="margin-bottom: 15px; font-weight: 600; color: ${titleColor};">Se van a asignar <strong>${usuariosAAsignar.length}</strong> usuarios al turno:</p>
+       <div style="margin-bottom: 15px; padding-left: 10px; color: ${listColor};">
+         ${usuariosLista}
+       </div>`;
+     
+     if (requisitosInfo.length > 0) {
+       mensaje += `<div style="margin-bottom: 15px; padding: 12px; background-color: ${bgColor}; border: 1px solid ${borderColor}; border-left: 4px solid #3b82f6; border-radius: 6px;">
+         <p style="margin: 0 0 8px 0; font-weight: 600; color: ${accentColor}; font-size: 14px;">✅ Requisitos cumplidos:</p>
+         <ul style="margin: 0; padding-left: 18px; color: ${textColor};">
+           ${requisitosInfo.map(req => `<li style="margin: 3px 0; font-size: 14px;">${req}</li>`).join('')}
+         </ul>
+       </div>`;
+     }
+     
+     mensaje += `<p style="margin-bottom: 0; font-weight: 600; color: ${titleColor};">¿Proceder con la asignación?</p></div>`;
     
-    // Mostrar SweetAlert de confirmación
-    const result = await confirmAction(
-      'Confirmar Asignación Automática',
-      mensaje,
-      'Sí, asignar usuarios'
-    );
+    // Mostrar SweetAlert de confirmación con HTML
+    const result = await Swal.fire({
+      title: 'Confirmar Asignación Automática',
+      html: mensaje,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, asignar usuarios',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#3b82f6',
+      cancelButtonColor: '#6b7280',
+      customClass: {
+        popup: isDarkMode ? 'swal2-dark' : '',
+        title: isDarkMode ? 'swal2-dark' : '',
+        htmlContainer: isDarkMode ? 'swal2-dark' : '',
+        confirmButton: isDarkMode ? 'swal2-dark' : '',
+        cancelButton: isDarkMode ? 'swal2-dark' : ''
+      }
+    });
     
     // Si el usuario confirma, proceder con la asignación
     if (result.isConfirmed) {
