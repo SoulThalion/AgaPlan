@@ -46,7 +46,7 @@
     "typescript": "^5.3.3",
     "vite": "^5.0.10"
   },
-  "overrides": {
-    "@rollup/rollup-linux-x64-gnu": "npm:@rollup/rollup-linux-x64-gnu@latest"
+  "resolutions": {
+    "@rollup/rollup-linux-x64-gnu": "^4.9.0"
   }
 }

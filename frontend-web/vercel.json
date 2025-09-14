@@ -2,8 +2,13 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ],
-  "buildCommand": "npm ci && npm run build",
-  "installCommand": "npm ci --prefer-offline --no-audit",
-  "framework": "vite"
+  "buildCommand": "npm ci --legacy-peer-deps && npm run build",
+  "installCommand": "npm ci --legacy-peer-deps --prefer-offline --no-audit",
+  "framework": "vite",
+  "functions": {
+    "app/api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 }
   
