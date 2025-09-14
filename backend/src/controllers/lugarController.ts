@@ -186,11 +186,28 @@ export const createLugar = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    // Determinar el equipoId para el nuevo lugar
+    let lugarEquipoId: number;
+    console.log('createLugar - Determining equipoId:');
+    console.log('  - req.user?.rol:', req.user?.rol);
+    console.log('  - req.query.equipoId:', req.query.equipoId);
+    console.log('  - req.user?.equipoId:', req.user?.equipoId);
+    
+    if (req.user?.rol === 'superAdmin' && req.query.equipoId) {
+      // Si es superAdmin y hay un equipo seleccionado en la query, usar ese
+      lugarEquipoId = parseInt(req.query.equipoId as string);
+      console.log('createLugar - Using selected equipoId for superAdmin:', lugarEquipoId);
+    } else {
+      // Si no es superAdmin o no hay equipo seleccionado, usar el equipo del usuario
+      lugarEquipoId = req.user?.equipoId || 1;
+      console.log('createLugar - Using user equipoId:', lugarEquipoId);
+    }
+
     // Verificar si ya existe un lugar con ese nombre en el mismo equipo
     const existingLugar = await Lugar.findOne({ 
       where: { 
         nombre: nombre.trim(),
-        equipoId: req.user?.equipoId || 1
+        equipoId: lugarEquipoId
       } 
     });
     if (existingLugar) {
@@ -208,7 +225,7 @@ export const createLugar = async (req: AuthenticatedRequest, res: Response) => {
       exhibidores: exhibidores,
       latitud: latitud,
       longitud: longitud,
-      equipoId: req.user?.equipoId || 1
+      equipoId: lugarEquipoId
     });
 
     res.status(201).json({

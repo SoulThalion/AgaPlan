@@ -79,12 +79,29 @@ export const createCargo = async (req: AuthenticatedRequest, res: Response) => {
     
 
     
+    // Determinar el equipoId para el nuevo cargo
+    let cargoEquipoId: number;
+    console.log('createCargo - Determining equipoId:');
+    console.log('  - req.user?.rol:', req.user?.rol);
+    console.log('  - req.query.equipoId:', req.query.equipoId);
+    console.log('  - req.user?.equipoId:', req.user?.equipoId);
+    
+    if (req.user?.rol === 'superAdmin' && req.query.equipoId) {
+      // Si es superAdmin y hay un equipo seleccionado en la query, usar ese
+      cargoEquipoId = parseInt(req.query.equipoId as string);
+      console.log('createCargo - Using selected equipoId for superAdmin:', cargoEquipoId);
+    } else {
+      // Si no es superAdmin o no hay equipo seleccionado, usar el equipo del usuario
+      cargoEquipoId = req.user?.equipoId || 1;
+      console.log('createCargo - Using user equipoId:', cargoEquipoId);
+    }
+
     const cargo = await Cargo.create({
       nombre: nombre.trim(),
       descripcion: descripcion?.trim() || null,
       prioridad: prioridad || 999,
       activo: activo !== undefined ? activo : true,
-      equipoId: req.user?.equipoId || 1
+      equipoId: cargoEquipoId
     });
     
     res.status(201).json({
