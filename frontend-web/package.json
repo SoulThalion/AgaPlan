@@ -47,6 +47,13 @@
     "vite": "^5.0.10"
   },
   "resolutions": {
-    "@rollup/rollup-linux-x64-gnu": "^4.9.0"
+    "@rollup/rollup-linux-x64-gnu": "^4.9.0",
+    "@rollup/rollup-linux-x64-musl": "^4.9.0",
+    "@rollup/rollup-linux-arm64-gnu": "^4.9.0",
+    "@rollup/rollup-linux-arm64-musl": "^4.9.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
